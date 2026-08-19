@@ -28,6 +28,13 @@ env_vars:
 
 ---
 
+## 🌐 Live Production URL (الرابط المباشر)
+
+🚀 **رابط المنظومة المباشر على Netlify:**  
+👉 **[https://realestate-office-mgmt.netlify.app](https://realestate-office-mgmt.netlify.app)**
+
+---
+
 ## 📁 هيكلية المشروع الفنية (Repository Structure)
 
 ```
