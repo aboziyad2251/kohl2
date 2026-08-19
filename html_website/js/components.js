@@ -1,27 +1,26 @@
-// Shared Components (Sidebar, Header, Modal helpers)
+// Shared Components (Sidebar, Header, Modal helpers) matching Modern Real Estate Design
 
 function renderSidebar(activeHref) {
-  const navItems = [
-    { name: 'لوحة التحكم القيادية', href: 'index.html', icon: '📊', badge: null },
-    { name: 'طلبات العملاء (سكني/تجاري)', href: 'customer-orders.html', icon: '📋', badge: 'جديد' },
-    { name: 'إدارة الأملاك والتشغيل', href: 'property-management.html', icon: '🏢', badge: 'جديد' },
-    { name: 'الأرباح والمعاملات المالية', href: 'financials-earnings.html', icon: '💰', badge: 'مالي' },
-    { name: 'التقرير اليومي ومستشار AI', href: 'financials-daily-reports.html', icon: '✨', badge: 'ذكاء AI' },
-    { name: 'مركز العقود والإيجارات', href: 'contracts.html', icon: '✍️', badge: 'جديد' },
-    { name: 'الملكية والعقارات والوكالات', href: 'ownership-properties.html', icon: '🏛️', badge: null },
-    { name: 'اتفاقيات الوساطة (إيجار)', href: 'brokerage-agreements.html', icon: '🤝', badge: 'معتمد' },
-    { name: 'الخدمات العامة والمعاملات', href: 'general-services.html', icon: '💼', badge: 'خدمات' },
+  const generalItems = [
+    { name: 'Dashboard / لوحة التحكم', href: 'index.html', icon: '📊' },
+    { name: 'Property Info / معلومات العقارات', href: 'ownership-properties.html', icon: '🏢' },
+    { name: 'Staff Schedule / جدول المواعيد', href: 'property-management.html', icon: '📅' },
+    { name: 'Booking & Contracts / العقود', href: 'contracts.html', icon: '✍️' },
+    { name: 'Maintenance / الصيانة', href: 'property-management.html', icon: '🔧' },
+    { name: 'Reports / التقارير المالية', href: 'financials-daily-reports.html', icon: '📑' },
+    { name: 'Customer Orders / طلبات العملاء', href: 'customer-orders.html', icon: '📋' },
+    { name: 'Brokerage / اتفاقيات السعي', href: 'brokerage-agreements.html', icon: '🤝' },
+    { name: 'General Services / الخدمات العامة', href: 'general-services.html', icon: '💼' }
   ];
 
-  let navLinksHtml = navItems.map(item => {
+  let generalNavHtml = generalItems.map(item => {
     const isActive = activeHref.includes(item.href) || (activeHref === '' && item.href === 'index.html');
     return `
       <a href="${item.href}" class="sidebar-nav-item ${isActive ? 'active' : ''}">
         <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <span style="font-size: 1.15rem; display: flex; align-items: center;">${item.icon}</span>
+          <span style="font-size: 1.1rem; display: flex; align-items: center;">${item.icon}</span>
           <span style="font-size: 0.85rem; font-weight: ${isActive ? '800' : '600'};">${item.name}</span>
         </div>
-        ${item.badge ? `<span class="nav-badge ${item.badge === 'جديد' ? 'nav-badge-teal' : item.badge === 'مالي' ? 'nav-badge-blue' : item.badge === 'ذكاء AI' ? 'nav-badge-cyan' : 'nav-badge-slate'}">${item.badge}</span>` : `<span style="color: #475569; font-size: 11px;">‹</span>`}
       </a>
     `;
   }).join('');
@@ -35,40 +34,48 @@ function renderSidebar(activeHref) {
             🏢
           </div>
           <div>
-            <h1 style="font-size: 1.05rem; font-weight: 900; color: #fff; line-height: 1.2;">نظام إدارة المكتب</h1>
-            <p style="font-size: 11px; color: #38bdf8; font-weight: 700; margin-top: 2px;">office.mabotargagh.online</p>
+            <h1 style="font-size: 1rem; font-weight: 900; color: #fff; line-height: 1.2;">Realys Management</h1>
+            <p style="font-size: 10.5px; color: #38bdf8; font-weight: 700; margin-top: 2px;">office.mabotargagh.online</p>
           </div>
         </div>
 
-        <!-- Navigation Links -->
-        <nav style="padding: 1rem 0.75rem; display: flex; flex-direction: column; gap: 0.35rem;">
-          <div style="padding: 0 0.75rem 0.5rem 0.75rem; font-size: 11px; font-weight: 800; color: #64748b; letter-spacing: 0.05em;">
-            القائمة الرئيسية
+        <!-- General Section -->
+        <nav style="padding: 1rem 0.75rem 0.5rem 0.75rem; display: flex; flex-direction: column; gap: 0.25rem;">
+          <div style="padding: 0 0.75rem 0.4rem 0.75rem; font-size: 10px; font-weight: 800; color: #64748b; letter-spacing: 0.08em; text-transform: uppercase;">
+            GENERAL / عام
           </div>
-          ${navLinksHtml}
+          ${generalNavHtml}
         </nav>
       </div>
 
       <div>
-        <!-- Server Connection Status -->
-        <div class="sidebar-server-status">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
-            <span style="display: flex; align-items: center; gap: 0.4rem; color: #cbd5e1; font-weight: 700; font-size: 11px;">
-              <span style="width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 10px #34d399; display: inline-block;"></span>
-              <span>خادم Supabase VPS متصل</span>
-            </span>
+        <!-- Account Section -->
+        <div style="padding: 0.5rem 0.75rem; display: flex; flex-direction: column; gap: 0.25rem; border-top: 1px solid rgba(255, 255, 255, 0.06);">
+          <div style="padding: 0 0.75rem 0.35rem 0.75rem; font-size: 10px; font-weight: 800; color: #64748b; letter-spacing: 0.08em; text-transform: uppercase;">
+            ACCOUNT / الحساب
           </div>
-          <p style="font-family: monospace; color: #94a3b8; direction: ltr; text-align: right; font-size: 10.5px; margin: 0;">IP: 76.13.40.119 (HTTPS)</p>
+          <a href="financials-earnings.html" class="sidebar-nav-item">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <span>⚙️</span>
+              <span style="font-size: 0.85rem; font-weight: 600;">Settings / الإعدادات المالية</span>
+            </div>
+          </a>
+          <a href="index.html" class="sidebar-nav-item" style="color: #f87171;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <span>🚪</span>
+              <span style="font-size: 0.85rem; font-weight: 600;">Logout / خروج</span>
+            </div>
+          </a>
         </div>
 
         <!-- Office Profile Footer -->
         <div class="sidebar-profile-footer">
           <div class="profile-avatar">
-            م.ع
+            HL
           </div>
-          <div>
-            <div style="font-size: 12px; font-weight: 800; color: #ffffff;">مكتب العقارات المعتمد</div>
-            <div style="font-size: 10.5px; color: #94a3b8;">ترخيص إيجار رقم: 893214</div>
+          <div style="flex: 1;">
+            <div style="font-size: 11.5px; font-weight: 800; color: #ffffff;">Harry Lancaster</div>
+            <div style="font-size: 10px; color: #38bdf8;">Owner / المالك العقاري</div>
           </div>
         </div>
       </div>
@@ -77,45 +84,42 @@ function renderSidebar(activeHref) {
 }
 
 function renderHeader(title, subtitle) {
-  const currentDate = new Date().toLocaleDateString('ar-SA', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-
   return `
     <header class="header">
-      <!-- Right Title in RTL -->
+      <!-- Right: User Greeting -->
       <div>
-        <h2 style="font-size: 1.2rem; font-weight: 900; color: #fff; margin: 0; line-height: 1.2;">${title || 'نظام إدارة العقود والملكية العقارية'}</h2>
-        <p style="font-size: 11px; color: #94a3b8; margin: 0.2rem 0 0 0;">${subtitle || 'لوحة التحكم والعمليات المباشرة'}</p>
+        <h2 style="font-size: 1.25rem; font-weight: 900; color: #fff; margin: 0; display: flex; align-items: center; gap: 0.4rem;">
+          <span>Hi, Harry Lancaster</span>
+          <span style="font-size: 1.1rem;">👋</span>
+        </h2>
+        <p style="font-size: 11px; color: #94a3b8; margin: 0.2rem 0 0 0;">Take control your every activity that exists / تحكم بجميع الأنشطة والعمليات العقارية.</p>
       </div>
 
-      <!-- Left Widgets in RTL -->
-      <div style="display: flex; align-items: center; gap: 0.85rem;">
-        <!-- Live Date Widget -->
-        <div class="header-widget">
-          <span style="color: #38bdf8; font-size: 1rem;">📅</span>
-          <span style="font-weight: 700; font-size: 11px; color: #e2e8f0;">${currentDate}</span>
-        </div>
-
-        <!-- Search Bar -->
-        <div class="header-search-box">
+      <!-- Left: Search Bar & Profile -->
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <!-- Search Input -->
+        <div class="header-search-box" style="width: 320px;">
           <span style="color: #64748b; font-size: 0.9rem;">🔍</span>
-          <input type="text" placeholder="بحث عن عقار، عقد أو صك..." class="header-search-input" id="global-header-search">
+          <input type="text" placeholder="Search properties, tasks, etc..." class="header-search-input" id="global-header-search">
+          <span style="font-size: 10px; color: #64748b; background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px;">⌘K</span>
         </div>
 
-        <!-- Notification Bell Icon -->
-        <div class="header-icon-btn" title="الإشعارات والتنبيهات">
+        <!-- Notification Bell -->
+        <div class="header-icon-btn" title="Notifications">
           <span style="font-size: 1.05rem;">🔔</span>
           <span class="notification-dot"></span>
         </div>
 
-        <!-- Ejar Active Badge -->
-        <div class="header-ejar-badge">
-          <span style="width: 7px; height: 7px; border-radius: 50%; background: #34d399; box-shadow: 0 0 8px #34d399;"></span>
-          <span>ربط إيجار نشط</span>
+        <!-- Header Profile -->
+        <div style="display: flex; align-items: center; gap: 0.65rem; padding: 0.35rem 0.75rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.08);">
+          <div class="profile-avatar" style="width: 32px; height: 32px; font-size: 0.75rem;">
+            HL
+          </div>
+          <div>
+            <div style="font-size: 11px; font-weight: 800; color: #fff;">Harry Lancaster</div>
+            <div style="font-size: 9.5px; color: #94a3b8;">Owner</div>
+          </div>
+          <span style="color: #64748b; font-size: 10px; margin-right: 4px;">⌄</span>
         </div>
       </div>
     </header>
