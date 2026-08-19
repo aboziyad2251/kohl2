@@ -28,7 +28,7 @@
           </div>
 
           <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-            <button onclick="exportTableToCSV('طلبات_العملاء.csv', 'orders-table')" class="btn btn-outline-emerald">
+            <button onclick="exportCustomerOrdersCSV()" class="btn btn-emerald">
               <span>📊</span>
               <span>تصدير إلى Excel/CSV</span>
             </button>
@@ -179,50 +179,105 @@
     </div>
   </div>
 
+  <!-- Supabase SDK & ERP Service Layer -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/data.js"></script>
   <script src="js/components.js"></script>
-  <script>
+  <script type="module" src="js/export-utils.js"></script>
+  <script type="module" src="js/ui-interactions.js"></script>
+  <script type="module" src="js/supabase-service.js"></script>
+  <script type="module">
+    import { RealEstateAPI } from './js/supabase-service.js';
+    import { ExportUtils } from './js/export-utils.js';
+    import { UI } from './js/ui-interactions.js';
+
     document.getElementById('sidebar-slot').innerHTML = renderSidebar('customer-orders.html');
-    document.getElementById('header-slot').innerHTML = renderHeader('طلبات العملاء العقارية', 'متابعة وتلبية طلبات واحتياجات السوق العقاري');
+    document.getElementById('header-slot').innerHTML = renderHeader('طلبات العملاء العقارية', 'سجل احتياجات الشراء والإيجار السكنية والتجارية');
 
-    let store = getAppStore();
+    let allOrders = [];
 
-    function renderOrders(ordersToRender) {
-      const tbody = document.getElementById('orders-tbody');
-      tbody.innerHTML = ordersToRender.map(ord => {
-        let statusBadge = '';
-        if (ord.status === 'New') statusBadge = '<span class="badge badge-sky">جديد</span>';
-        else if (ord.status === 'Searching') statusBadge = '<span class="badge badge-warning">قيد البحث</span>';
-        else if (ord.status === 'Fulfilled') statusBadge = '<span class="badge badge-success">تم التوفير</span>';
-        else statusBadge = '<span class="badge badge-danger">ملغى</span>';
+    async function loadOrdersTable() {
+      const orders = await RealEstateAPI.getCustomerOrders();
+      allOrders = orders || [];
+      updateKPIs(allOrders);
+      filterOrders();
+    }
+
+    function updateKPIs(orders) {
+      document.getElementById('stat-total').innerText = orders.length;
+      document.getElementById('stat-searching').innerText = orders.filter(o => o.status === 'New' || o.status === 'new' || o.status === 'Searching' || o.status === 'قيد البحث').length;
+      document.getElementById('stat-fulfilled').innerText = orders.filter(o => o.status === 'Fulfilled' || o.status === 'completed' || o.status === 'منجز').length;
+    }
+
+    window.filterOrders = function() {
+      const q = (document.getElementById('order-search').value || '').toLowerCase().trim();
+      const cat = document.getElementById('cat-filter').value;
+      const st = document.getElementById('status-filter').value;
+
+      const filtered = allOrders.filter(ord => {
+        const clientName = (ord.customer_name || ord.client_name || '').toLowerCase();
+        const clientPhone = (ord.customer_phone || ord.client_phone || '');
+        const bType = (ord.building_type || '').toLowerCase();
+        const area = (ord.desired_area || '').toLowerCase();
+        const matchQ = !q || clientName.includes(q) || clientPhone.includes(q) || bType.includes(q) || area.includes(q);
+        const matchCat = cat === 'ALL' || ord.category === cat;
+        const ordStatus = (ord.status || '').toLowerCase();
+        const matchSt = st === 'ALL' || ordStatus === st.toLowerCase() || (st === 'New' && ordStatus === 'new');
+        return matchQ && matchCat && matchSt;
+      });
+
+      renderOrders(filtered);
+    };
+
+    function renderOrders(orders) {
+      const tbody = document.getElementById('orders-table-body');
+      if (!tbody) return;
+
+      if (!orders.length) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 2.5rem; color: #94a3b8;">لا توجد طلبات مطابقة لمعايير البحث</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = orders.map(ord => {
+        const isNew = ord.status === 'New' || ord.status === 'new' || ord.status === 'جديد';
+        const isFulfilled = ord.status === 'Fulfilled' || ord.status === 'completed' || ord.status === 'منجز';
+        const statusBadge = isNew
+          ? `<span class="badge badge-warning">⚡ جديد</span>`
+          : isFulfilled
+          ? `<span class="badge badge-success">✅ تم التوفير</span>`
+          : `<span class="badge badge-info">🔍 قيد البحث</span>`;
+
+        const name = ord.customer_name || ord.client_name || 'عميل';
+        const phone = ord.customer_phone || ord.client_phone || '-';
+        const bMin = Number(ord.budget_min || 0);
+        const bMax = Number(ord.budget_max || 0);
 
         return `
           <tr>
-            <td style="font-family: monospace; font-weight: 700; color: #38bdf8;">${ord.order_number}</td>
+            <td style="font-family: monospace; font-weight: 700; color: #38bdf8;">${ord.order_number || ord.id}</td>
             <td>
-              <div style="font-weight: 700; color: #fff;">${ord.client_name}</div>
+              <div style="font-weight: 700; color: #fff;">${name}</div>
               <div style="font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 0.35rem; margin-top: 0.15rem;">
-                <span style="direction: ltr;">${ord.client_phone}</span>
-                <a href="https://wa.me/966${ord.client_phone.replace(/^0/, '')}" target="_blank" style="color: #34d399;" title="واتساب">💬</a>
+                <span style="direction: ltr;">${phone}</span>
+                <a href="https://wa.me/966${phone.replace(/^0/, '')}" target="_blank" style="color: #34d399;" title="واتساب">💬</a>
               </div>
             </td>
             <td>
-              <span class="badge ${ord.category === 'RESIDENTIAL' ? 'badge-sky' : 'badge-purple'}">
-                ${ord.category === 'RESIDENTIAL' ? '🏠 سكني' : '💼 تجاري'}
+              <span class="badge ${ord.category === 'RESIDENTIAL' || ord.category === 'سكني' ? 'badge-info' : 'badge-purple'}">
+                ${ord.category === 'RESIDENTIAL' || ord.category === 'سكني' ? '🏠 سكني' : '💼 تجاري'}
               </span>
             </td>
-            <td style="font-weight: 600; color: #f1f5f9;">${ord.building_type}</td>
-            <td style="color: #cbd5e1;">📍 ${ord.desired_area}</td>
+            <td style="font-weight: 600; color: #f1f5f9;">${ord.building_type || 'وحدة عقارية'}</td>
+            <td style="color: #cbd5e1;">📍 ${ord.desired_area || 'الرياض'}</td>
             <td style="font-weight: 800; color: #34d399;">
-              ${ord.budget_min ? `${ord.budget_min.toLocaleString('ar-SA')} - ` : ''}
-              ${ord.budget_max ? `${ord.budget_max.toLocaleString('ar-SA')} ر.س` : 'غير محدد'}
+              ${bMin ? `${bMin.toLocaleString('ar-SA')} - ` : ''}
+              ${bMax ? `${bMax.toLocaleString('ar-SA')} ر.س` : 'غير محدد'}
             </td>
             <td style="max-width: 200px; color: #cbd5e1; font-size: 11px;">${ord.notes || '—'}</td>
             <td>${statusBadge}</td>
             <td style="text-align: center;">
               <div style="display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
-                ${ord.status !== 'Fulfilled' ? `<button onclick="markOrderFulfilled('${ord.id}')" class="btn btn-outline-emerald" style="padding: 0.25rem 0.5rem; font-size: 10px;">إكتمال</button>` : ''}
-                <button onclick="deleteOrder('${ord.id}')" class="btn-icon" style="color: #f87171;" title="حذف">🗑️</button>
+                <button onclick="window.handleDeleteOrder('${ord.id || ord.order_number}')" class="btn-icon" style="color: #f87171; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; cursor: pointer;" title="حذف">🗑️</button>
               </div>
             </td>
           </tr>
@@ -230,59 +285,60 @@
       }).join('');
     }
 
-    function filterOrders() {
-      const q = document.getElementById('order-search').value.toLowerCase().trim();
-      const cat = document.getElementById('cat-filter').value;
-      const st = document.getElementById('status-filter').value;
-
-      const filtered = store.customerOrders.filter(ord => {
-        const matchQ = !q || ord.client_name.toLowerCase().includes(q) || ord.client_phone.includes(q) || ord.building_type.toLowerCase().includes(q) || ord.desired_area.toLowerCase().includes(q);
-        const matchCat = cat === 'ALL' || ord.category === cat;
-        const matchSt = st === 'ALL' || ord.status === st;
-        return matchQ && matchCat && matchSt;
-      });
-
-      renderOrders(filtered);
-    }
-
-    function markOrderFulfilled(id) {
-      store.customerOrders = store.customerOrders.map(o => o.id === id ? { ...o, status: 'Fulfilled' } : o);
-      saveAppStore(store);
-      filterOrders();
-    }
-
-    function deleteOrder(id) {
+    window.handleDeleteOrder = async function(id) {
       if (confirm('هل أنت متأكد من حذف هذا الطلب؟')) {
-        store.customerOrders = store.customerOrders.filter(o => o.id !== id);
-        saveAppStore(store);
-        filterOrders();
+        await RealEstateAPI.deleteCustomerOrder(id);
+        UI.toast('تم حذف الطلب بنجاح', 'success');
+        loadOrdersTable();
       }
+    };
+
+    window.exportCustomerOrdersCSV = function() {
+      ExportUtils.exportToCSV('طلبات_العملاء', allOrders, {
+        order_number: 'رقم الطلب',
+        customer_name: 'اسم العميل',
+        customer_phone: 'رقم الجوال',
+        category: 'التصنيف',
+        building_type: 'نوع العقار',
+        desired_area: 'الحي المطلوب',
+        budget_max: 'الميزانية القصوى',
+        status: 'الحالة'
+      });
+    };
+
+    // Handle Form Submit
+    const form = document.querySelector('#add-order-modal form');
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const newOrder = {
+          order_number: 'ORD-2026-' + Math.floor(100 + Math.random() * 900),
+          customer_name: document.getElementById('new-client-name')?.value || 'عميل جديد',
+          customer_phone: document.getElementById('new-client-phone')?.value || '',
+          order_type: 'شراء',
+          category: document.getElementById('new-client-cat')?.value || 'RESIDENTIAL',
+          building_type: document.getElementById('new-client-type')?.value || 'شقة فاخرة',
+          desired_area: document.getElementById('new-client-area')?.value || 'الرياض',
+          budget_min: Number(document.getElementById('new-budget-min')?.value) || 0,
+          budget_max: Number(document.getElementById('new-budget-max')?.value) || 0,
+          notes: document.getElementById('new-client-notes')?.value || '',
+          status: 'new'
+        };
+
+        const res = await RealEstateAPI.addCustomerOrder(newOrder);
+        if (!res.error) {
+          UI.toast('تم تسجيل طلب العميل بنجاح في قاعدة البيانات', 'success');
+          closeModal('add-order-modal');
+          form.reset();
+          loadOrdersTable();
+        } else {
+          UI.toast('حدث خطأ أثناء إضافة الطلب', 'error');
+        }
+      });
     }
 
-    function handleCreateOrder(e) {
-      e.preventDefault();
-      const newOrd = {
-        id: 'ord-' + Date.now(),
-        order_number: 'ORD-2026-0' + (store.customerOrders.length + 1),
-        client_name: document.getElementById('new-client-name').value,
-        client_phone: document.getElementById('new-client-phone').value,
-        category: document.getElementById('new-client-cat').value,
-        building_type: document.getElementById('new-client-type').value,
-        desired_area: document.getElementById('new-client-area').value,
-        budget_min: Number(document.getElementById('new-budget-min').value) || 0,
-        budget_max: Number(document.getElementById('new-budget-max').value) || 0,
-        notes: document.getElementById('new-client-notes').value,
-        status: 'New',
-        created_at: new Date().toISOString().split('T')[0]
-      };
-      store.customerOrders.unshift(newOrd);
-      saveAppStore(store);
-      closeModal('add-order-modal');
-      e.target.reset();
-      filterOrders();
-    }
-
-    filterOrders();
+    loadOrdersTable();
+    RealEstateAPI.subscribeToChanges('customer_orders', () => loadOrdersTable());
   </script>
 </body>
 </html>

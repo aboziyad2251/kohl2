@@ -297,22 +297,88 @@
       mntTbody.innerHTML = store.maintenanceTasks.map(m => `
         <tr>
           <td style="font-family: monospace; font-weight: 700; color: #fbbf24;">${m.task_number}</td>
-          <td>
-            <div style="font-weight: 700; color: #fff;">${m.property_name}</div>
-            <div style="font-size: 10px; color: #94a3b8;">${m.unit_name || ''}</div>
-          </td>
-          <td style="font-weight: 600; color: #cbd5e1;">${m.maintenance_type}</td>
-          <td style="font-weight: 800; color: #fbbf24;">${m.cost_amount.toLocaleString('ar-SA')} ر.س</td>
-          <td>${m.contractor_name || '—'}</td>
-          <td><span class="badge ${m.status === 'Completed' ? 'badge-success' : 'badge-warning'}">${m.status === 'Completed' ? 'مكتملة' : 'قيد التنفيذ'}</span></td>
-          <td style="text-align: center;">
-            <button onclick="deleteMnt('${m.id}')" class="btn-icon" style="color: #f87171;" title="حذف">🗑️</button>
-          </td>
-        </tr>
-      `).join('');
+  <!-- Supabase SDK & ERP Service Layer -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/data.js"></script>
+  <script src="js/components.js"></script>
+  <script type="module" src="js/export-utils.js"></script>
+  <script type="module" src="js/ui-interactions.js"></script>
+  <script type="module" src="js/supabase-service.js"></script>
+  <script type="module">
+    import { RealEstateAPI } from './js/supabase-service.js';
+    import { ExportUtils } from './js/export-utils.js';
+    import { UI } from './js/ui-interactions.js';
+
+    document.getElementById('sidebar-slot').innerHTML = renderSidebar('property-management.html');
+    document.getElementById('header-slot').innerHTML = renderHeader('إدارة الأملاك والتشغيل', 'متابعة عمارات ومجمعات الأملاك وأوامر الصيانة');
+
+    let store = getAppStore();
+    let managedProps = [];
+    let maintenanceTasks = [];
+
+    async function loadPMData() {
+      managedProps = await RealEstateAPI.getManagedProperties();
+      maintenanceTasks = await RealEstateAPI.getMaintenanceTasks();
+      renderPM();
     }
 
-    function switchTab(tab) {
+    function renderPM() {
+      const pmList = managedProps.length ? managedProps : store.managedProperties;
+      const mntList = maintenanceTasks.length ? maintenanceTasks : store.maintenanceTasks;
+
+      document.getElementById('pm-total-props').innerText = pmList.length;
+
+      // Render PM Contracts Table
+      const pmTbody = document.getElementById('pm-tbody');
+      if (pmTbody) {
+        pmTbody.innerHTML = pmList.map(p => `
+          <tr>
+            <td style="font-family: monospace; font-weight: 700; color: #38bdf8;">${p.contract_number || 'PMC-2026'}</td>
+            <td>
+              <div style="font-weight: 700; color: #fff;">${p.property_name}</div>
+              <div style="font-size: 11px; color: #94a3b8;">${p.property_type || 'عمارة سكنية'}</div>
+            </td>
+            <td>
+              <div style="color: #f1f5f9;">${p.owner_name || p.lessor_name || 'المالك'}</div>
+              <div style="font-size: 11px; color: #94a3b8; direction: ltr; text-align: right;">${p.owner_phone || p.lessor_phone || '-'}</div>
+            </td>
+            <td>
+              <span style="font-weight: 700; color: #fff;">${p.units_occupied || p.occupied_units || 0} / ${p.units_total || p.total_units || 1}</span>
+              <span style="font-size: 10px; color: #34d399; margin-right: 0.25rem;">(شاغر: ${Math.max(0, (p.units_total || p.total_units || 1) - (p.units_occupied || p.occupied_units || 0))})</span>
+            </td>
+            <td style="font-weight: 700; color: #38bdf8;">${p.management_fee_percentage || p.fee_value || 5}%</td>
+            <td style="font-weight: 800; color: #34d399;">${Number(p.annual_management_fee || p.collected_revenue || 50000).toLocaleString('ar-SA')} ر.س</td>
+            <td><span class="badge badge-success">${p.status || 'ساري'}</span></td>
+            <td style="text-align: center;">
+              <button onclick="window.deletePM('${p.id}')" class="btn-icon" style="color: #f87171; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; cursor: pointer;" title="حذف">🗑️</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      // Render Maintenance Table
+      const mntTbody = document.getElementById('maintenance-tbody');
+      if (mntTbody) {
+        mntTbody.innerHTML = mntList.map(m => `
+          <tr>
+            <td style="font-family: monospace; font-weight: 700; color: #fbbf24;">${m.task_number || 'TSK-2026'}</td>
+            <td>
+              <div style="font-weight: 700; color: #fff;">${m.property_name}</div>
+              <div style="font-size: 10px; color: #94a3b8;">${m.unit_number || m.unit_name || ''}</div>
+            </td>
+            <td style="font-weight: 600; color: #cbd5e1;">${m.task_type || m.maintenance_type || 'صيانة عامة'}</td>
+            <td style="font-weight: 800; color: #fbbf24;">${Number(m.cost_amount || 0).toLocaleString('ar-SA')} ر.س</td>
+            <td>${m.contractor_name || '—'}</td>
+            <td><span class="badge ${m.status === 'Completed' || m.status === 'مكتملة' ? 'badge-success' : 'badge-warning'}">${m.status === 'Completed' || m.status === 'مكتملة' ? 'مكتملة' : 'قيد التنفيذ'}</span></td>
+            <td style="text-align: center;">
+              <button onclick="window.deleteMnt('${m.id}')" class="btn-icon" style="color: #f87171; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; cursor: pointer;" title="حذف">🗑️</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    window.switchTab = function(tab) {
       document.getElementById('tab-content-contracts').style.display = tab === 'contracts' ? 'block' : 'none';
       document.getElementById('tab-content-maintenance').style.display = tab === 'maintenance' ? 'block' : 'none';
       document.getElementById('tab-content-statements').style.display = tab === 'statements' ? 'block' : 'none';
@@ -320,70 +386,83 @@
       document.getElementById('tab-btn-contracts').className = 'tab-btn ' + (tab === 'contracts' ? 'active' : '');
       document.getElementById('tab-btn-maintenance').className = 'tab-btn ' + (tab === 'maintenance' ? 'active' : '');
       document.getElementById('tab-btn-statements').className = 'tab-btn ' + (tab === 'statements' ? 'active' : '');
-    }
+    };
 
-    function deletePM(id) {
+    window.deletePM = function(id) {
       if (confirm('حذف عقد إدارة الأملاك هذا؟')) {
         store.managedProperties = store.managedProperties.filter(p => p.id !== id);
         saveAppStore(store);
         renderPM();
+        UI.toast('تم حذف العقد', 'info');
       }
-    }
+    };
 
-    function deleteMnt(id) {
+    window.deleteMnt = function(id) {
       if (confirm('حذف أمر الصيانة؟')) {
         store.maintenanceTasks = store.maintenanceTasks.filter(m => m.id !== id);
         saveAppStore(store);
         renderPM();
+        UI.toast('تم حذف أمر الصيانة', 'info');
       }
+    };
+
+    window.exportPMCSV = function() {
+      ExportUtils.exportToCSV('إدارة_الأملاك', managedProps.length ? managedProps : store.managedProperties);
+    };
+
+    const pmForm = document.querySelector('#add-pm-modal form');
+    if (pmForm) {
+      pmForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const units = Number(document.getElementById('new-pm-units')?.value || 1);
+        const occupied = Number(document.getElementById('new-pm-occupied')?.value || 1);
+        const newP = {
+          contract_number: 'PMC-2026-00' + Math.floor(10 + Math.random() * 90),
+          property_name: document.getElementById('new-pm-name')?.value || 'عقار جديد',
+          property_type: document.getElementById('new-pm-type')?.value || 'Residential',
+          owner_name: document.getElementById('new-pm-lessor')?.value || 'المالك',
+          owner_phone: document.getElementById('new-pm-phone')?.value || '',
+          units_total: units,
+          units_occupied: occupied,
+          management_fee_percentage: Number(document.getElementById('new-pm-fee')?.value || 5),
+          annual_management_fee: Number(document.getElementById('new-pm-rev')?.value || 50000),
+          start_date: new Date().toISOString().split('T')[0],
+          end_date: new Date(Date.now() + 365*24*60*60*1000).toISOString().split('T')[0],
+          status: 'Active'
+        };
+        store.managedProperties.unshift(newP);
+        saveAppStore(store);
+        UI.toast('تم تسجيل عقد إدارة الأملاك بنجاح', 'success');
+        closeModal('add-pm-modal');
+        pmForm.reset();
+        renderPM();
+      });
     }
 
-    function handleCreatePM(e) {
-      e.preventDefault();
-      const units = Number(document.getElementById('new-pm-units').value);
-      const occupied = Number(document.getElementById('new-pm-occupied').value);
-      const newP = {
-        id: 'pmc-' + Date.now(),
-        contract_number: 'PMC-2026-00' + (store.managedProperties.length + 1),
-        property_name: document.getElementById('new-pm-name').value,
-        property_type: document.getElementById('new-pm-type').value,
-        lessor_name: document.getElementById('new-pm-lessor').value,
-        lessor_phone: document.getElementById('new-pm-phone').value,
-        total_units: units,
-        occupied_units: occupied,
-        vacant_units: Math.max(0, units - occupied),
-        fee_type: 'PERCENTAGE',
-        fee_value: Number(document.getElementById('new-pm-fee').value),
-        annual_expected_revenue: Number(document.getElementById('new-pm-rev').value),
-        collected_revenue: Number(document.getElementById('new-pm-col').value),
-        status: 'Active'
-      };
-      store.managedProperties.unshift(newP);
-      saveAppStore(store);
-      closeModal('add-pm-modal');
-      e.target.reset();
-      renderPM();
+    const mntForm = document.querySelector('#add-maintenance-modal form');
+    if (mntForm) {
+      mntForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const newM = {
+          task_number: 'TSK-2026-' + Math.floor(100 + Math.random() * 900),
+          property_name: document.getElementById('new-mnt-prop')?.value || 'عقار',
+          task_type: document.getElementById('new-mnt-type')?.value || 'General',
+          cost_amount: Number(document.getElementById('new-mnt-cost')?.value || 0),
+          contractor_name: document.getElementById('new-mnt-contractor')?.value || '',
+          status: 'Pending',
+          description: 'طلب صيانة دورية'
+        };
+        await RealEstateAPI.addMaintenanceTask(newM);
+        UI.toast('تم فتح أمر الصيانة بنجاح', 'success');
+        closeModal('add-maintenance-modal');
+        mntForm.reset();
+        loadPMData();
+      });
     }
 
-    function handleCreateMnt(e) {
-      e.preventDefault();
-      const newM = {
-        id: 'mnt-' + Date.now(),
-        task_number: 'MNT-2026-10' + (store.maintenanceTasks.length + 1),
-        property_name: document.getElementById('new-mnt-prop').value,
-        maintenance_type: document.getElementById('new-mnt-type').value,
-        cost_amount: Number(document.getElementById('new-mnt-cost').value),
-        contractor_name: document.getElementById('new-mnt-contractor').value,
-        status: 'In_Progress'
-      };
-      store.maintenanceTasks.unshift(newM);
-      saveAppStore(store);
-      closeModal('add-maintenance-modal');
-      e.target.reset();
-      renderPM();
-    }
-
-    renderPM();
+    loadPMData();
+    RealEstateAPI.subscribeToChanges('managed_properties', () => loadPMData());
+    RealEstateAPI.subscribeToChanges('property_maintenance_tasks', () => loadPMData());
   </script>
 </body>
 </html>

@@ -196,17 +196,34 @@
     </div>
   </div>
 
+  <!-- Supabase SDK & ERP Service Layer -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/data.js"></script>
   <script src="js/components.js"></script>
-  <script>
+  <script type="module" src="js/export-utils.js"></script>
+  <script type="module" src="js/ui-interactions.js"></script>
+  <script type="module" src="js/supabase-service.js"></script>
+  <script type="module">
+    import { RealEstateAPI } from './js/supabase-service.js';
+    import { ExportUtils } from './js/export-utils.js';
+    import { UI } from './js/ui-interactions.js';
+
     document.getElementById('sidebar-slot').innerHTML = renderSidebar('financials-daily-reports.html');
     document.getElementById('header-slot').innerHTML = renderHeader('التقرير اليومي ومستشار AI', 'تحليل الأداء التشغيلي والمالي والتوصيات الذكية');
 
-    document.getElementById('report-date').innerText = new Date().toISOString().split('T')[0];
+    document.getElementById('report-date').innerText = new Date().toLocaleDateString('ar-SA');
 
-    function regenerateAI() {
-      alert('تم تحديث وتحليل بيانات اليوم بواسطة مستشار الذكاء الاصطناعي بنجاح!');
-    }
+    window.regenerateAI = async function() {
+      UI.toast('جاري تحليل العمليات وربطها بالذكاء الاصطناعي...', 'info');
+      const kpis = await RealEstateAPI.getDashboardKPIs();
+      setTimeout(() => {
+        UI.toast('تم تحديث توصيات مستشار الذكاء الاصطناعي بنجاح', 'success');
+      }, 700);
+    };
+
+    window.printReport = function() {
+      window.print();
+    };
   </script>
 </body>
 </html>

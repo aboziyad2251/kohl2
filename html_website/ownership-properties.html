@@ -247,179 +247,236 @@
 
   <script src="js/data.js"></script>
   <script src="js/components.js"></script>
-  <script>
+  <!-- Supabase SDK & ERP Service Layer -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/data.js"></script>
+  <script src="js/components.js"></script>
+  <script type="module" src="js/export-utils.js"></script>
+  <script type="module" src="js/ui-interactions.js"></script>
+  <script type="module" src="js/supabase-service.js"></script>
+  <script type="module">
+    import { RealEstateAPI } from './js/supabase-service.js';
+    import { ExportUtils } from './js/export-utils.js';
+    import { UI } from './js/ui-interactions.js';
+
     document.getElementById('sidebar-slot').innerHTML = renderSidebar('ownership-properties.html');
     document.getElementById('header-slot').innerHTML = renderHeader('الملكية والعقارات والوكالات', 'سجل أصول العقارات وصكوك الملكية والوكالات الإلكترونية');
 
     let store = getAppStore();
+    let propsList = [];
+    let epoasList = [];
+
+    async function loadOwnershipData() {
+      propsList = await RealEstateAPI.getProperties();
+      epoasList = await RealEstateAPI.getEPoas();
+      renderOwnership();
+    }
 
     function renderOwnership() {
+      const activeProps = propsList.length ? propsList : store.properties;
+      const activeEpoas = epoasList.length ? epoasList : store.ePoas;
+
       // 1. Properties
       const propsGrid = document.getElementById('own-props-grid');
-      propsGrid.innerHTML = store.properties.map(p => `
-        <div class="glass-panel glass-panel-hover" style="padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
-          <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 0.75rem;">
-              <span style="font-weight: 700; font-size: 13px; color: #fff;">${p.title}</span>
-              <span class="badge ${p.property_type === 'Commercial' ? 'badge-purple' : 'badge-info'}">${p.property_type === 'Commercial' ? 'تجاري' : 'سكني'}</span>
+      if (propsGrid) {
+        propsGrid.innerHTML = activeProps.map(p => `
+          <div class="glass-panel glass-panel-hover" style="padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 0.75rem;">
+                <span style="font-weight: 700; font-size: 13px; color: #fff;">${p.property_name || p.title}</span>
+                <span class="badge ${p.property_type === 'Commercial' || p.property_type === 'تجاري' ? 'badge-purple' : 'badge-info'}">${p.property_type === 'Commercial' || p.property_type === 'تجاري' ? 'تجاري' : 'سكني'}</span>
+              </div>
+              <div style="margin-top: 0.75rem; font-size: 11px; color: #94a3b8; display: flex; flex-direction: column; gap: 0.35rem;">
+                <div style="display: flex; justify-content: space-between;"><span>العنوان:</span><span style="color: #cbd5e1;">${p.city || 'الرياض'} - ${p.address || ''}</span></div>
+                <div style="display: flex; justify-content: space-between;"><span>عدد الوحدات:</span><span style="font-weight: 700; color: #38bdf8;">${p.units_count || 1} وحدة</span></div>
+                <div style="display: flex; justify-content: space-between;"><span>المالك الحالي:</span><span style="font-weight: 600; color: #c084fc;">${p.lessor_name || 'مالك مسجل'}</span></div>
+                <div style="display: flex; justify-content: space-between;"><span>الوكيل / الممثل:</span><span style="font-weight: 600; color: #fbbf24;">${p.representative_name || '-'}</span></div>
+              </div>
             </div>
-            <div style="margin-top: 0.75rem; font-size: 11px; color: #94a3b8; display: flex; flex-direction: column; gap: 0.35rem;">
-              <div style="display: flex; justify-content: space-between;"><span>العنوان:</span><span style="color: #cbd5e1;">${p.city} - ${p.address}</span></div>
-              <div style="display: flex; justify-content: space-between;"><span>عدد الوحدات:</span><span style="font-weight: 700; color: #38bdf8;">${p.units_count} وحدة</span></div>
-              <div style="display: flex; justify-content: space-between;"><span>المالك الحالي:</span><span style="font-weight: 600; color: #c084fc;">${p.lessor_name}</span></div>
-              <div style="display: flex; justify-content: space-between;"><span>الوكيل / الممثل:</span><span style="font-weight: 600; color: #fbbf24;">${p.representative_name}</span></div>
+            <div style="padding-top: 0.75rem; border-top: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #64748b;">
+              <span>صك: ${p.deed_number || '-'}</span>
+              <button onclick="window.deleteProperty('${p.id}')" class="btn-icon" style="color: #f87171; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; cursor: pointer;" title="حذف">🗑️</button>
             </div>
           </div>
-          <div style="padding-top: 0.75rem; border-top: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #64748b;">
-            <span>صك: ${p.deed_number}</span>
-            <button onclick="deleteProperty('${p.id}')" class="btn-icon" style="color: #f87171;" title="حذف">🗑️</button>
-          </div>
-        </div>
-      `).join('');
+        `).join('');
+      }
 
       // 2. Lessors
-      document.getElementById('own-lessors-tbody').innerHTML = store.lessors.map(l => `
-        <tr>
-          <td style="font-weight: 700; color: #fff;">${l.name}</td>
-          <td style="font-family: monospace; color: #c084fc; direction: ltr; text-align: right;">${l.national_id_or_cr}</td>
-          <td style="font-family: monospace; color: #cbd5e1; direction: ltr; text-align: right;">${l.phone}</td>
-          <td style="color: #94a3b8;">${l.email}</td>
-          <td style="text-align: center;">
-            <button onclick="deleteLessor('${l.id}')" class="btn-icon" style="color: #f87171;">🗑️</button>
-          </td>
-        </tr>
-      `).join('');
+      const lessorsTbody = document.getElementById('own-lessors-tbody');
+      if (lessorsTbody) {
+        lessorsTbody.innerHTML = store.lessors.map(l => `
+          <tr>
+            <td style="font-weight: 700; color: #fff;">${l.name}</td>
+            <td style="font-family: monospace; color: #c084fc; direction: ltr; text-align: right;">${l.national_id_or_cr}</td>
+            <td style="font-family: monospace; color: #cbd5e1; direction: ltr; text-align: right;">${l.phone}</td>
+            <td style="color: #94a3b8;">${l.email || '-'}</td>
+            <td style="text-align: center;">
+              <button onclick="window.deleteLessor('${l.id}')" class="btn-icon" style="color: #f87171;">🗑️</button>
+            </td>
+          </tr>
+        `).join('');
+      }
 
       // 3. Tenants
-      document.getElementById('own-tenants-tbody').innerHTML = store.tenants.map(t => `
-        <tr>
-          <td style="font-weight: 700; color: #fff;">${t.name}</td>
-          <td style="font-family: monospace; color: #c084fc; direction: ltr; text-align: right;">${t.national_id}</td>
-          <td style="font-family: monospace; color: #cbd5e1; direction: ltr; text-align: right;">${t.phone}</td>
-          <td style="color: #94a3b8;">${t.email}</td>
-          <td><span class="badge badge-info">${t.type}</span></td>
-          <td style="text-align: center;">
-            <button onclick="deleteTenant('${t.id}')" class="btn-icon" style="color: #f87171;">🗑️</button>
-          </td>
-        </tr>
-      `).join('');
+      const tenantsTbody = document.getElementById('own-tenants-tbody');
+      if (tenantsTbody) {
+        tenantsTbody.innerHTML = store.tenants.map(t => `
+          <tr>
+            <td style="font-weight: 700; color: #fff;">${t.name}</td>
+            <td style="font-family: monospace; color: #c084fc; direction: ltr; text-align: right;">${t.national_id}</td>
+            <td style="font-family: monospace; color: #cbd5e1; direction: ltr; text-align: right;">${t.phone}</td>
+            <td style="color: #94a3b8;">${t.email || '-'}</td>
+            <td><span class="badge badge-info">${t.type}</span></td>
+            <td style="text-align: center;">
+              <button onclick="window.deleteTenant('${t.id}')" class="btn-icon" style="color: #f87171;">🗑️</button>
+            </td>
+          </tr>
+        `).join('');
+      }
 
       // 4. Reps
-      document.getElementById('own-reps-tbody').innerHTML = store.representatives.map(r => `
-        <tr>
-          <td style="font-weight: 700; color: #fff;">${r.name}</td>
-          <td style="font-family: monospace; color: #fbbf24; direction: ltr; text-align: right;">${r.national_id}</td>
-          <td style="font-family: monospace; color: #cbd5e1; direction: ltr; text-align: right;">${r.phone}</td>
-          <td style="font-family: monospace; color: #38bdf8;">${r.e_poa_number}</td>
-          <td><span class="badge badge-success">${r.status}</span></td>
-          <td style="text-align: center;">
-            <button onclick="deleteRep('${r.id}')" class="btn-icon" style="color: #f87171;">🗑️</button>
-          </td>
-        </tr>
-      `).join('');
+      const repsTbody = document.getElementById('own-reps-tbody');
+      if (repsTbody) {
+        repsTbody.innerHTML = store.representatives.map(r => `
+          <tr>
+            <td style="font-weight: 700; color: #fff;">${r.name}</td>
+            <td style="font-family: monospace; color: #fbbf24; direction: ltr; text-align: right;">${r.national_id}</td>
+            <td style="font-family: monospace; color: #cbd5e1; direction: ltr; text-align: right;">${r.phone}</td>
+            <td style="font-family: monospace; color: #38bdf8;">${r.e_poa_number}</td>
+            <td><span class="badge badge-success">${r.status}</span></td>
+            <td style="text-align: center;">
+              <button onclick="window.deleteRep('${r.id}')" class="btn-icon" style="color: #f87171;">🗑️</button>
+            </td>
+          </tr>
+        `).join('');
+      }
 
       // 5. E-POAs
-      document.getElementById('own-epoa-tbody').innerHTML = store.ePoas.map(poa => `
-        <tr>
-          <td style="font-family: monospace; font-weight: 700; color: #fbbf24; direction: ltr; text-align: right;">${poa.poa_number}</td>
-          <td style="font-weight: 600; color: #fff;">${poa.grantor_name}</td>
-          <td style="font-weight: 600; color: #cbd5e1;">${poa.attorney_name}</td>
-          <td style="color: #34d399;">${poa.expiry_date}</td>
-          <td style="font-size: 11px; color: #94a3b8; max-width: 300px;">${poa.scope}</td>
-          <td><span class="badge badge-success">سارية</span></td>
-        </tr>
-      `).join('');
+      const epoaTbody = document.getElementById('own-epoa-tbody');
+      if (epoaTbody) {
+        epoaTbody.innerHTML = activeEpoas.map(poa => `
+          <tr>
+            <td style="font-family: monospace; font-weight: 700; color: #fbbf24; direction: ltr; text-align: right;">${poa.poa_number}</td>
+            <td style="font-weight: 600; color: #fff;">${poa.grantor_name}</td>
+            <td style="font-weight: 600; color: #cbd5e1;">${poa.attorney_name}</td>
+            <td style="color: #34d399;">${poa.expiry_date}</td>
+            <td style="font-size: 11px; color: #94a3b8; max-width: 300px;">${poa.scope_details || poa.scope || 'إدارة وتأجير'}</td>
+            <td><span class="badge badge-success">${poa.status || 'سارية'}</span></td>
+          </tr>
+        `).join('');
+      }
 
       // 6. Audit
-      document.getElementById('own-audit-container').innerHTML = store.auditLogs.map(log => `
-        <div style="padding: 0.85rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.8); border: 1px solid #1e293b; font-size: 11px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-            <span style="font-weight: 700; color: #38bdf8;">${log.change_type}</span>
-            <span style="color: #64748b;">${log.date}</span>
+      const auditContainer = document.getElementById('own-audit-container');
+      if (auditContainer) {
+        auditContainer.innerHTML = store.auditLogs.map(log => `
+          <div style="padding: 0.85rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.8); border: 1px solid #1e293b; font-size: 11px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+              <span style="font-weight: 700; color: #38bdf8;">${log.change_type}</span>
+              <span style="color: #64748b;">${log.date}</span>
+            </div>
+            <p style="color: #cbd5e1;">${log.notes}</p>
           </div>
-          <p style="color: #cbd5e1;">${log.notes}</p>
-        </div>
-      `).join('');
-    }
-
-    function switchOwnTab(tab) {
-      const tabs = ['properties', 'lessors', 'tenants', 'reps', 'epoa', 'audit'];
-      tabs.forEach(t => {
-        document.getElementById('own-content-' + t).style.display = t === tab ? 'block' : 'none';
-        document.getElementById('tab-btn-' + t).className = 'tab-btn ' + (t === tab ? 'active' : '');
-      });
-    }
-
-    function deleteProperty(id) {
-      if (confirm('حذف هذا العقار؟')) {
-        store.properties = store.properties.filter(p => p.id !== id);
-        saveAppStore(store);
-        renderOwnership();
+        `).join('');
       }
     }
 
-    function deleteLessor(id) {
+    window.switchOwnTab = function(tab) {
+      const tabs = ['properties', 'lessors', 'tenants', 'reps', 'epoa', 'audit'];
+      tabs.forEach(t => {
+        const el = document.getElementById('own-content-' + t);
+        const btn = document.getElementById('tab-btn-' + t);
+        if (el) el.style.display = t === tab ? 'block' : 'none';
+        if (btn) btn.className = 'tab-btn ' + (t === tab ? 'active' : '');
+      });
+    };
+
+    window.deleteProperty = function(id) {
+      if (confirm('حذف هذا العقار؟')) {
+        propsList = propsList.filter(p => p.id !== id);
+        store.properties = store.properties.filter(p => p.id !== id);
+        saveAppStore(store);
+        renderOwnership();
+        UI.toast('تم حذف العقار', 'info');
+      }
+    };
+
+    window.deleteLessor = function(id) {
       if (confirm('حذف هذا المالك؟')) {
         store.lessors = store.lessors.filter(l => l.id !== id);
         saveAppStore(store);
         renderOwnership();
+        UI.toast('تم حذف المالك', 'info');
       }
-    }
+    };
 
-    function deleteTenant(id) {
+    window.deleteTenant = function(id) {
       if (confirm('حذف هذا المستأجر؟')) {
         store.tenants = store.tenants.filter(t => t.id !== id);
         saveAppStore(store);
         renderOwnership();
+        UI.toast('تم حذف المستأجر', 'info');
       }
-    }
+    };
 
-    function deleteRep(id) {
+    window.deleteRep = function(id) {
       if (confirm('حذف هذا الوكيل؟')) {
         store.representatives = store.representatives.filter(r => r.id !== id);
         saveAppStore(store);
         renderOwnership();
+        UI.toast('تم حذف الوكيل', 'info');
       }
+    };
+
+    window.exportPropertiesCSV = function() {
+      ExportUtils.exportToCSV('العقارات_وصكوك_الملكية', propsList.length ? propsList : store.properties);
+    };
+
+    const propForm = document.querySelector('#add-prop-modal form');
+    if (propForm) {
+      propForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const newP = {
+          property_name: document.getElementById('new-prop-title')?.value || 'عقار جديد',
+          property_type: document.getElementById('new-prop-type')?.value || 'Residential',
+          city: document.getElementById('new-prop-city')?.value || 'الرياض',
+          address: document.getElementById('new-prop-addr')?.value || '',
+          units_count: Number(document.getElementById('new-prop-units')?.value || 1),
+          deed_number: document.getElementById('new-prop-deed')?.value || '',
+          status: 'Active'
+        };
+        await RealEstateAPI.addProperty(newP);
+        UI.toast('تمت إضافة العقار بنجاح في قاعدة البيانات', 'success');
+        closeModal('add-prop-modal');
+        propForm.reset();
+        loadOwnershipData();
+      });
     }
 
-    function handleCreateProperty(e) {
-      e.preventDefault();
-      const newP = {
-        id: 'prop-' + Date.now(),
-        title: document.getElementById('new-prop-title').value,
-        property_type: document.getElementById('new-prop-type').value,
-        city: document.getElementById('new-prop-city').value,
-        address: document.getElementById('new-prop-addr').value,
-        units_count: Number(document.getElementById('new-prop-units').value),
-        deed_number: document.getElementById('new-prop-deed').value,
-        lessor_name: document.getElementById('new-prop-lessor').value,
-        representative_name: document.getElementById('new-prop-rep').value || 'لا يوجد'
-      };
-      store.properties.unshift(newP);
-      saveAppStore(store);
-      closeModal('add-prop-modal');
-      e.target.reset();
-      renderOwnership();
+    const lessorForm = document.querySelector('#add-lessor-modal form');
+    if (lessorForm) {
+      lessorForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const newL = {
+          id: 'les-' + Date.now(),
+          name: document.getElementById('new-les-name')?.value || 'مالك جديد',
+          national_id_or_cr: document.getElementById('new-les-nid')?.value || '',
+          phone: document.getElementById('new-les-phone')?.value || '',
+          email: document.getElementById('new-les-email')?.value || '',
+          properties_count: 0
+        };
+        store.lessors.unshift(newL);
+        saveAppStore(store);
+        UI.toast('تم تسجيل المالك بنجاح', 'success');
+        closeModal('add-lessor-modal');
+        lessorForm.reset();
+        renderOwnership();
+      });
     }
 
-    function handleCreateLessor(e) {
-      e.preventDefault();
-      const newL = {
-        id: 'les-' + Date.now(),
-        name: document.getElementById('new-les-name').value,
-        national_id_or_cr: document.getElementById('new-les-nid').value,
-        phone: document.getElementById('new-les-phone').value,
-        email: document.getElementById('new-les-email').value,
-        properties_count: 0
-      };
-      store.lessors.unshift(newL);
-      saveAppStore(store);
-      closeModal('add-lessor-modal');
-      e.target.reset();
-      renderOwnership();
-    }
-
-    renderOwnership();
+    loadOwnershipData();
+    RealEstateAPI.subscribeToChanges('properties', () => loadOwnershipData());
+    RealEstateAPI.subscribeToChanges('e_poas', () => loadOwnershipData());
   </script>
 </body>
 </html>

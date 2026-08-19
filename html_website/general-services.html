@@ -147,71 +147,106 @@
     </div>
   </div>
 
+  <!-- Supabase SDK & ERP Service Layer -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/data.js"></script>
   <script src="js/components.js"></script>
-  <script>
+  <script type="module" src="js/export-utils.js"></script>
+  <script type="module" src="js/ui-interactions.js"></script>
+  <script type="module" src="js/supabase-service.js"></script>
+  <script type="module">
+    import { RealEstateAPI } from './js/supabase-service.js';
+    import { ExportUtils } from './js/export-utils.js';
+    import { UI } from './js/ui-interactions.js';
+
     document.getElementById('sidebar-slot').innerHTML = renderSidebar('general-services.html');
     document.getElementById('header-slot').innerHTML = renderHeader('الخدمات العامة والمعاملات', 'سجل متابعة المعاملات الحكومية وتوثيق المنصات');
 
-    let store = getAppStore();
+    let servicesList = [];
 
-    function renderServices() {
-      const tbody = document.getElementById('srv-tbody');
-      tbody.innerHTML = store.generalServices.map(s => `
-        <tr>
-          <td style="font-family: monospace; font-weight: 700; color: #c084fc;">${s.service_number}</td>
-          <td>
-            <div style="font-weight: 700; color: #fff;">${s.client_name}</div>
-            <div style="font-size: 11px; color: #94a3b8; direction: ltr; text-align: right;">${s.client_phone}</div>
-          </td>
-          <td>
-            <span class="badge badge-purple" style="margin-bottom: 0.25rem;">${s.category}</span>
-            <div style="font-weight: 600; color: #f1f5f9;">${s.title}</div>
-          </td>
-          <td style="font-weight: 700; color: #fff;">${s.fee_amount.toLocaleString('ar-SA')} ر.س</td>
-          <td style="color: #94a3b8;">${s.cost_amount.toLocaleString('ar-SA')} ر.س</td>
-          <td style="font-weight: 900; color: #fbbf24;">${s.office_profit.toLocaleString('ar-SA')} ر.س</td>
-          <td><span class="badge ${s.status === 'Completed' ? 'badge-success' : 'badge-warning'}">${s.status === 'Completed' ? 'مكتملة' : 'جاري التنفيذ'}</span></td>
-          <td style="text-align: center;">
-            <button onclick="deleteService('${s.id}')" class="btn-icon" style="color: #f87171;" title="حذف">🗑️</button>
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    function deleteService(id) {
-      if (confirm('حذف هذه المعاملة؟')) {
-        store.generalServices = store.generalServices.filter(s => s.id !== id);
-        saveAppStore(store);
-        renderServices();
-      }
-    }
-
-    function handleCreateService(e) {
-      e.preventDefault();
-      const fee = Number(document.getElementById('new-srv-fee').value);
-      const cost = Number(document.getElementById('new-srv-cost').value);
-      const profit = Number(document.getElementById('new-srv-profit').value);
-      const newS = {
-        id: 'srv-' + Date.now(),
-        service_number: 'GS-2026-10' + (store.generalServices.length + 1),
-        client_name: document.getElementById('new-srv-client').value,
-        client_phone: document.getElementById('new-srv-phone').value,
-        category: document.getElementById('new-srv-cat').value,
-        title: document.getElementById('new-srv-title').value,
-        fee_amount: fee,
-        cost_amount: cost,
-        office_profit: profit,
-        status: 'In_Progress'
-      };
-      store.generalServices.unshift(newS);
-      saveAppStore(store);
-      closeModal('add-srv-modal');
-      e.target.reset();
+    async function loadServicesData() {
+      servicesList = await RealEstateAPI.getGeneralServices();
       renderServices();
     }
 
-    renderServices();
+    function renderServices() {
+      const tbody = document.getElementById('srv-tbody');
+      const store = getAppStore();
+      const list = servicesList.length ? servicesList : store.generalServices;
+      if (!tbody) return;
+
+      tbody.innerHTML = list.map(s => {
+        const fee = Number(s.fee_amount || s.selling_price || 0);
+        const cost = Number(s.cost_amount || s.cost_price || 0);
+        const profit = Number(s.office_profit || s.profit_amount || fee - cost);
+        const isDone = s.status === 'Completed' || s.status === 'مكتمل';
+
+        return `
+          <tr>
+            <td style="font-family: monospace; font-weight: 700; color: #c084fc;">${s.service_number || 'SRV-2026'}</td>
+            <td>
+              <div style="font-weight: 700; color: #fff;">${s.client_name}</div>
+              <div style="font-size: 11px; color: #94a3b8; direction: ltr; text-align: right;">${s.client_phone || '-'}</div>
+            </td>
+            <td>
+              <span class="badge badge-purple" style="margin-bottom: 0.25rem;">${s.category || 'عام'}</span>
+              <div style="font-weight: 600; color: #f1f5f9;">${s.service_name || s.title || 'خدمة'}</div>
+            </td>
+            <td style="font-weight: 700; color: #fff;">${fee.toLocaleString('ar-SA')} ر.س</td>
+            <td style="color: #94a3b8;">${cost.toLocaleString('ar-SA')} ر.س</td>
+            <td style="font-weight: 900; color: #fbbf24;">${profit.toLocaleString('ar-SA')} ر.س</td>
+            <td><span class="badge ${isDone ? 'badge-success' : 'badge-warning'}">${isDone ? 'مكتملة' : 'جاري التنفيذ'}</span></td>
+            <td style="text-align: center;">
+              <button onclick="window.deleteService('${s.id}')" class="btn-icon" style="color: #f87171; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; cursor: pointer;" title="حذف">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    window.deleteService = function(id) {
+      if (confirm('حذف هذه المعاملة؟')) {
+        servicesList = servicesList.filter(s => s.id !== id);
+        const store = getAppStore();
+        store.generalServices = store.generalServices.filter(s => s.id !== id);
+        saveAppStore(store);
+        renderServices();
+        UI.toast('تم حذف الخدمة', 'info');
+      }
+    };
+
+    window.exportServicesCSV = function() {
+      ExportUtils.exportToCSV('الخدمات_العامة', servicesList);
+    };
+
+    const srvForm = document.querySelector('#add-srv-modal form');
+    if (srvForm) {
+      srvForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fee = Number(document.getElementById('new-srv-fee')?.value || 0);
+        const cost = Number(document.getElementById('new-srv-cost')?.value || 0);
+        const profit = Number(document.getElementById('new-srv-profit')?.value || (fee - cost));
+        const newS = {
+          service_number: 'SRV-2026-10' + Math.floor(10 + Math.random() * 90),
+          service_name: document.getElementById('new-srv-title')?.value || 'خدمة جديدة',
+          client_name: document.getElementById('new-srv-client')?.value || 'عميل',
+          client_phone: document.getElementById('new-srv-phone')?.value || '',
+          category: document.getElementById('new-srv-cat')?.value || 'EJAR',
+          selling_price: fee,
+          cost_price: cost,
+          profit_amount: profit,
+          status: 'In_Progress'
+        };
+        await RealEstateAPI.addGeneralService(newS);
+        UI.toast('تم تسجيل الخدمة وترحيل أرباحها للمالية', 'success');
+        closeModal('add-srv-modal');
+        srvForm.reset();
+        loadServicesData();
+      });
+    }
+
+    loadServicesData();
+    RealEstateAPI.subscribeToChanges('general_services', () => loadServicesData());
   </script>
 </body>
 </html>

@@ -191,55 +191,75 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/data.js"></script>
   <script src="js/components.js"></script>
-  <script>
+  <script type="module" src="js/export-utils.js"></script>
+  <script type="module" src="js/ui-interactions.js"></script>
+  <script type="module" src="js/supabase-service.js"></script>
+  <script type="module">
+    import { RealEstateAPI } from './js/supabase-service.js';
+
     document.getElementById('sidebar-slot').innerHTML = renderSidebar('index.html');
     document.getElementById('header-slot').innerHTML = renderHeader('لوحة التحكم القيادية', 'نظرة شاملة على العمليات والمحفظة العقارية');
 
-    const store = getAppStore();
+    async function loadDashboardData() {
+      const kpis = await RealEstateAPI.getDashboardKPIs();
+      if (kpis) {
+        document.getElementById('kpi-contracts').innerText = kpis.activeContractsCount;
+        document.getElementById('kpi-properties').innerText = kpis.propertiesCount;
+        document.getElementById('kpi-epoa').innerText = kpis.ePoaCount;
+        document.getElementById('kpi-brokerage').innerText = kpis.brokerageCount;
+      }
 
-    // Render KPI numbers
-    document.getElementById('kpi-contracts').innerText = store.contracts.length;
-    document.getElementById('kpi-properties').innerText = store.properties.length;
-    document.getElementById('kpi-epoa').innerText = store.ePoas.length;
-    document.getElementById('kpi-brokerage').innerText = store.brokerageAgreements.length;
+      const store = getAppStore();
 
-    // Render Portfolio cards
-    const portfolioContainer = document.getElementById('portfolio-list');
-    portfolioContainer.innerHTML = store.properties.map(p => {
-      const pContracts = store.contracts.filter(c => c.property_title === p.title);
-      const rev = pContracts.reduce((sum, c) => sum + c.rent_amount, 0);
-      return `
-        <div style="padding: 1rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; display: flex; flex-direction: column; gap: 0.75rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-weight: 700; font-size: 12px; color: #fff;">${p.title}</span>
-            <span class="badge ${p.property_type === 'Commercial' ? 'badge-purple' : 'badge-info'}">${p.property_type === 'Commercial' ? 'تجاري' : 'سكني'}</span>
+      // Render Portfolio cards
+      const portfolioContainer = document.getElementById('portfolio-list');
+      const properties = await RealEstateAPI.getProperties();
+      const contracts = await RealEstateAPI.getContracts();
+
+      portfolioContainer.innerHTML = properties.map(p => {
+        const pContracts = contracts.filter(c => c.property_name === (p.property_name || p.title) || c.property_title === (p.property_name || p.title));
+        const rev = pContracts.reduce((sum, c) => sum + (Number(c.rent_amount) || 0), 0);
+        return `
+          <div style="padding: 1rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; display: flex; flex-direction: column; gap: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 700; font-size: 12px; color: #fff;">${p.property_name || p.title}</span>
+              <span class="badge ${p.property_type === 'Commercial' || p.property_type === 'تجاري' ? 'badge-purple' : 'badge-info'}">${p.property_type === 'Commercial' || p.property_type === 'تجاري' ? 'تجاري' : 'سكني'}</span>
+            </div>
+            <div style="font-size: 11px; color: #94a3b8; display: flex; flex-direction: column; gap: 0.25rem;">
+              <div style="display: flex; justify-content: space-between;"><span>المدينة:</span><span style="color: #cbd5e1;">${p.city || 'الرياض'}</span></div>
+              <div style="display: flex; justify-content: space-between;"><span>المالك:</span><span style="color: #cbd5e1;">${p.lessor_name || 'مالك مسجل'}</span></div>
+              <div style="display: flex; justify-content: space-between;"><span>رقم الصك:</span><span style="color: #fbbf24;">${p.deed_number || '-'}</span></div>
+            </div>
+            <div style="padding-top: 0.5rem; border-top: 1px solid #1e293b; display: flex; justify-content: space-between; font-size: 11px;">
+              <span style="color: #64748b;">العقود المرتبطة: ${pContracts.length}</span>
+              <span style="font-weight: 800; color: #34d399;">${rev.toLocaleString('ar-SA')} ر.س</span>
+            </div>
           </div>
-          <div style="font-size: 11px; color: #94a3b8; display: flex; flex-direction: column; gap: 0.25rem;">
-            <div style="display: flex; justify-content: space-between;"><span>المدينة:</span><span style="color: #cbd5e1;">${p.city}</span></div>
-            <div style="display: flex; justify-content: space-between;"><span>المالك الحالي:</span><span style="color: #cbd5e1;">${p.lessor_name}</span></div>
-            <div style="display: flex; justify-content: space-between;"><span>الوكيل / الممثل:</span><span style="color: #fbbf24;">${p.representative_name}</span></div>
+        `;
+      }).join('');
+
+      // Render Audit logs
+      const auditContainer = document.getElementById('audit-list');
+      auditContainer.innerHTML = store.auditLogs.map(log => `
+        <div style="padding: 0.85rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; font-size: 11px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+            <span style="font-weight: 700; color: #38bdf8;">${log.change_type}</span>
+            <span style="color: #64748b; font-size: 10px;">${log.date}</span>
           </div>
-          <div style="padding-top: 0.5rem; border-top: 1px solid #1e293b; display: flex; justify-content: space-between; font-size: 11px;">
-            <span style="color: #64748b;">العقود المرتبطة: ${pContracts.length}</span>
-            <span style="font-weight: 800; color: #34d399;">${rev.toLocaleString('ar-SA')} ر.س</span>
-          </div>
+          <p style="color: #cbd5e1; line-height: 1.4;">${log.notes}</p>
         </div>
-      `;
-    }).join('');
+      `).join('');
+    }
 
-    // Render Audit logs
-    const auditContainer = document.getElementById('audit-list');
-    auditContainer.innerHTML = store.auditLogs.map(log => `
-      <div style="padding: 0.85rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; font-size: 11px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-          <span style="font-weight: 700; color: #38bdf8;">${log.change_type}</span>
-          <span style="color: #64748b; font-size: 10px;">${log.date}</span>
-        </div>
-        <p style="color: #cbd5e1; line-height: 1.4;">${log.notes}</p>
-      </div>
-    `).join('');
+    loadDashboardData();
+
+    // Subscribe to realtime updates
+    RealEstateAPI.subscribeToChanges('contracts', () => loadDashboardData());
+    RealEstateAPI.subscribeToChanges('properties', () => loadDashboardData());
+    RealEstateAPI.subscribeToChanges('financial_transactions', () => loadDashboardData());
   </script>
 </body>
 </html>

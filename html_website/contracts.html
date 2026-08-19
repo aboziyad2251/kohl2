@@ -167,98 +167,130 @@
     </div>
   </div>
 
+  <!-- Supabase SDK & ERP Service Layer -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/data.js"></script>
   <script src="js/components.js"></script>
-  <script>
+  <script type="module" src="js/export-utils.js"></script>
+  <script type="module" src="js/ui-interactions.js"></script>
+  <script type="module" src="js/supabase-service.js"></script>
+  <script type="module">
+    import { RealEstateAPI } from './js/supabase-service.js';
+    import { ExportUtils } from './js/export-utils.js';
+    import { UI } from './js/ui-interactions.js';
+
     document.getElementById('sidebar-slot').innerHTML = renderSidebar('contracts.html');
     document.getElementById('header-slot').innerHTML = renderHeader('مركز العقود والإيجارات', 'إدارة وتوثيق عقود الإيجار الرسمية بشبكة إيجار');
 
-    let store = getAppStore();
+    let contractsList = [];
+
+    async function loadContracts() {
+      contractsList = await RealEstateAPI.getContracts();
+      filterContracts();
+    }
 
     function renderContracts(contractsToRender) {
       const tbody = document.getElementById('contracts-tbody');
+      if (!tbody) return;
+
       tbody.innerHTML = contractsToRender.map(c => {
         let typeBadge = '';
-        if (c.type === 'RESIDENTIAL') typeBadge = '<span class="badge badge-sky">🏢 سكني</span>';
-        else if (c.type === 'COMMERCIAL') typeBadge = '<span class="badge badge-warning">🏢 تجاري</span>';
+        const cType = (c.type || 'RESIDENTIAL').toUpperCase();
+        if (cType === 'RESIDENTIAL' || cType === 'سكني') typeBadge = '<span class="badge badge-info">🏢 سكني</span>';
+        else if (cType === 'COMMERCIAL' || cType === 'تجاري') typeBadge = '<span class="badge badge-warning">🏢 تجاري</span>';
         else typeBadge = '<span class="badge badge-purple">🛡️ من الباطن</span>';
+
+        const rent = Number(c.rent_amount || 0);
+        const comm = Number(c.office_commission || c.office_profit || rent * 0.025);
 
         return `
           <tr>
-            <td style="font-family: monospace; font-weight: 700; color: #38bdf8; direction: ltr; text-align: right;">${c.contract_number}</td>
+            <td style="font-family: monospace; font-weight: 700; color: #38bdf8; direction: ltr; text-align: right;">${c.contract_number || 'CNT-2026'}</td>
             <td>${typeBadge}</td>
-            <td style="font-weight: 600; color: #fff;">${c.property_title}</td>
+            <td style="font-weight: 600; color: #fff;">${c.property_name || c.property_title || 'عقار'}</td>
             <td>
               <div style="font-weight: 700; color: #fff;">${c.tenant_name}</div>
-              <div style="font-size: 10px; color: #94a3b8;">هوية: ${c.tenant_national_id}</div>
+              <div style="font-size: 10px; color: #94a3b8;">هوية: ${c.tenant_national_id || '-'}</div>
             </td>
-            <td style="font-weight: 800; color: #34d399;">${c.rent_amount.toLocaleString('ar-SA')} ر.س</td>
-            <td style="color: #cbd5e1;">${(c.total_collected_amount || c.rent_amount).toLocaleString('ar-SA')} ر.س</td>
-            <td style="font-weight: 800; color: #fbbf24;">${(c.office_profit || 0).toLocaleString('ar-SA')} ر.س</td>
-            <td style="color: #94a3b8;">${c.payment_schedule}</td>
+            <td style="font-weight: 800; color: #34d399;">${rent.toLocaleString('ar-SA')} ر.س</td>
+            <td style="color: #cbd5e1;">${(Number(c.total_collected_amount) || rent).toLocaleString('ar-SA')} ر.س</td>
+            <td style="font-weight: 800; color: #fbbf24;">${comm.toLocaleString('ar-SA')} ر.س</td>
+            <td style="color: #94a3b8;">${c.payment_schedule || 'سنوي'}</td>
             <td style="font-size: 11px; color: #94a3b8;">
-              <div>من: ${c.start_date}</div>
-              <div>إلى: ${c.end_date}</div>
+              <div>من: ${c.start_date || '-'}</div>
+              <div>إلى: ${c.end_date || '-'}</div>
             </td>
-            <td><span class="badge badge-success">نشط</span></td>
+            <td><span class="badge badge-success">${c.status || 'ساري'}</span></td>
             <td style="text-align: center;">
-              <button onclick="deleteContract('${c.id}')" class="btn-icon" style="color: #f87171;" title="حذف">🗑️</button>
+              <button onclick="window.deleteContract('${c.id}')" class="btn-icon" style="color: #f87171; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; cursor: pointer;" title="حذف">🗑️</button>
             </td>
           </tr>
         `;
       }).join('');
     }
 
-    function filterContracts() {
-      const q = document.getElementById('contract-search').value.toLowerCase().trim();
-      const type = document.getElementById('contract-type-filter').value;
-      const st = document.getElementById('contract-status-filter').value;
+    window.filterContracts = function() {
+      const q = (document.getElementById('contract-search')?.value || '').toLowerCase().trim();
+      const type = document.getElementById('contract-type-filter')?.value || 'ALL';
+      const st = document.getElementById('contract-status-filter')?.value || 'ALL';
 
-      const filtered = store.contracts.filter(c => {
-        const matchQ = !q || c.contract_number.toLowerCase().includes(q) || c.tenant_name.toLowerCase().includes(q) || c.tenant_national_id.includes(q);
-        const matchType = type === 'ALL' || c.type === type;
-        const matchSt = st === 'ALL' || c.status === st;
+      const filtered = contractsList.filter(c => {
+        const cNum = (c.contract_number || '').toLowerCase();
+        const tName = (c.tenant_name || '').toLowerCase();
+        const tId = (c.tenant_national_id || '');
+        const matchQ = !q || cNum.includes(q) || tName.includes(q) || tId.includes(q);
+        const matchType = type === 'ALL' || (c.type || '').toUpperCase() === type;
+        const matchSt = st === 'ALL' || (c.status || '').toLowerCase() === st.toLowerCase();
         return matchQ && matchType && matchSt;
       });
 
       renderContracts(filtered);
-    }
+    };
 
-    function deleteContract(id) {
+    window.deleteContract = function(id) {
       if (confirm('حذف هذا العقد؟')) {
+        contractsList = contractsList.filter(c => c.id !== id);
+        const store = getAppStore();
         store.contracts = store.contracts.filter(c => c.id !== id);
         saveAppStore(store);
         filterContracts();
+        UI.toast('تم حذف العقد', 'info');
       }
+    };
+
+    window.exportContractsCSV = function() {
+      ExportUtils.exportToCSV('عقود_الإيجار', contractsList);
+    };
+
+    const cntForm = document.querySelector('#add-contract-modal form');
+    if (cntForm) {
+      cntForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const rent = Number(document.getElementById('new-cnt-rent')?.value || 0);
+        const profit = Number(document.getElementById('new-cnt-profit')?.value || (rent * 0.025));
+        const newC = {
+          contract_number: 'CNT-RES-2026-0' + Math.floor(10 + Math.random() * 90),
+          type: document.getElementById('new-cnt-type')?.value || 'RESIDENTIAL',
+          property_name: document.getElementById('new-cnt-prop')?.value || 'عقار',
+          tenant_name: document.getElementById('new-cnt-tenant')?.value || 'مستأجر',
+          tenant_national_id: document.getElementById('new-cnt-nid')?.value || '',
+          rent_amount: rent,
+          office_commission: profit,
+          payment_schedule: document.getElementById('new-cnt-schedule')?.value || 'Semi-Annual',
+          start_date: document.getElementById('new-cnt-start')?.value || new Date().toISOString().split('T')[0],
+          end_date: document.getElementById('new-cnt-end')?.value || new Date(Date.now() + 365*24*60*60*1000).toISOString().split('T')[0],
+          status: 'active'
+        };
+        await RealEstateAPI.createContract(newC);
+        UI.toast('تم إنشاء عقد الإيجار وترحيل العمولة للمالية', 'success');
+        closeModal('add-contract-modal');
+        cntForm.reset();
+        loadContracts();
+      });
     }
 
-    function handleCreateContract(e) {
-      e.preventDefault();
-      const rent = Number(document.getElementById('new-cnt-rent').value);
-      const profit = Number(document.getElementById('new-cnt-profit').value);
-      const newC = {
-        id: 'cnt-' + Date.now(),
-        contract_number: 'CNT-RES-2026-0' + (store.contracts.length + 1),
-        type: document.getElementById('new-cnt-type').value,
-        property_title: document.getElementById('new-cnt-prop').value,
-        tenant_name: document.getElementById('new-cnt-tenant').value,
-        tenant_national_id: document.getElementById('new-cnt-nid').value,
-        rent_amount: rent,
-        total_collected_amount: rent,
-        office_profit: profit,
-        payment_schedule: document.getElementById('new-cnt-schedule').value,
-        start_date: document.getElementById('new-cnt-start').value,
-        end_date: document.getElementById('new-cnt-end').value,
-        status: 'Active'
-      };
-      store.contracts.unshift(newC);
-      saveAppStore(store);
-      closeModal('add-contract-modal');
-      e.target.reset();
-      filterContracts();
-    }
-
-    filterContracts();
+    loadContracts();
+    RealEstateAPI.subscribeToChanges('contracts', () => loadContracts());
   </script>
 </body>
 </html>

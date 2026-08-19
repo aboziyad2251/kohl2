@@ -1,0 +1,123 @@
+/**
+ * Real Estate ERP - Arabic RTL Layout & Typography System
+ * ضبط الاتجاه العربي، الخطوط، والشبكات المتجاوبة
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
+
+html, body {
+  direction: rtl;
+  text-align: right;
+  font-family: 'Tajawal', 'IBM Plex Sans Arabic', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Grids */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+@media (max-width: 1024px) {
+  .grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .grid-4, .grid-3, .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Flex utilities */
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.flex-gap-sm {
+  gap: 0.5rem;
+}
+
+.flex-gap-md {
+  gap: 1rem;
+}
+
+.flex-gap-lg {
+  gap: 1.5rem;
+}
+
+/* Sidebar Styling */
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  border-right: 3px solid transparent;
+}
+
+.sidebar-link:hover {
+  background: rgba(30, 41, 59, 0.6);
+  color: #fff;
+  border-right-color: var(--accent-sky);
+}
+
+.sidebar-link.active {
+  background: linear-gradient(270deg, rgba(2, 132, 199, 0.2), rgba(15, 23, 42, 0.1));
+  color: #38bdf8;
+  border-right-color: #38bdf8;
+  font-weight: 700;
+}
+
+/* Print Styles */
+@media print {
+  .sidebar, #header-slot, .btn, .modal-overlay, #toast-container {
+    display: none !important;
+  }
+  .app-container, .main-wrapper, .main-content {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .glass-panel, .glass-card {
+    border: 1px solid #ccc !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #000 !important;
+  }
+  .glass-table th, .glass-table td {
+    color: #000 !important;
+    border-color: #ddd !important;
+  }
+}
