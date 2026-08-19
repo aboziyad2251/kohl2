@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  # 1. Dedicated Isolated PostgreSQL Database for Real Estate Office System
+  office-db:
+    image: postgres:16-alpine
+    container_name: office_realestate_db
+    restart: always
+    environment:
+      POSTGRES_DB: office_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: OfficeRealEstate2026Pass
+    ports:
+      - "5438:5432"
+    volumes:
+      - office_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d office_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Dedicated PostgREST Engine (Supabase-compatible REST API)
+  office-rest:
+    image: postgrest/postgrest:v12.2.0
+    container_name: office_realestate_rest
+    restart: always
+    depends_on:
+      office-db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://postgres:OfficeRealEstate2026Pass@office-db:5432/office_db
+      PGRST_DB_SCHEMA: public
+      PGRST_DB_ANON_ROLE: web_anon
+      PGRST_JWT_SECRET: OfficeRealEstateSuperSecretJWT2026KeyLength32PlusChars!
+
+  # 3. Dedicated API Gateway (Maps /rest/v1 to PostgREST on port 8020)
+  office-api-gateway:
+    image: nginx:alpine
+    container_name: office_realestate_api_gateway
+    restart: always
+    depends_on:
+      - office-rest
+    ports:
+      - "8020:8020"
+    volumes:
+      - ./nginx/api_gateway.conf:/etc/nginx/conf.d/default.conf:ro
+
+  # 4. Real Estate Office Management Next.js Web Application
+  real-estate-office-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: office_realestate_app
+    restart: always
+    depends_on:
+      - office-api-gateway
+    ports:
+      - "3005:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXT_PUBLIC_SUPABASE_URL=https://office.mabotargagh.online
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoid2ViX2Fub24iLCJpc3MiOiJwb3N0Z3Jlc3QiLCJpYXQiOjE2NDE3NjkyMDAsImV4cCI6MTk4ODE1MDQwMH0.bagwe56G6djpeZq2a3gBWeM83HSIjkb2ZM633wNs-5Q
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/dashboard"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # 5. Visual Database Manager Web UI (Adminer)
+  office-db-gui:
+    image: adminer:latest
+    container_name: office_realestate_db_gui
+    restart: always
+    depends_on:
+      - office-db
+    ports:
+      - "8088:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: office-db
+
+  # 6. pgAdmin (Table/SQL Editor UI, replaces Adminer -- has its own login screen)
+  office-pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: office_realestate_pgadmin
+    restart: always
+    depends_on:
+      office-db:
+        condition: service_healthy
+    ports:
+      - "8099:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@office.mabotargagh.online
+      PGADMIN_DEFAULT_PASSWORD: 82bLWiZj/52nqu3+YU43Sqgh
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./nginx/pgadmin_servers.json:/pgadmin4/servers.json:ro
+
+volumes:
+  office_db_data:
+  pgadmin_data:

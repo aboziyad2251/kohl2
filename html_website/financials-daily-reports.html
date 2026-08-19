@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>التقرير اليومي ومستشار AI | نظام إدارة المكتب العقاري</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    @media print {
+      body { background: #fff !important; color: #000 !important; }
+      .sidebar, .header, .print-hide { display: none !important; }
+      .main-content { padding: 0 !important; }
+      .glass-panel { background: #fff !important; border: 1px solid #ccc !important; color: #000 !important; box-shadow: none !important; }
+      h1, h2, h3, h4, span, p, div { color: #000 !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <div id="sidebar-slot"></div>
+
+    <div class="main-wrapper">
+      <div id="header-slot"></div>
+
+      <main class="main-content">
+        <!-- Top Banner & Print Controls -->
+        <div class="print-hide" style="padding: 1.5rem; border-radius: 1rem; background: linear-gradient(135deg, #0f172a, #0c2d48 60%, #0f172a); border: 1px solid rgba(56, 189, 248, 0.25); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 2rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; color: #fbbf24; font-size: 11px; font-weight: 700; margin-bottom: 0.25rem;">
+              <span>✨</span>
+              <span>محرك مستشار الذكاء الاصطناعي لزيادة الدخل (AI Engine)</span>
+            </div>
+            <h1 style="font-size: 1.5rem; font-weight: 800; color: #ffffff;">التقرير اليومي ومستشار الذكاء الاصطناعي</h1>
+            <p style="font-size: 12px; color: #94a3b8; margin-top: 0.25rem;">
+              تحليل الأداء اليومي ("أين نجحنا" مقابل "ما هي الاختناقات والتسريبات") وتوصيات فورية لزيادة أرباح الغد.
+            </p>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <button onclick="regenerateAI()" class="btn btn-primary">
+              <span>🔄</span>
+              <span>تحديث تحليل AI لليوم</span>
+            </button>
+            <button onclick="window.print()" class="btn btn-secondary">
+              <span>🖨️</span>
+              <span>تصدير PDF / طباعة التقرير</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Printable Report Document Container -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+          <!-- Daily Snapshot Header -->
+          <div class="glass-panel" style="padding: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 1rem; margin-bottom: 1.25rem;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 0.5rem; color: #38bdf8; font-weight: 700; font-size: 12px;">
+                  <span>🏢</span>
+                  <span>مكتب العقارات المعتمد - تقرير الأداء اليومي</span>
+                </div>
+                <h2 style="font-size: 1.3rem; font-weight: 800; color: #fff; margin-top: 0.35rem;">
+                  ملخص اليوم المالي التشغيلي: <span style="direction: ltr;" id="report-date">2026-08-19</span>
+                </h2>
+              </div>
+              <div style="text-align: left;">
+                <span style="font-size: 10px; color: #94a3b8; display: block;">مرجع التقرير:</span>
+                <span style="font-family: monospace; font-size: 11px; color: #38bdf8; font-weight: 700;">REF-20260819-AI</span>
+              </div>
+            </div>
+
+            <!-- Quick Metrics Grid -->
+            <div class="grid-4">
+              <div style="padding: 1rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b;">
+                <span style="font-size: 11px; color: #94a3b8; display: block;">إجمالي الدخل اليومي (Gross)</span>
+                <span style="font-size: 1.4rem; font-weight: 800; color: #38bdf8; margin-top: 0.25rem; display: block;">50,000 ر.س</span>
+              </div>
+
+              <div style="padding: 1rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b;">
+                <span style="font-size: 11px; color: #94a3b8; display: block;">صافي الأرباح (Net Income)</span>
+                <span style="font-size: 1.4rem; font-weight: 800; color: #34d399; margin-top: 0.25rem; display: block;">44,825 ر.س</span>
+              </div>
+
+              <div style="padding: 1rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b;">
+                <span style="font-size: 11px; color: #94a3b8; display: block;">الصفقات الإيجارية المغلقة</span>
+                <span style="font-size: 1.4rem; font-weight: 800; color: #c084fc; margin-top: 0.25rem; display: block;">2 صفقات جديدة</span>
+              </div>
+
+              <div style="padding: 1rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b;">
+                <span style="font-size: 11px; color: #94a3b8; display: block;">نسبة الإشغال الإجمالية</span>
+                <span style="font-size: 1.4rem; font-weight: 800; color: #fbbf24; margin-top: 0.25rem; display: block;">87.5%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Strategic AI Highlight Banner -->
+          <div style="padding: 1.5rem; border-radius: 1rem; background: linear-gradient(135deg, rgba(69, 26, 3, 0.4), #0f172a 50%, rgba(12, 74, 110, 0.4)); border: 1px solid rgba(245, 158, 11, 0.3);">
+            <div style="display: flex; align-items: center; gap: 0.5rem; color: #fbbf24; font-weight: 700; font-size: 12px; margin-bottom: 0.5rem;">
+              <span>⚡</span>
+              <span>استراتيجية التعظيم السريع للدخل (Income Increment Strategy)</span>
+            </div>
+            <p style="font-size: 0.95rem; font-weight: 600; color: #f8fafc; line-height: 1.6;" id="ai-strategy">
+              "التركيز الفوري غداً على استكمال توثيق الوكالة الإلكترونية المعلقة وإبرام العقد التجاري الجديد لبرج الملقا لتحقيق زيادة إيرادات فورية بقيمة 120,000 ريال سعودي."
+            </p>
+          </div>
+
+          <!-- Main 2-Column: Where was good vs What went bad -->
+          <div class="grid-2">
+            <!-- 🟢 Positive Drivers -->
+            <div class="glass-panel" style="padding: 1.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid #1e293b; padding-bottom: 0.75rem; margin-bottom: 1rem;">
+                <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                  ✅
+                </div>
+                <div>
+                  <h3 style="font-size: 0.95rem; color: #fff;">🟢 أين نجحنا اليوم (Where Was Good)</h3>
+                  <p style="font-size: 11px; color: #94a3b8;">محركات النمو والإنجازات التشغيلية والمالية المحققة</p>
+                </div>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="padding: 0.85rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.8); border: 1px solid #1e293b; font-size: 12px; color: #e2e8f0; display: flex; gap: 0.75rem; line-height: 1.5;">
+                  <span style="font-weight: 800; color: #34d399;">1.</span>
+                  <span>إغلاق اتفاقيتي وساطة تجارية في برج الملقا وتحصيل عمولة فورية بنسبة 100%.</span>
+                </div>
+                <div style="padding: 0.85rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.8); border: 1px solid #1e293b; font-size: 12px; color: #e2e8f0; display: flex; gap: 0.75rem; line-height: 1.5;">
+                  <span style="font-weight: 800; color: #34d399;">2.</span>
+                  <span>تحصيل الدفعة الإيجارية النصف سنوية لمجمع العليا السكني بدون أي تأخيرات.</span>
+                </div>
+                <div style="padding: 0.85rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.8); border: 1px solid #1e293b; font-size: 12px; color: #e2e8f0; display: flex; gap: 0.75rem; line-height: 1.5;">
+                  <span style="font-weight: 800; color: #34d399;">3.</span>
+                  <span>توثيق جميع العقود المنفذة اليوم عبر منصة إيجار بانتظام وبدون أخطاء.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 🔴 Bottlenecks & Leaks -->
+            <div class="glass-panel" style="padding: 1.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid #1e293b; padding-bottom: 0.75rem; margin-bottom: 1rem;">
+                <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                  ⚠️
+                </div>
+                <div>
+                  <h3 style="font-size: 0.95rem; color: #fff;">🔴 التحديات والتسريبات المالية (What Went Bad)</h3>
+                  <p style="font-size: 11px; color: #94a3b8;">عوامل تباطؤ الدخل والفرص المفقودة والتأخيرات</p>
+                </div>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="padding: 0.85rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.8); border: 1px solid #1e293b; font-size: 12px; color: #e2e8f0; display: flex; gap: 0.75rem; line-height: 1.5;">
+                  <span style="font-weight: 800; color: #f87171;">1.</span>
+                  <span>وجود 3 وحدات سكنية شاغرة في مجمع العليا متوقفة لأكثر من 15 يوماً دون تأجير.</span>
+                </div>
+                <div style="padding: 0.85rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.8); border: 1px solid #1e293b; font-size: 12px; color: #e2e8f0; display: flex; gap: 0.75rem; line-height: 1.5;">
+                  <span style="font-weight: 800; color: #f87171;">2.</span>
+                  <span>تأخر توثيق وكالة إلكترونية (E-POA) واحدة للمالك مما يعطل توقيع العقد التجاري الجديد.</span>
+                </div>
+                <div style="padding: 0.85rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.8); border: 1px solid #1e293b; font-size: 12px; color: #e2e8f0; display: flex; gap: 0.75rem; line-height: 1.5;">
+                  <span style="font-weight: 800; color: #f87171;">3.</span>
+                  <span>ارتفاع تكاليف الصيانة الطارئة للمصاعد في برج الملقا التجاري.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 💡 AI Recommendations -->
+          <div class="glass-panel" style="padding: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid #1e293b; padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
+              <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                💡
+              </div>
+              <div>
+                <h3 style="font-size: 0.95rem; color: #fff;">💡 توصيات AI التنفيذية لزيادة دخل الغد</h3>
+                <p style="font-size: 11px; color: #94a3b8;">خطوات عمل مباشرة مستخرجة ذكائياً لتعظيم الإيرادات الإجمالية والصافية</p>
+              </div>
+            </div>
+
+            <div class="grid-3">
+              <div style="padding: 1.25rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; display: flex; flex-direction: column; gap: 0.5rem;">
+                <div style="color: #38bdf8; font-weight: 700; font-size: 12px;">توصية #1: شغل الوحدات السريعة</div>
+                <p style="font-size: 11px; color: #cbd5e1; line-height: 1.5;">إطلاق خصم تشجيعي 5% على عمولة التأجير السريع للوحدات السكنية الشاغرة بمجمع العليا لسرعة شغلها خلال 48 ساعة.</p>
+              </div>
+
+              <div style="padding: 1.25rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; display: flex; flex-direction: column; gap: 0.5rem;">
+                <div style="color: #38bdf8; font-weight: 700; font-size: 12px;">توصية #2: متابعة الوكالة المعلقة</div>
+                <p style="font-size: 11px; color: #cbd5e1; line-height: 1.5;">متابعة كتابة العدل لإصدار الوكالة الإلكترونية المعلقة لإغلاق عقد البرج التجاري بقيمة 120,000 ريال غداً.</p>
+              </div>
+
+              <div style="padding: 1.25rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; display: flex; flex-direction: column; gap: 0.5rem;">
+                <div style="color: #38bdf8; font-weight: 700; font-size: 12px;">توصية #3: تقليص تكاليف الصيانة</div>
+                <p style="font-size: 11px; color: #cbd5e1; line-height: 1.5;">إعادة تفاوض عقود الصيانة السنوية للمصاعد للحصول على خصم كميات وتقليل المصاريف التشغيلية بنسبة 15%.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/components.js"></script>
+  <script>
+    document.getElementById('sidebar-slot').innerHTML = renderSidebar('financials-daily-reports.html');
+    document.getElementById('header-slot').innerHTML = renderHeader('التقرير اليومي ومستشار AI', 'تحليل الأداء التشغيلي والمالي والتوصيات الذكية');
+
+    document.getElementById('report-date').innerText = new Date().toISOString().split('T')[0];
+
+    function regenerateAI() {
+      alert('تم تحديث وتحليل بيانات اليوم بواسطة مستشار الذكاء الاصطناعي بنجاح!');
+    }
+  </script>
+</body>
+</html>

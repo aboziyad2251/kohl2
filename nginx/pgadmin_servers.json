@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "office_db",
+      "Group": "Servers",
+      "Host": "office-db",
+      "Port": 5432,
+      "MaintenanceDB": "office_db",
+      "Username": "postgres",
+      "SSLMode": "prefer"
+    }
+  }
+}

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>اتفاقيات الوساطة العقارية | نظام إدارة المكتب العقاري</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <div id="sidebar-slot"></div>
+
+    <div class="main-wrapper">
+      <div id="header-slot"></div>
+
+      <main class="main-content">
+        <!-- Header -->
+        <div style="padding: 1.5rem; border-radius: 1rem; background: linear-gradient(135deg, #0f172a, #0c2d48 60%, #0f172a); border: 1px solid rgba(56, 189, 248, 0.25); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 2rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; color: #2dd4bf; font-size: 11px; font-weight: 700; margin-bottom: 0.25rem;">
+              <span>🤝</span>
+              <span>منصة إيجار - شبكة الوساطة العقارية</span>
+            </div>
+            <h1 style="font-size: 1.5rem; font-weight: 800; color: #ffffff;">سجل اتفاقيات الوساطة العقارية</h1>
+            <p style="font-size: 12px; color: #94a3b8; margin-top: 0.25rem;">
+              إدارة اتفاقيات الوساطة المعتمدة لدى إيجار، تتبع نسب السعي وأرباح المكتب.
+            </p>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <button onclick="exportTableToCSV('اتفاقيات_الوساطة.csv', 'brk-table')" class="btn btn-outline-emerald">
+              <span>📊</span>
+              <span>تصدير إلى Excel/CSV</span>
+            </button>
+            <button onclick="openModal('add-brk-modal')" class="btn btn-primary">
+              <span>➕</span>
+              <span>إنشاء اتفاقية وساطة جديدة</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="glass-panel table-container">
+          <table id="brk-table">
+            <thead>
+              <tr>
+                <th>رقم الاتفاقية (إيجار)</th>
+                <th>العقار</th>
+                <th>المالك / المؤجر</th>
+                <th>نسبة السعي %</th>
+                <th style="color: #fbbf24;">ربح المكتب من الوساطة</th>
+                <th>صلاحية الاتفاقية</th>
+                <th>حالة إيجار</th>
+                <th style="text-align: center;">الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="brk-tbody">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Add Brokerage Modal -->
+  <div id="add-brk-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid #334155; padding-bottom: 0.75rem;">
+        <h3 style="font-size: 1rem; color: #fff;">إنشاء اتفاقية وساطة عقارية جديدة</h3>
+        <button onclick="closeModal('add-brk-modal')" class="btn-icon">✕</button>
+      </div>
+      <form onsubmit="handleCreateBrokerage(event)" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div>
+          <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">العقار</label>
+          <select id="new-brk-prop" class="input-control">
+            <option value="برج الملقا التجاري">برج الملقا التجاري</option>
+            <option value="مجمع العليا السكني">مجمع العليا السكني</option>
+            <option value="مركز الأفق للأعمال">مركز الأفق للأعمال</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">المالك / المؤجر</label>
+          <input type="text" id="new-brk-lessor" class="input-control" required placeholder="الشيخ محمد العتيبي">
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">نسبة السعي %</label>
+            <input type="number" step="0.1" id="new-brk-rate" class="input-control" required placeholder="2.5">
+          </div>
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">ربح المكتب التقديري (ر.س)</label>
+            <input type="number" id="new-brk-profit" class="input-control" required placeholder="5000">
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">تاريخ البداية</label>
+            <input type="date" id="new-brk-start" class="input-control" required>
+          </div>
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">تاريخ الانتهاء</label>
+            <input type="date" id="new-brk-end" class="input-control" required>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+          <button type="button" onclick="closeModal('add-brk-modal')" class="btn btn-secondary">إلغاء</button>
+          <button type="submit" class="btn btn-primary">حفظ الاتفاقية</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/components.js"></script>
+  <script>
+    document.getElementById('sidebar-slot').innerHTML = renderSidebar('brokerage-agreements.html');
+    document.getElementById('header-slot').innerHTML = renderHeader('اتفاقيات الوساطة العقارية', 'توثيق وتتبع اتفاقيات وعمولات السعي بشبكة إيجار');
+
+    let store = getAppStore();
+
+    function renderBrokerage() {
+      const tbody = document.getElementById('brk-tbody');
+      tbody.innerHTML = store.brokerageAgreements.map(b => `
+        <tr>
+          <td style="font-family: monospace; font-weight: 700; color: #2dd4bf; direction: ltr; text-align: right;">${b.agreement_number}</td>
+          <td style="font-weight: 700; color: #fff;">${b.property_title}</td>
+          <td style="font-medium; color: #cbd5e1;">${b.lessor_name}</td>
+          <td style="font-weight: 800; color: #34d399;">${b.commission_rate}%</td>
+          <td style="font-weight: 800; color: #fbbf24;">${(b.office_profit || 0).toLocaleString('ar-SA')} ر.س</td>
+          <td style="color: #94a3b8;">من ${b.start_date} إلى ${b.expiry_date}</td>
+          <td><span class="badge badge-success">${b.ejar_status}</span></td>
+          <td style="text-align: center;">
+            <button onclick="deleteBrokerage('${b.id}')" class="btn-icon" style="color: #f87171;" title="حذف">🗑️</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function deleteBrokerage(id) {
+      if (confirm('حذف هذه الاتفاقية؟')) {
+        store.brokerageAgreements = store.brokerageAgreements.filter(b => b.id !== id);
+        saveAppStore(store);
+        renderBrokerage();
+      }
+    }
+
+    function handleCreateBrokerage(e) {
+      e.preventDefault();
+      const newB = {
+        id: 'brk-' + Date.now(),
+        agreement_number: 'EJAR-BRK-2026-0' + (store.brokerageAgreements.length + 1),
+        property_title: document.getElementById('new-brk-prop').value,
+        lessor_name: document.getElementById('new-brk-lessor').value,
+        commission_rate: Number(document.getElementById('new-brk-rate').value),
+        office_profit: Number(document.getElementById('new-brk-profit').value),
+        start_date: document.getElementById('new-brk-start').value,
+        expiry_date: document.getElementById('new-brk-end').value,
+        ejar_status: 'Active'
+      };
+      store.brokerageAgreements.unshift(newB);
+      saveAppStore(store);
+      closeModal('add-brk-modal');
+      e.target.reset();
+      renderBrokerage();
+    }
+
+    renderBrokerage();
+  </script>
+</body>
+</html>

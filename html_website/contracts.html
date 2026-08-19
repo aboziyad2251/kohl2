@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مركز العقود والإيجارات | نظام إدارة المكتب العقاري</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <div id="sidebar-slot"></div>
+
+    <div class="main-wrapper">
+      <div id="header-slot"></div>
+
+      <main class="main-content">
+        <!-- Header -->
+        <div style="padding: 1.5rem; border-radius: 1rem; background: linear-gradient(135deg, #0f172a, #0c2d48 60%, #0f172a); border: 1px solid rgba(56, 189, 248, 0.25); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 2rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; color: #38bdf8; font-size: 11px; font-weight: 700; margin-bottom: 0.25rem;">
+              <span>✍️</span>
+              <span>إدارة عقود الإيجار المعتمدة</span>
+            </div>
+            <h1 style="font-size: 1.5rem; font-weight: 800; color: #ffffff;">مركز العقود والإيجارات (منصة إيجار)</h1>
+            <p style="font-size: 12px; color: #94a3b8; margin-top: 0.25rem;">
+              عرض وتصنيف عقود الإيجار السكنية والتجارية ومن الباطن وإصدار عقود جديدة موثقة.
+            </p>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <button onclick="exportTableToCSV('عقود_الإيجار.csv', 'contracts-table')" class="btn btn-outline-emerald">
+              <span>📊</span>
+              <span>تصدير إلى Excel/CSV</span>
+            </button>
+            <button onclick="openModal('add-contract-modal')" class="btn btn-primary">
+              <span>➕</span>
+              <span>إنشاء عقد إيجار جديد</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filters Toolbar -->
+        <div class="glass-panel" style="padding: 1rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
+          <div style="flex: 1; min-width: 250px; position: relative;">
+            <input type="text" id="contract-search" placeholder="بحث برقم العقد، اسم المستأجر، الهوية..." class="input-control" onkeyup="filterContracts()">
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <span style="font-size: 11px; color: #94a3b8;">نوع العقد:</span>
+            <select id="contract-type-filter" class="input-control" style="width: auto;" onchange="filterContracts()">
+              <option value="ALL">جميع أنواع العقود</option>
+              <option value="RESIDENTIAL">عقود سكنية</option>
+              <option value="COMMERCIAL">عقود تجارية</option>
+              <option value="SUBLEASE">عقود من الباطن</option>
+            </select>
+
+            <span style="font-size: 11px; color: #94a3b8;">الحالة:</span>
+            <select id="contract-status-filter" class="input-control" style="width: auto;" onchange="filterContracts()">
+              <option value="ALL">جميع الحالات</option>
+              <option value="Active">نشط (Active)</option>
+              <option value="Draft">مسودة (Draft)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Contracts Table -->
+        <div class="glass-panel table-container">
+          <table id="contracts-table">
+            <thead>
+              <tr>
+                <th>رقم العقد</th>
+                <th>نوع العقد</th>
+                <th>العقار</th>
+                <th>المستأجر</th>
+                <th>القيمة السنوية</th>
+                <th>المستقطع للمالك</th>
+                <th style="color: #fbbf24;">ربح المكتب من العقد</th>
+                <th>جدول الدفعات</th>
+                <th>سريان العقد</th>
+                <th>الحالة</th>
+                <th style="text-align: center;">الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="contracts-tbody">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Add Contract Modal -->
+  <div id="add-contract-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid #334155; padding-bottom: 0.75rem;">
+        <h3 style="font-size: 1rem; color: #fff;">إنشاء عقد إيجار جديد (إيجار)</h3>
+        <button onclick="closeModal('add-contract-modal')" class="btn-icon">✕</button>
+      </div>
+      <form onsubmit="handleCreateContract(event)" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="grid-2">
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">نوع العقد</label>
+            <select id="new-cnt-type" class="input-control">
+              <option value="RESIDENTIAL">سكني</option>
+              <option value="COMMERCIAL">تجاري</option>
+              <option value="SUBLEASE">من الباطن</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">العقار</label>
+            <select id="new-cnt-prop" class="input-control">
+              <option value="برج الملقا التجاري">برج الملقا التجاري</option>
+              <option value="مجمع العليا السكني">مجمع العليا السكني</option>
+              <option value="مركز الأفق للأعمال">مركز الأفق للأعمال</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">اسم المستأجر</label>
+            <input type="text" id="new-cnt-tenant" class="input-control" required placeholder="مثال: عبد الله السبيعي">
+          </div>
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">الهوية / السجل التجاري</label>
+            <input type="text" id="new-cnt-nid" class="input-control" required placeholder="10xxxxxxxx">
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">القيمة الإيجارية السنوية (ر.س)</label>
+            <input type="number" id="new-cnt-rent" class="input-control" required placeholder="80000">
+          </div>
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">ربح المكتب من العقد (ر.س)</label>
+            <input type="number" id="new-cnt-profit" class="input-control" required placeholder="4000">
+          </div>
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">جدول الدفعات</label>
+            <select id="new-cnt-schedule" class="input-control">
+              <option value="شهري (12 دفعة)">شهري (12 دفعة)</option>
+              <option value="ربع سنوي (4 دفعات)">ربع سنوي (4 دفعات)</option>
+              <option value="نصف سنوي (دفعتان)">نصف سنوي (دفعتان)</option>
+              <option value="سنوي (دفعة واحدة)">سنوي (دفعة واحدة)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">تاريخ البداية</label>
+            <input type="date" id="new-cnt-start" class="input-control" required>
+          </div>
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">تاريخ النهاية</label>
+            <input type="date" id="new-cnt-end" class="input-control" required>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+          <button type="button" onclick="closeModal('add-contract-modal')" class="btn btn-secondary">إلغاء</button>
+          <button type="submit" class="btn btn-primary">حفظ وتوثيق العقد</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/components.js"></script>
+  <script>
+    document.getElementById('sidebar-slot').innerHTML = renderSidebar('contracts.html');
+    document.getElementById('header-slot').innerHTML = renderHeader('مركز العقود والإيجارات', 'إدارة وتوثيق عقود الإيجار الرسمية بشبكة إيجار');
+
+    let store = getAppStore();
+
+    function renderContracts(contractsToRender) {
+      const tbody = document.getElementById('contracts-tbody');
+      tbody.innerHTML = contractsToRender.map(c => {
+        let typeBadge = '';
+        if (c.type === 'RESIDENTIAL') typeBadge = '<span class="badge badge-sky">🏢 سكني</span>';
+        else if (c.type === 'COMMERCIAL') typeBadge = '<span class="badge badge-warning">🏢 تجاري</span>';
+        else typeBadge = '<span class="badge badge-purple">🛡️ من الباطن</span>';
+
+        return `
+          <tr>
+            <td style="font-family: monospace; font-weight: 700; color: #38bdf8; direction: ltr; text-align: right;">${c.contract_number}</td>
+            <td>${typeBadge}</td>
+            <td style="font-weight: 600; color: #fff;">${c.property_title}</td>
+            <td>
+              <div style="font-weight: 700; color: #fff;">${c.tenant_name}</div>
+              <div style="font-size: 10px; color: #94a3b8;">هوية: ${c.tenant_national_id}</div>
+            </td>
+            <td style="font-weight: 800; color: #34d399;">${c.rent_amount.toLocaleString('ar-SA')} ر.س</td>
+            <td style="color: #cbd5e1;">${(c.total_collected_amount || c.rent_amount).toLocaleString('ar-SA')} ر.س</td>
+            <td style="font-weight: 800; color: #fbbf24;">${(c.office_profit || 0).toLocaleString('ar-SA')} ر.س</td>
+            <td style="color: #94a3b8;">${c.payment_schedule}</td>
+            <td style="font-size: 11px; color: #94a3b8;">
+              <div>من: ${c.start_date}</div>
+              <div>إلى: ${c.end_date}</div>
+            </td>
+            <td><span class="badge badge-success">نشط</span></td>
+            <td style="text-align: center;">
+              <button onclick="deleteContract('${c.id}')" class="btn-icon" style="color: #f87171;" title="حذف">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterContracts() {
+      const q = document.getElementById('contract-search').value.toLowerCase().trim();
+      const type = document.getElementById('contract-type-filter').value;
+      const st = document.getElementById('contract-status-filter').value;
+
+      const filtered = store.contracts.filter(c => {
+        const matchQ = !q || c.contract_number.toLowerCase().includes(q) || c.tenant_name.toLowerCase().includes(q) || c.tenant_national_id.includes(q);
+        const matchType = type === 'ALL' || c.type === type;
+        const matchSt = st === 'ALL' || c.status === st;
+        return matchQ && matchType && matchSt;
+      });
+
+      renderContracts(filtered);
+    }
+
+    function deleteContract(id) {
+      if (confirm('حذف هذا العقد؟')) {
+        store.contracts = store.contracts.filter(c => c.id !== id);
+        saveAppStore(store);
+        filterContracts();
+      }
+    }
+
+    function handleCreateContract(e) {
+      e.preventDefault();
+      const rent = Number(document.getElementById('new-cnt-rent').value);
+      const profit = Number(document.getElementById('new-cnt-profit').value);
+      const newC = {
+        id: 'cnt-' + Date.now(),
+        contract_number: 'CNT-RES-2026-0' + (store.contracts.length + 1),
+        type: document.getElementById('new-cnt-type').value,
+        property_title: document.getElementById('new-cnt-prop').value,
+        tenant_name: document.getElementById('new-cnt-tenant').value,
+        tenant_national_id: document.getElementById('new-cnt-nid').value,
+        rent_amount: rent,
+        total_collected_amount: rent,
+        office_profit: profit,
+        payment_schedule: document.getElementById('new-cnt-schedule').value,
+        start_date: document.getElementById('new-cnt-start').value,
+        end_date: document.getElementById('new-cnt-end').value,
+        status: 'Active'
+      };
+      store.contracts.unshift(newC);
+      saveAppStore(store);
+      closeModal('add-contract-modal');
+      e.target.reset();
+      filterContracts();
+    }
+
+    filterContracts();
+  </script>
+</body>
+</html>

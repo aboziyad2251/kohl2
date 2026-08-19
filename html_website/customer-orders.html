@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>طلبات العملاء العقارية | نظام إدارة المكتب العقاري</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <div id="sidebar-slot"></div>
+
+    <div class="main-wrapper">
+      <div id="header-slot"></div>
+
+      <main class="main-content">
+        <!-- Banner & Actions -->
+        <div style="padding: 1.5rem; border-radius: 1rem; background: linear-gradient(135deg, #0f172a, #0c2d48 60%, #0f172a); border: 1px solid rgba(56, 189, 248, 0.25); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 2rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; color: #38bdf8; font-size: 11px; font-weight: 700; margin-bottom: 0.25rem;">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: #34d399;"></span>
+              <span>سجل طلبات واحتياجات العملاء (سكني وتجاري)</span>
+            </div>
+            <h1 style="font-size: 1.5rem; font-weight: 800; color: #ffffff;">طلبات العملاء العقارية</h1>
+            <p style="font-size: 12px; color: #94a3b8; margin-top: 0.25rem;">
+              إدارة متابعة الطلبات الواردة من العملاء وتوفير العقارات السكنية والتجارية بدقة وسرعة.
+            </p>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <button onclick="exportTableToCSV('طلبات_العملاء.csv', 'orders-table')" class="btn btn-outline-emerald">
+              <span>📊</span>
+              <span>تصدير إلى Excel/CSV</span>
+            </button>
+            <button onclick="openModal('add-order-modal')" class="btn btn-primary">
+              <span>➕</span>
+              <span>تسجيل طلب عميل جديد</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Analytics Cards -->
+        <div class="grid-4" style="margin-bottom: 1.5rem;">
+          <div class="glass-panel" style="padding: 1.25rem;">
+            <div style="font-size: 11px; color: #94a3b8;">إجمالي طلبات العملاء</div>
+            <div style="font-size: 1.8rem; font-weight: 900; color: #fff; margin-top: 0.35rem;" id="stat-total">3</div>
+            <div style="font-size: 11px; color: #38bdf8; margin-top: 0.25rem;">مسجلة بالنظام</div>
+          </div>
+
+          <div class="glass-panel" style="padding: 1.25rem;">
+            <div style="font-size: 11px; color: #94a3b8;">طلبات قيد البحث</div>
+            <div style="font-size: 1.8rem; font-weight: 900; color: #fbbf24; margin-top: 0.35rem;" id="stat-searching">2</div>
+            <div style="font-size: 11px; color: #fbbf24; margin-top: 0.25rem;">بانتظار توفير العقار</div>
+          </div>
+
+          <div class="glass-panel" style="padding: 1.25rem;">
+            <div style="font-size: 11px; color: #94a3b8;">سكني vs تجاري</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #fff; margin-top: 0.35rem;">
+              <span style="color: #38bdf8;">2 سكني</span> | <span style="color: #c084fc;">1 تجاري</span>
+            </div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 0.25rem;">توزيع السوق</div>
+          </div>
+
+          <div class="glass-panel" style="padding: 1.25rem;">
+            <div style="font-size: 11px; color: #94a3b8;">تم توفيرها بنجاح</div>
+            <div style="font-size: 1.8rem; font-weight: 900; color: #34d399; margin-top: 0.35rem;" id="stat-fulfilled">1</div>
+            <div style="font-size: 11px; color: #34d399; margin-top: 0.25rem;">تم إبرام العقود</div>
+          </div>
+        </div>
+
+        <!-- Filters Toolbar -->
+        <div class="glass-panel" style="padding: 1rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
+          <div style="flex: 1; min-width: 250px; position: relative;">
+            <input type="text" id="order-search" placeholder="بحث بالاسم، الجوال، نوع العقار، الحي..." class="input-control" onkeyup="filterOrders()">
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <span style="font-size: 11px; color: #94a3b8;">التصنيف:</span>
+            <select id="cat-filter" class="input-control" style="width: auto;" onchange="filterOrders()">
+              <option value="ALL">كل التصنيفات</option>
+              <option value="RESIDENTIAL">سكني</option>
+              <option value="COMMERCIAL">تجاري</option>
+            </select>
+
+            <span style="font-size: 11px; color: #94a3b8;">الحالة:</span>
+            <select id="status-filter" class="input-control" style="width: auto;" onchange="filterOrders()">
+              <option value="ALL">جميع الحالات</option>
+              <option value="New">جديد (New)</option>
+              <option value="Searching">قيد البحث (Searching)</option>
+              <option value="Fulfilled">تم التوفير (Fulfilled)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Orders Table -->
+        <div class="glass-panel table-container">
+          <table id="orders-table">
+            <thead>
+              <tr>
+                <th>رقم الطلب</th>
+                <th>اسم العميل والتواصل</th>
+                <th>التصنيف</th>
+                <th>نوع العقار المطلوب</th>
+                <th>المنطقة والمساحة</th>
+                <th>الميزانية المتوقعة</th>
+                <th>ملاحظات وشروط خاصة</th>
+                <th>الحالة</th>
+                <th style="text-align: center;">الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="orders-tbody">
+              <!-- Injected by JS -->
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Add Order Modal -->
+  <div id="add-order-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid #334155; padding-bottom: 0.75rem;">
+        <h3 style="font-size: 1rem; color: #fff;">تسجيل طلب عميل جديد</h3>
+        <button onclick="closeModal('add-order-modal')" class="btn-icon">✕</button>
+      </div>
+      <form onsubmit="handleCreateOrder(event)" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="grid-2">
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">اسم العميل</label>
+            <input type="text" id="new-client-name" class="input-control" required placeholder="مثال: صالح القحطاني">
+          </div>
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">رقم الجوال</label>
+            <input type="text" id="new-client-phone" class="input-control" required placeholder="05xxxxxxxx">
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">التصنيف</label>
+            <select id="new-client-cat" class="input-control">
+              <option value="RESIDENTIAL">سكني</option>
+              <option value="COMMERCIAL">تجاري</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">نوع العقار المطلوب</label>
+            <input type="text" id="new-client-type" class="input-control" required placeholder="مثال: فيلا درج صالة">
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">المنطقة والمساحة</label>
+          <input type="text" id="new-client-area" class="input-control" required placeholder="مثال: حي النرجس - 300 م²">
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">الميزانية الدنيا (ر.س)</label>
+            <input type="number" id="new-budget-min" class="input-control" placeholder="1000000">
+          </div>
+          <div>
+            <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">الميزانية القصوى (ر.س)</label>
+            <input type="number" id="new-budget-max" class="input-control" placeholder="1500000">
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 0.25rem;">شروط وملاحظات</label>
+          <textarea id="new-client-notes" class="input-control" rows="3" placeholder="أية اشتراطات خاصة بالعميل..."></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+          <button type="button" onclick="closeModal('add-order-modal')" class="btn btn-secondary">إلغاء</button>
+          <button type="submit" class="btn btn-primary">حفظ الطلب</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/components.js"></script>
+  <script>
+    document.getElementById('sidebar-slot').innerHTML = renderSidebar('customer-orders.html');
+    document.getElementById('header-slot').innerHTML = renderHeader('طلبات العملاء العقارية', 'متابعة وتلبية طلبات واحتياجات السوق العقاري');
+
+    let store = getAppStore();
+
+    function renderOrders(ordersToRender) {
+      const tbody = document.getElementById('orders-tbody');
+      tbody.innerHTML = ordersToRender.map(ord => {
+        let statusBadge = '';
+        if (ord.status === 'New') statusBadge = '<span class="badge badge-sky">جديد</span>';
+        else if (ord.status === 'Searching') statusBadge = '<span class="badge badge-warning">قيد البحث</span>';
+        else if (ord.status === 'Fulfilled') statusBadge = '<span class="badge badge-success">تم التوفير</span>';
+        else statusBadge = '<span class="badge badge-danger">ملغى</span>';
+
+        return `
+          <tr>
+            <td style="font-family: monospace; font-weight: 700; color: #38bdf8;">${ord.order_number}</td>
+            <td>
+              <div style="font-weight: 700; color: #fff;">${ord.client_name}</div>
+              <div style="font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 0.35rem; margin-top: 0.15rem;">
+                <span style="direction: ltr;">${ord.client_phone}</span>
+                <a href="https://wa.me/966${ord.client_phone.replace(/^0/, '')}" target="_blank" style="color: #34d399;" title="واتساب">💬</a>
+              </div>
+            </td>
+            <td>
+              <span class="badge ${ord.category === 'RESIDENTIAL' ? 'badge-sky' : 'badge-purple'}">
+                ${ord.category === 'RESIDENTIAL' ? '🏠 سكني' : '💼 تجاري'}
+              </span>
+            </td>
+            <td style="font-weight: 600; color: #f1f5f9;">${ord.building_type}</td>
+            <td style="color: #cbd5e1;">📍 ${ord.desired_area}</td>
+            <td style="font-weight: 800; color: #34d399;">
+              ${ord.budget_min ? `${ord.budget_min.toLocaleString('ar-SA')} - ` : ''}
+              ${ord.budget_max ? `${ord.budget_max.toLocaleString('ar-SA')} ر.س` : 'غير محدد'}
+            </td>
+            <td style="max-width: 200px; color: #cbd5e1; font-size: 11px;">${ord.notes || '—'}</td>
+            <td>${statusBadge}</td>
+            <td style="text-align: center;">
+              <div style="display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
+                ${ord.status !== 'Fulfilled' ? `<button onclick="markOrderFulfilled('${ord.id}')" class="btn btn-outline-emerald" style="padding: 0.25rem 0.5rem; font-size: 10px;">إكتمال</button>` : ''}
+                <button onclick="deleteOrder('${ord.id}')" class="btn-icon" style="color: #f87171;" title="حذف">🗑️</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterOrders() {
+      const q = document.getElementById('order-search').value.toLowerCase().trim();
+      const cat = document.getElementById('cat-filter').value;
+      const st = document.getElementById('status-filter').value;
+
+      const filtered = store.customerOrders.filter(ord => {
+        const matchQ = !q || ord.client_name.toLowerCase().includes(q) || ord.client_phone.includes(q) || ord.building_type.toLowerCase().includes(q) || ord.desired_area.toLowerCase().includes(q);
+        const matchCat = cat === 'ALL' || ord.category === cat;
+        const matchSt = st === 'ALL' || ord.status === st;
+        return matchQ && matchCat && matchSt;
+      });
+
+      renderOrders(filtered);
+    }
+
+    function markOrderFulfilled(id) {
+      store.customerOrders = store.customerOrders.map(o => o.id === id ? { ...o, status: 'Fulfilled' } : o);
+      saveAppStore(store);
+      filterOrders();
+    }
+
+    function deleteOrder(id) {
+      if (confirm('هل أنت متأكد من حذف هذا الطلب؟')) {
+        store.customerOrders = store.customerOrders.filter(o => o.id !== id);
+        saveAppStore(store);
+        filterOrders();
+      }
+    }
+
+    function handleCreateOrder(e) {
+      e.preventDefault();
+      const newOrd = {
+        id: 'ord-' + Date.now(),
+        order_number: 'ORD-2026-0' + (store.customerOrders.length + 1),
+        client_name: document.getElementById('new-client-name').value,
+        client_phone: document.getElementById('new-client-phone').value,
+        category: document.getElementById('new-client-cat').value,
+        building_type: document.getElementById('new-client-type').value,
+        desired_area: document.getElementById('new-client-area').value,
+        budget_min: Number(document.getElementById('new-budget-min').value) || 0,
+        budget_max: Number(document.getElementById('new-budget-max').value) || 0,
+        notes: document.getElementById('new-client-notes').value,
+        status: 'New',
+        created_at: new Date().toISOString().split('T')[0]
+      };
+      store.customerOrders.unshift(newOrd);
+      saveAppStore(store);
+      closeModal('add-order-modal');
+      e.target.reset();
+      filterOrders();
+    }
+
+    filterOrders();
+  </script>
+</body>
+</html>
