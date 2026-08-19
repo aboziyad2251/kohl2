@@ -1,388 +1,246 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" class="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard | Realys Real Estate Management</title>
-  <link rel="stylesheet" href="css/style.css">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>نظام إدارة المكتب العقاري | Real Estate Office Management</title>
+  <meta name="description" content="منظومة إدارية متكاملة لإدارة العقارات، العقود (إيجار)، الملكية والوكالات الإلكترونية"/>
+  <link rel="stylesheet" href="css/style.css"/>
 </head>
-<body>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex antialiased">
   <div class="app-container">
-    <!-- Sidebar -->
+    <!-- Sidebar Slot -->
     <div id="sidebar-slot"></div>
 
-    <!-- Main Content Area -->
+    <!-- Main Wrapper -->
     <div class="main-wrapper">
-      <!-- Header Bar -->
+      <!-- Header Slot -->
       <div id="header-slot"></div>
 
-      <main class="main-content">
-        <!-- Main Dashboard 2-Column Grid -->
-        <div class="dashboard-grid-layout">
+      <!-- Main Content -->
+      <main class="dashboard-main">
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
           
-          <!-- LEFT MAJOR COLUMN (~68%) -->
-          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+          <!-- 1. Hero Welcome Banner -->
+          <div style="padding: 1.5rem; border-radius: 1rem; background: linear-gradient(to right, #0f172a, rgba(8, 47, 73, 0.6), #0f172a); border: 1px solid rgba(14, 165, 233, 0.2); display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); position: relative; overflow: hidden;">
+            <div style="position: absolute; top: 0; right: 0; width: 24rem; height: 24rem; background-color: rgba(14, 165, 233, 0.05); border-radius: 9999px; filter: blur(48px); pointer-events: none;"></div>
             
-            <!-- 1. Top 3 Metric Cards Row -->
-            <div class="grid-3-cards">
-              <!-- Metric 1: Total Occupied -->
-              <div class="glass-panel" style="padding: 1.25rem; display: flex; align-items: center; justify-content: space-between; border-radius: 1.15rem; background: #131d35;">
-                <div style="display: flex; align-items: center; gap: 0.85rem;">
-                  <div style="width: 46px; height: 46px; border-radius: 50%; background: rgba(2, 132, 199, 0.2); border: 1.5px solid #38bdf8; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; color: #38bdf8;">
-                    🏠
-                  </div>
-                  <div>
-                    <span style="font-size: 11.5px; font-weight: 700; color: #94a3b8;">Total Occupied / المشغول</span>
-                    <div style="font-size: 1.75rem; font-weight: 900; color: #fff; line-height: 1.1; margin-top: 2px;">135</div>
-                    <div style="font-size: 10px; color: #64748b; margin-top: 2px;">Last 7 days / آخر 7 أيام</div>
-                  </div>
-                </div>
-                <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(52, 211, 153, 0.35); color: #34d399; font-size: 11px; font-weight: 800; padding: 0.25rem 0.55rem; border-radius: 9999px;">
-                  +5% ↗
-                </div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; color: #38bdf8; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.25rem;">
+                <span style="width: 0.5rem; height: 0.5rem; border-radius: 9999px; background-color: #34d399;"></span>
+                <span>نظام إداري ديناميكي متصل بقاعدة البيانات وحافظة التخزين الحية</span>
               </div>
-
-              <!-- Metric 2: Total Vacant -->
-              <div class="glass-panel" style="padding: 1.25rem; display: flex; align-items: center; justify-content: space-between; border-radius: 1.15rem; background: #131d35;">
-                <div style="display: flex; align-items: center; gap: 0.85rem;">
-                  <div style="width: 46px; height: 46px; border-radius: 50%; background: rgba(59, 130, 246, 0.2); border: 1.5px solid #60a5fa; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; color: #60a5fa;">
-                    🔑
-                  </div>
-                  <div>
-                    <span style="font-size: 11.5px; font-weight: 700; color: #94a3b8;">Total Vacant / الشاغر</span>
-                    <div style="font-size: 1.75rem; font-weight: 900; color: #fff; line-height: 1.1; margin-top: 2px;">15</div>
-                    <div style="font-size: 10px; color: #64748b; margin-top: 2px;">Last 7 days / آخر 7 أيام</div>
-                  </div>
-                </div>
-                <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(248, 113, 113, 0.35); color: #f87171; font-size: 11px; font-weight: 800; padding: 0.25rem 0.55rem; border-radius: 9999px;">
-                  -5% ↘
-                </div>
-              </div>
-
-              <!-- Metric 3: Total Booked -->
-              <div class="glass-panel" style="padding: 1.25rem; display: flex; align-items: center; justify-content: space-between; border-radius: 1.15rem; background: #131d35;">
-                <div style="display: flex; align-items: center; gap: 0.85rem;">
-                  <div style="width: 46px; height: 46px; border-radius: 50%; background: rgba(249, 115, 22, 0.2); border: 1.5px solid #fb923c; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; color: #fb923c;">
-                    📅
-                  </div>
-                  <div>
-                    <span style="font-size: 11.5px; font-weight: 700; color: #94a3b8;">Total Booked / المحجوز</span>
-                    <div style="font-size: 1.75rem; font-weight: 900; color: #fff; line-height: 1.1; margin-top: 2px;">520</div>
-                    <div style="font-size: 10px; color: #64748b; margin-top: 2px;">Last 7 days / آخر 7 أيام</div>
-                  </div>
-                </div>
-                <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(52, 211, 153, 0.35); color: #34d399; font-size: 11px; font-weight: 800; padding: 0.25rem 0.55rem; border-radius: 9999px;">
-                  +5% ↗
-                </div>
-              </div>
+              <h1 style="font-size: 1.5rem; font-weight: 700; color: #ffffff; margin: 0; line-height: 1.25;">مرحباً بك في لوحة تحكم المكتب العقاري</h1>
+              <p style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem; max-width: 36rem;">
+                إدارة شاملة للملكية، العقارات، عقود إيجار السكنية والتجارية، والوكالات الإلكترونية بمرونة وتوثيق دقيق.
+              </p>
             </div>
 
-            <!-- 2. Revenue Overview & Financial Cards Row -->
-            <div style="display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 1.25rem;">
-              <!-- Revenue Overview Bar Chart Card -->
-              <div class="glass-panel" style="padding: 1.35rem; border-radius: 1.15rem; background: #131d35;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-                  <div>
-                    <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; margin: 0;">Revenue Overview</h3>
-                    <p style="font-size: 11px; color: #94a3b8; margin: 2px 0 0 0;">Show overview 1 Jan 2026 - 31 Dec 2026</p>
-                  </div>
-                  <div style="display: flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.65rem; border-radius: 8px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); font-size: 11px; color: #cbd5e1; cursor: pointer;">
-                    <span>Monthly</span>
-                    <span style="font-size: 9px;">⌄</span>
-                  </div>
-                </div>
+            <!-- Action Buttons -->
+            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+              <a href="financials-daily-reports.html" style="padding: 0.625rem 1rem; border-radius: 0.75rem; background: linear-gradient(to right, #059669, #0d9488); color: #ffffff; font-size: 0.75rem; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.2); transition: all 0.2s;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>
+                <span>الأرباح والتقرير اليومي</span>
+              </a>
 
-                <!-- Custom Bar Chart Graphic -->
-                <div class="chart-container">
-                  <!-- Jan -->
-                  <div class="chart-bar-group">
-                    <div class="chart-bars">
-                      <div class="bar-expense" style="height: 45px;" title="Expense: $4,500"></div>
-                      <div class="bar-income" style="height: 75px;" title="Income: $7,500"></div>
-                    </div>
-                    <span class="chart-bar-label">Jan</span>
-                  </div>
+              <a href="contracts.html" style="padding: 0.625rem 1rem; border-radius: 0.75rem; background-color: #0284c7; color: #ffffff; font-size: 0.75rem; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 10px 15px -3px rgba(2, 132, 199, 0.3); transition: all 0.2s;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+                <span>عقد إيجار جديد</span>
+              </a>
 
-                  <!-- Feb -->
-                  <div class="chart-bar-group">
-                    <div class="chart-bars">
-                      <div class="bar-expense" style="height: 70px;"></div>
-                      <div class="bar-income" style="height: 95px;"></div>
-                    </div>
-                    <span class="chart-bar-label">Feb</span>
-                  </div>
-
-                  <!-- Mar -->
-                  <div class="chart-bar-group">
-                    <div class="chart-bars">
-                      <div class="bar-expense" style="height: 35px;"></div>
-                      <div class="bar-income" style="height: 60px;"></div>
-                    </div>
-                    <span class="chart-bar-label">Mar</span>
-                  </div>
-
-                  <!-- Apr -->
-                  <div class="chart-bar-group">
-                    <div class="chart-bars">
-                      <div class="bar-expense" style="height: 55px;"></div>
-                      <div class="bar-income" style="height: 80px;"></div>
-                    </div>
-                    <span class="chart-bar-label">Apr</span>
-                  </div>
-
-                  <!-- May -->
-                  <div class="chart-bar-group">
-                    <div class="chart-bars">
-                      <div class="bar-expense" style="height: 65px;"></div>
-                      <div class="bar-income" style="height: 90px;"></div>
-                    </div>
-                    <span class="chart-bar-label">May</span>
-                  </div>
-
-                  <!-- Jun -->
-                  <div class="chart-bar-group">
-                    <div class="chart-bars">
-                      <div class="bar-expense" style="height: 85px;"></div>
-                      <div class="bar-income" style="height: 115px;"></div>
-                    </div>
-                    <span class="chart-bar-label">Jun</span>
-                  </div>
-
-                  <!-- Jul -->
-                  <div class="chart-bar-group">
-                    <div class="chart-bars">
-                      <div class="bar-expense" style="height: 40px;"></div>
-                      <div class="bar-income" style="height: 70px;"></div>
-                    </div>
-                    <span class="chart-bar-label">Jul</span>
-                  </div>
-
-                  <!-- Aug -->
-                  <div class="chart-bar-group">
-                    <div class="chart-bars">
-                      <div class="bar-expense" style="height: 50px;"></div>
-                      <div class="bar-income" style="height: 85px;"></div>
-                    </div>
-                    <span class="chart-bar-label">Aug</span>
-                  </div>
-                </div>
-
-                <!-- Legend -->
-                <div style="display: flex; align-items: center; gap: 1.5rem; margin-top: 0.85rem; font-size: 11px; color: #94a3b8;">
-                  <div style="display: flex; align-items: center; gap: 0.4rem;">
-                    <span style="width: 8px; height: 8px; border-radius: 2px; background: #f97316;"></span>
-                    <span>Expense (المصروفات)</span>
-                  </div>
-                  <div style="display: flex; align-items: center; gap: 0.4rem;">
-                    <span style="width: 8px; height: 8px; border-radius: 2px; background: #38bdf8;"></span>
-                    <span>Income (الإيرادات)</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Right Stacked Financial Cards -->
-              <div style="display: flex; flex-direction: column; gap: 1rem; justify-content: space-between;">
-                <!-- Total Income Card (Dark Sleek) -->
-                <div class="glass-panel" style="padding: 1.25rem; border-radius: 1.15rem; background: linear-gradient(135deg, #0f172a, #1e293b); border: 1px solid rgba(56, 189, 248, 0.25); display: flex; flex-direction: column; justify-content: space-between;">
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                      <span style="width: 28px; height: 28px; border-radius: 8px; background: rgba(56, 189, 248, 0.2); display: flex; align-items: center; justify-content: center; color: #38bdf8; font-size: 0.9rem;">💳</span>
-                      <span style="font-size: 11px; font-weight: 700; color: #cbd5e1;">Total Income / الإيرادات</span>
-                    </div>
-                    <span style="color: #64748b; font-size: 11px;">›</span>
-                  </div>
-                  <div style="margin-top: 0.85rem; display: flex; align-items: baseline; justify-content: space-between;">
-                    <div style="font-size: 1.55rem; font-weight: 900; color: #fff;">$87,783.23</div>
-                    <span style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-size: 10.5px; font-weight: 800; padding: 0.2rem 0.5rem; border-radius: 6px;">+5% ↗</span>
-                  </div>
-                </div>
-
-                <!-- Total Expenses Card -->
-                <div class="glass-panel" style="padding: 1.25rem; border-radius: 1.15rem; background: #131d35; border: 1px solid rgba(255, 255, 255, 0.08); display: flex; flex-direction: column; justify-content: space-between;">
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                      <span style="width: 28px; height: 28px; border-radius: 8px; background: rgba(244, 63, 94, 0.15); display: flex; align-items: center; justify-content: center; color: #f43f5e; font-size: 0.9rem;">🎯</span>
-                      <span style="font-size: 11px; font-weight: 700; color: #cbd5e1;">Total Expenses / المصروفات</span>
-                    </div>
-                    <span style="color: #64748b; font-size: 11px;">›</span>
-                  </div>
-                  <div style="margin-top: 0.85rem; display: flex; align-items: baseline; justify-content: space-between;">
-                    <div style="font-size: 1.55rem; font-weight: 900; color: #fff;">$54,223.03</div>
-                    <span style="background: rgba(239, 68, 68, 0.15); color: #f87171; font-size: 10.5px; font-weight: 800; padding: 0.2rem 0.5rem; border-radius: 6px;">-5% ↘</span>
-                  </div>
-                </div>
-              </div>
+              <a href="ownership-properties.html" style="padding: 0.625rem 1rem; border-radius: 0.75rem; background-color: #1e293b; color: #e2e8f0; font-size: 0.75rem; font-weight: 500; border: 1px solid #334155; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #38bdf8;"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path><path d="M10 6h4"></path><path d="M10 10h4"></path><path d="M10 14h4"></path><path d="M10 18h4"></path></svg>
+                <span>إدارة العقارات</span>
+              </a>
             </div>
-
-            <!-- 3. Bottom Row: Recent Transactions & Task Summary -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
-              <!-- Recent Transactions -->
-              <div class="glass-panel" style="padding: 1.35rem; border-radius: 1.15rem; background: #131d35;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                  <h3 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin: 0;">Recent Transactions</h3>
-                  <a href="financials-earnings.html" style="font-size: 11px; color: #38bdf8; font-weight: 700; text-decoration: none;">See All ›</a>
-                </div>
-
-                <div style="display: flex; flex-direction: column; gap: 0.85rem;">
-                  <!-- Tx 1 -->
-                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.75rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.6);">
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                      <div style="width: 32px; height: 32px; border-radius: 50%; background: #38bdf8; color: #0f172a; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 11px;">
-                        JT
-                      </div>
-                      <div>
-                        <div style="font-size: 12px; font-weight: 800; color: #fff;">John Tibao</div>
-                        <div style="font-size: 10.5px; color: #94a3b8;">Room 20 • 15 Feb - 17 Feb</div>
-                      </div>
-                    </div>
-                    <span style="color: #64748b; font-size: 11px;">›</span>
-                  </div>
-
-                  <!-- Tx 2 -->
-                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.75rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.6);">
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                      <div style="width: 32px; height: 32px; border-radius: 50%; background: #a855f7; color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 11px;">
-                        MA
-                      </div>
-                      <div>
-                        <div style="font-size: 12px; font-weight: 800; color: #fff;">Marissa Alison</div>
-                        <div style="font-size: 10.5px; color: #94a3b8;">Room 10 • 15 Feb - 20 Feb</div>
-                      </div>
-                    </div>
-                    <span style="color: #64748b; font-size: 11px;">›</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Task Summary Banner Card -->
-              <div class="glass-panel" style="padding: 1.35rem; border-radius: 1.15rem; background: #131d35; display: flex; flex-direction: column; justify-content: space-between;">
-                <div>
-                  <h3 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin: 0;">Task Summary</h3>
-                  <p style="font-size: 11px; color: #94a3b8; margin: 2px 0 0 0;">حالة إنجاز المهام التشغيلية</p>
-                </div>
-
-                <!-- 3-Step Colored Progress Banner -->
-                <div class="task-summary-banner">
-                  <div class="task-step-orange">
-                    <span style="font-size: 10px; font-weight: 700; opacity: 0.9;">New Task</span>
-                    <span style="font-size: 1.5rem; font-weight: 900; line-height: 1.1;">4</span>
-                  </div>
-                  <div class="task-step-purple">
-                    <span style="font-size: 10px; font-weight: 700; opacity: 0.9;">Assigned</span>
-                    <span style="font-size: 1.5rem; font-weight: 900; line-height: 1.1;">16</span>
-                  </div>
-                  <div class="task-step-blue">
-                    <span style="font-size: 10px; font-weight: 700; opacity: 0.9;">Done</span>
-                    <span style="font-size: 1.5rem; font-weight: 900; line-height: 1.1;">24</span>
-                  </div>
-                </div>
-
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem; font-size: 10.5px; color: #94a3b8;">
-                  <span>On-time Completion Rate</span>
-                  <span style="font-weight: 800; color: #34d399;">96%</span>
-                </div>
-              </div>
-            </div>
-
           </div>
 
-          <!-- RIGHT COLUMN (~32%): Staff Schedule & Recent Activities -->
-          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-            
-            <!-- Staff Schedule Card -->
-            <div class="glass-panel" style="padding: 1.35rem; border-radius: 1.15rem; background: #131d35;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="font-size: 1rem; font-weight: 800; color: #fff; margin: 0;">Staff Schedule</h3>
-                <span style="font-size: 11px; color: #94a3b8; font-weight: 600;">Today, 19 August</span>
-              </div>
-
-              <!-- Calendar Strip -->
-              <div class="calendar-strip">
-                <div class="calendar-day-item">
-                  <span style="font-size: 10px; color: #94a3b8;">Mon</span>
-                  <span style="font-size: 12px; font-weight: 700;">14</span>
-                </div>
-                <div class="calendar-day-item">
-                  <span style="font-size: 10px; color: #94a3b8;">Tue</span>
-                  <span style="font-size: 12px; font-weight: 700;">15</span>
-                </div>
-                <div class="calendar-day-item">
-                  <span style="font-size: 10px; color: #94a3b8;">Wed</span>
-                  <span style="font-size: 12px; font-weight: 700;">16</span>
-                </div>
-                <div class="calendar-day-item">
-                  <span style="font-size: 10px; color: #94a3b8;">Thu</span>
-                  <span style="font-size: 12px; font-weight: 700;">17</span>
-                </div>
-                <div class="calendar-day-item">
-                  <span style="font-size: 10px; color: #94a3b8;">Fri</span>
-                  <span style="font-size: 12px; font-weight: 700;">18</span>
-                </div>
-                <div class="calendar-day-item active">
-                  <span style="font-size: 10px;">Today</span>
-                  <span style="font-size: 12px; font-weight: 900;">19</span>
+          <!-- 2. KPI Metrics 4-Cards Grid -->
+          <div class="grid-cols-4-responsive">
+            <!-- Metric 1: إجمالي العقود النشطة -->
+            <div class="glass-panel glass-panel-hover" style="padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; min-height: 130px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 0.75rem; font-weight: 500; color: #94a3b8;">إجمالي العقود النشطة</span>
+                <div style="width: 2.5rem; height: 2.5rem; border-radius: 0.75rem; background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; display: flex; align-items: center; justify-content: center;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 5-2.414-2.414A2 2 0 0 0 14.172 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2"></path><path d="M21.378 12.626a1 1 0 0 0-3.004-3.004l-4.01 4.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"></path><path d="M8 18h1"></path></svg>
                 </div>
               </div>
-
-              <!-- Timeline Schedule List -->
-              <div style="display: flex; flex-direction: column; gap: 0.65rem; margin-top: 0.5rem;">
-                <!-- Event 1 -->
-                <div class="timeline-card timeline-purple">
-                  <div style="font-size: 10.5px; font-weight: 700; color: #c084fc; width: 60px;">9:30 am</div>
-                  <div>
-                    <div style="font-size: 12px; font-weight: 800; color: #fff;">Monthly Meeting</div>
-                    <div style="font-size: 10px; color: #e9d5ff;">Internal Task / توثيق العقود</div>
-                  </div>
-                </div>
-
-                <!-- Event 2 -->
-                <div class="timeline-card timeline-orange">
-                  <div style="font-size: 10.5px; font-weight: 700; color: #fb923c; width: 60px;">10:30 am</div>
-                  <div>
-                    <div style="font-size: 12px; font-weight: 800; color: #fff;">Office West #132</div>
-                    <div style="font-size: 10px; color: #ffedd5;">Maintenance / صيانة العقار</div>
-                  </div>
-                </div>
-
-                <!-- Event 3 -->
-                <div class="timeline-card timeline-blue">
-                  <div style="font-size: 10.5px; font-weight: 700; color: #38bdf8; width: 60px;">11:00 am</div>
-                  <div>
-                    <div style="font-size: 12px; font-weight: 800; color: #fff;">Generate Report</div>
-                    <div style="font-size: 10px; color: #e0f2fe;">Personal Task / التقرير المالي</div>
-                  </div>
+              <div>
+                <div style="font-size: 1.875rem; font-weight: 800; color: #ffffff;" id="kpi-contracts">2</div>
+                <div style="font-size: 11px; color: #34d399; margin-top: 0.25rem; display: flex; align-items: center; gap: 0.25rem;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>
+                  <span>معدل توثيق 100% منصة إيجار</span>
                 </div>
               </div>
             </div>
 
-            <!-- Recent Activities Card -->
-            <div class="glass-panel" style="padding: 1.35rem; border-radius: 1.15rem; background: #131d35;">
-              <h3 style="font-size: 1rem; font-weight: 800; color: #fff; margin: 0 0 1rem 0;">Recent Activities</h3>
+            <!-- Metric 2: إجمالي العقارات المسجلة -->
+            <div class="glass-panel glass-panel-hover" style="padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; min-height: 130px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 0.75rem; font-weight: 500; color: #94a3b8;">إجمالي العقارات المسجلة</span>
+                <div style="width: 2.5rem; height: 2.5rem; border-radius: 0.75rem; background-color: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.3); color: #38bdf8; display: flex; align-items: center; justify-content: center;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path><path d="M10 6h4"></path><path d="M10 10h4"></path><path d="M10 14h4"></path><path d="M10 18h4"></path></svg>
+                </div>
+              </div>
+              <div>
+                <div style="font-size: 1.875rem; font-weight: 800; color: #ffffff;" id="kpi-properties">2</div>
+                <div style="font-size: 11px; color: #38bdf8; margin-top: 0.25rem; display: flex; align-items: center; gap: 0.25rem;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path><path d="M10 6h4"></path><path d="M10 10h4"></path><path d="M10 14h4"></path><path d="M10 18h4"></path></svg>
+                  <span>مباني وأبراج تجارية وسكنية</span>
+                </div>
+              </div>
+            </div>
 
-              <div style="display: flex; flex-direction: column; gap: 1rem;">
-                <!-- Activity 1 -->
-                <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
-                  <div style="width: 32px; height: 32px; border-radius: 50%; background: #0284c7; color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 10.5px; flex-shrink: 0;">
-                    HJ
+            <!-- Metric 3: الوكالات الإلكترونية (E-POAs) -->
+            <div class="glass-panel glass-panel-hover" style="padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; min-height: 130px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 0.75rem; font-weight: 500; color: #94a3b8;">الوكالات الإلكترونية (E-POAs)</span>
+                <div style="width: 2.5rem; height: 2.5rem; border-radius: 0.75rem; background-color: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #fbbf24; display: flex; align-items: center; justify-content: center;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="m9 12 2 2 4-4"></path></svg>
+                </div>
+              </div>
+              <div>
+                <div style="font-size: 1.875rem; font-weight: 800; color: #ffffff;" id="kpi-epoa">2</div>
+                <div style="font-size: 11px; color: #fbbf24; margin-top: 0.25rem; display: flex; align-items: center; gap: 0.25rem;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>
+                  <span>جميع الوكالات سارية الصلاحية</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Metric 4: اتفاقيات الوساطة المعتمدة -->
+            <div class="glass-panel glass-panel-hover" style="padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; min-height: 130px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 0.75rem; font-weight: 500; color: #94a3b8;">اتفاقيات الوساطة المعتمدة</span>
+                <div style="width: 2.5rem; height: 2.5rem; border-radius: 0.75rem; background-color: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); color: #c084fc; display: flex; align-items: center; justify-content: center;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="m9 15 2 2 4-4"></path></svg>
+                </div>
+              </div>
+              <div>
+                <div style="font-size: 1.875rem; font-weight: 800; color: #ffffff;" id="kpi-brokerage">1</div>
+                <div style="font-size: 11px; color: #c084fc; margin-top: 0.25rem; display: flex; align-items: center; gap: 0.25rem;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  <span>محدثة ومربوطة بشبكة إيجار</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Two-Column Main Layout -->
+          <div class="grid-cols-3-responsive">
+            
+            <!-- Right 2 Cols: Portfolio Summary & Quick Actions -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+              
+              <!-- Portfolio Summary -->
+              <div class="glass-panel" style="padding: 1.5rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 0.75rem; margin-bottom: 1rem;">
+                  <h3 style="font-weight: 700; color: #ffffff; font-size: 0.875rem; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #38bdf8;"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>
+                    <span>ملخص القيمة الإيجارية وحركة المحفظة</span>
+                  </h3>
+                  <span style="font-size: 0.75rem; color: #34d399; font-weight: 700; background-color: rgba(16, 185, 129, 0.1); padding: 0.25rem 0.625rem; border-radius: 0.5rem; border: 1px solid rgba(16, 185, 129, 0.2);">
+                    إجمالي تحصيل: ٣٠٥٬٠٠٠ ر.س
+                  </span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;">
+                  <!-- Property 1 -->
+                  <div style="padding: 1rem; border-radius: 0.75rem; background-color: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                      <span style="font-weight: 700; font-size: 0.75rem; color: #ffffff;">برج الملقا التجاري</span>
+                      <span style="font-size: 10px; font-weight: 600; padding: 0.125rem 0.5rem; border-radius: 0.25rem; background-color: rgba(14, 165, 233, 0.2); color: #7dd3fc;">Commercial</span>
+                    </div>
+                    <div style="font-size: 11px; color: #94a3b8; display: flex; flex-direction: column; gap: 0.25rem;">
+                      <div style="display: flex; justify-content: space-between;"><span>المدينة:</span><span style="color: #e2e8f0;">الرياض</span></div>
+                      <div style="display: flex; justify-content: space-between;"><span>المالك الحالي:</span><span style="color: #e2e8f0; font-weight: 500;">الشيخ محمد العتيبي</span></div>
+                      <div style="display: flex; justify-content: space-between;"><span>الوكيل / الممثل:</span><span style="color: #fcd34d;">م. طارق الغامدي</span></div>
+                    </div>
+                    <div style="padding-top: 0.5rem; border-top: 1px solid #1e293b; display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem;">
+                      <span style="color: #94a3b8; font-size: 11px;">العقود المرتبطة: 1</span>
+                      <span style="color: #34d399; font-weight: 700;">٢٤٠٬٠٠٠ ر.س</span>
+                    </div>
                   </div>
-                  <div style="flex: 1;">
-                    <div style="font-size: 11.5px; color: #cbd5e1;"><strong style="color: #fff;">Henry Johnson</strong> created new task</div>
-                    <div style="font-size: 10.5px; color: #94a3b8; margin: 2px 0;">Office West #132</div>
-                    <span style="font-size: 9.5px; font-weight: 800; color: #f97316; background: rgba(249, 115, 22, 0.15); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(249, 115, 22, 0.3);">MAINTENANCE</span>
+
+                  <!-- Property 2 -->
+                  <div style="padding: 1rem; border-radius: 0.75rem; background-color: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                      <span style="font-weight: 700; font-size: 0.75rem; color: #ffffff;">مجمع العليا السكني</span>
+                      <span style="font-size: 10px; font-weight: 600; padding: 0.125rem 0.5rem; border-radius: 0.25rem; background-color: rgba(14, 165, 233, 0.2); color: #7dd3fc;">Residential</span>
+                    </div>
+                    <div style="font-size: 11px; color: #94a3b8; display: flex; flex-direction: column; gap: 0.25rem;">
+                      <div style="display: flex; justify-content: space-between;"><span>المدينة:</span><span style="color: #e2e8f0;">الرياض</span></div>
+                      <div style="display: flex; justify-content: space-between;"><span>المالك الحالي:</span><span style="color: #e2e8f0; font-weight: 500;">مجموعة الرياض القابضة</span></div>
+                      <div style="display: flex; justify-content: space-between;"><span>الوكيل / الممثل:</span><span style="color: #fcd34d;">سلطان الحربي</span></div>
+                    </div>
+                    <div style="padding-top: 0.5rem; border-top: 1px solid #1e293b; display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem;">
+                      <span style="color: #94a3b8; font-size: 11px;">العقود المرتبطة: 1</span>
+                      <span style="color: #34d399; font-weight: 700;">٦٥٬٠٠٠ ر.س</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Actions Grid -->
+              <div class="glass-panel" style="padding: 1.5rem;">
+                <h3 style="font-weight: 700; color: #ffffff; font-size: 0.875rem; margin: 0 0 1rem 0;">الإجراءات السريعة والعمليات</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem;">
+                  <!-- Action 1 -->
+                  <a href="customer-orders.html" style="padding: 1rem; border-radius: 0.75rem; background-color: rgba(30, 41, 59, 0.8); border: 1px solid #334155; text-align: right; text-decoration: none; display: block; transition: all 0.2s;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #34d399; margin-bottom: 0.5rem;"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><path d="M12 11h4"></path><path d="M12 16h4"></path><path d="M8 11h.01"></path><path d="M8 16h.01"></path></svg>
+                    <div style="font-weight: 700; font-size: 0.75rem; color: #ffffff;">طلبات العملاء (سكني/تجاري)</div>
+                    <div style="font-size: 10px; color: #94a3b8; margin-top: 0.25rem;">تسجيل متابعة الطلبات الواردة</div>
+                  </a>
+
+                  <!-- Action 2 -->
+                  <a href="ownership-properties.html" style="padding: 1rem; border-radius: 0.75rem; background-color: rgba(30, 41, 59, 0.8); border: 1px solid #334155; text-align: right; text-decoration: none; display: block; transition: all 0.2s;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #38bdf8; margin-bottom: 0.5rem;"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+                    <div style="font-weight: 700; font-size: 0.75rem; color: #ffffff;">إضافة صك ملكية وعقار</div>
+                    <div style="font-size: 10px; color: #94a3b8; margin-top: 0.25rem;">تسجيل صك رسمي وإسناد المبنى</div>
+                  </a>
+
+                  <!-- Action 3 -->
+                  <a href="ownership-properties.html" style="padding: 1rem; border-radius: 0.75rem; background-color: rgba(30, 41, 59, 0.8); border: 1px solid #334155; text-align: right; text-decoration: none; display: block; transition: all 0.2s;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #fbbf24; margin-bottom: 0.5rem;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>
+                    <div style="font-weight: 700; font-size: 0.75rem; color: #ffffff;">تغيير وكيل العقار</div>
+                    <div style="font-size: 10px; color: #94a3b8; margin-top: 0.25rem;">تعديل ممثل المالك وتوثيقه</div>
+                  </a>
+
+                  <!-- Action 4 -->
+                  <a href="ownership-properties.html" style="padding: 1rem; border-radius: 0.75rem; background-color: rgba(30, 41, 59, 0.8); border: 1px solid #334155; text-align: right; text-decoration: none; display: block; transition: all 0.2s;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #c084fc; margin-bottom: 0.5rem;"><path d="m16 3 4 4-4 4"></path><path d="M20 7H4"></path><path d="m8 21-4-4 4-4"></path><path d="M4 17h16"></path></svg>
+                    <div style="font-weight: 700; font-size: 0.75rem; color: #ffffff;">نقل ملكية عقار</div>
+                    <div style="font-size: 10px; color: #94a3b8; margin-top: 0.25rem;">إحالة الملكية لمؤجر جديد</div>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Left 1 Col: Live Audit Trail -->
+            <div>
+              <div class="glass-panel" style="padding: 1.5rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 0.75rem; margin-bottom: 1rem;">
+                  <h3 style="font-weight: 700; color: #ffffff; font-size: 0.875rem; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #fbbf24;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <span>سجل التدقيق والعمليات (Audit Logs)</span>
+                  </h3>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                  <div style="padding: 0.875rem; border-radius: 0.75rem; background-color: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; font-size: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                      <span style="font-weight: 700; color: #38bdf8;">نقل ملكية عقار</span>
+                      <span style="font-size: 10px; color: #94a3b8; direction: ltr;">١٦‏/١‏/٢٠٢٤</span>
+                    </div>
+                    <p style="font-size: 11px; color: #cbd5e1; line-height: 1.625; margin: 0;">
+                      تسجيل الملكية الأولية لبرج الملقا التجاري باسم الشيخ محمد العتيبي وتعيين م. طارق مُمثلاً.
+                    </p>
                   </div>
                 </div>
 
-                <!-- Activity 2 -->
-                <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
-                  <div style="width: 32px; height: 32px; border-radius: 50%; background: #10b981; color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 10.5px; flex-shrink: 0;">
-                    LH
-                  </div>
-                  <div style="flex: 1;">
-                    <div style="font-size: 11.5px; color: #cbd5e1;"><strong style="color: #fff;">Logan Herington</strong> completed task</div>
-                    <div style="font-size: 10.5px; color: #94a3b8; margin: 2px 0;">Deed Documentation #892</div>
-                    <span style="font-size: 9.5px; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.15); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.3);">COMPLETED TASK</span>
-                  </div>
-                </div>
+                <a href="ownership-properties.html" style="display: block; text-align: center; padding-top: 1rem; font-size: 0.75rem; font-weight: 600; color: #38bdf8; text-decoration: none; transition: color 0.15s;">
+                  عرض كامل سجل التدقيق ←
+                </a>
               </div>
             </div>
 
@@ -404,7 +262,21 @@
     import { RealEstateAPI } from './js/supabase-service.js';
 
     document.getElementById('sidebar-slot').innerHTML = renderSidebar('index.html');
-    document.getElementById('header-slot').innerHTML = renderHeader();
+    document.getElementById('header-slot').innerHTML = renderHeader('نظام إدارة العقود والملكية العقارية', 'لوحة التحكم والعمليات المباشرة');
+
+    async function loadDashboardKPIs() {
+      const kpis = await RealEstateAPI.getDashboardKPIs();
+      if (kpis) {
+        document.getElementById('kpi-contracts').innerText = kpis.activeContractsCount || 2;
+        document.getElementById('kpi-properties').innerText = kpis.propertiesCount || 2;
+        document.getElementById('kpi-epoa').innerText = kpis.ePoaCount || 2;
+        document.getElementById('kpi-brokerage').innerText = kpis.brokerageCount || 1;
+      }
+    }
+
+    loadDashboardKPIs();
+    RealEstateAPI.subscribeToChanges('contracts', () => loadDashboardKPIs());
+    RealEstateAPI.subscribeToChanges('properties', () => loadDashboardKPIs());
   </script>
 </body>
 </html>
