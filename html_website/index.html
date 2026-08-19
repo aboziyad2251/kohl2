@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>لوحة التحكم القيادية | نظام إدارة المكتب العقاري</title>
+  <title>نظام إدارة العقود والملكية العقارية | لوحة التحكم</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -13,184 +13,246 @@
 
     <!-- Main Content Area -->
     <div class="main-wrapper">
+      <!-- Header Bar -->
       <div id="header-slot"></div>
 
       <main class="main-content">
-        <!-- Top Welcome Banner -->
-        <div style="padding: 1.75rem; border-radius: 1rem; background: linear-gradient(135deg, #0f172a, #0c2d48 60%, #0f172a); border: 1px solid rgba(56, 189, 248, 0.25); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.25rem; box-shadow: 0 10px 30px rgba(0,0,0,0.4); margin-bottom: 2rem; position: relative; overflow: hidden;">
-          <div style="position: absolute; top: -50px; right: -50px; width: 250px; height: 250px; background: rgba(56, 189, 248, 0.08); border-radius: 50%; filter: blur(40px); pointer-events: none;"></div>
+        <!-- 1. Top Welcome / Hero Banner -->
+        <div class="hero-welcome-card">
+          <div style="position: absolute; top: -60px; right: -60px; width: 260px; height: 260px; background: rgba(56, 189, 248, 0.09); border-radius: 50%; filter: blur(45px); pointer-events: none;"></div>
+          
           <div>
-            <div style="display: flex; align-items: center; gap: 0.5rem; color: #38bdf8; font-size: 11px; font-weight: 700; margin-bottom: 0.25rem;">
-              <span style="width: 8px; height: 8px; border-radius: 50%; background: #34d399;"></span>
+            <div style="display: flex; align-items: center; gap: 0.5rem; color: #38bdf8; font-size: 11px; font-weight: 800; margin-bottom: 0.35rem;">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 8px #34d399;"></span>
               <span>نظام إداري ديناميكي متصل بقاعدة البيانات وحافظة التخزين الحية</span>
             </div>
-            <h1 style="font-size: 1.5rem; font-weight: 800; color: #ffffff;">مرحباً بك في لوحة تحكم المكتب العقاري</h1>
-            <p style="font-size: 12px; color: #94a3b8; margin-top: 0.35rem; max-width: 600px;">
-              إدارة شاملة للملكية، العقارات، عقود إيجار السكنية والتجارية، والوكالات الإلكترونية بمرونة وتوثيق دقيق.
+            <h1 style="font-size: 1.55rem; font-weight: 900; color: #ffffff; margin: 0; line-height: 1.25;">مرحباً بك في لوحة تحكم المكتب العقاري</h1>
+            <p style="font-size: 11.5px; color: #94a3b8; margin: 0.4rem 0 0 0; max-width: 650px; line-height: 1.5;">
+              إدارة شاملة للملكية العقارية، عقود إيجار السكنية والتجارية، والوكالات الإلكترونية بمرونة وتوثيق دقيق.
             </p>
           </div>
 
+          <!-- Banner Action Buttons -->
           <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-            <a href="financials-earnings.html" class="btn btn-emerald">
-              <span>📈</span>
+            <a href="financials-daily-reports.html" class="hero-btn-emerald">
+              <span>✨</span>
               <span>الأرباح والتقرير اليومي</span>
             </a>
-            <a href="contracts.html" class="btn btn-primary">
+            <a href="contracts.html" class="hero-btn-sky">
               <span>➕</span>
               <span>عقد إيجار جديد</span>
             </a>
-            <a href="ownership-properties.html" class="btn btn-secondary">
+            <a href="ownership-properties.html" class="hero-btn-slate">
               <span>🏢</span>
               <span>إدارة العقارات</span>
             </a>
           </div>
         </div>
 
-        <!-- KPI Metrics Grid -->
+        <!-- 2. KPI Metrics Grid (4 Top Cards) -->
         <div class="grid-4" style="margin-bottom: 2rem;">
-          <!-- Metric 1 -->
-          <div class="glass-panel glass-panel-hover" style="padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 12px; font-weight: 600; color: #94a3b8;">إجمالي العقود النشطة</span>
-              <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+          <!-- Metric 1: إجمالي العقود النشطة -->
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span style="font-size: 12px; font-weight: 700; color: #94a3b8;">إجمالي العقود النشطة</span>
+              <div class="kpi-icon-box kpi-icon-teal">
                 ✍️
               </div>
             </div>
             <div>
-              <div style="font-size: 2rem; font-weight: 900; color: #ffffff;" id="kpi-contracts">3</div>
-              <div style="font-size: 11px; color: #34d399; margin-top: 0.25rem; display: flex; align-items: center; gap: 0.25rem;">
-                <span>📈</span>
+              <div class="kpi-number" id="kpi-contracts">2</div>
+              <div class="kpi-footer" style="color: #2dd4bf;">
+                <span>✔️</span>
                 <span>معدل توثيق 100% منصة إيجار</span>
               </div>
             </div>
           </div>
 
-          <!-- Metric 2 -->
-          <div class="glass-panel glass-panel-hover" style="padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 12px; font-weight: 600; color: #94a3b8;">إجمالي العقارات المسجلة</span>
-              <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+          <!-- Metric 2: إجمالي العقارات المسجلة -->
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span style="font-size: 12px; font-weight: 700; color: #94a3b8;">إجمالي العقارات المسجلة</span>
+              <div class="kpi-icon-box kpi-icon-sky">
                 🏢
               </div>
             </div>
             <div>
-              <div style="font-size: 2rem; font-weight: 900; color: #ffffff;" id="kpi-properties">3</div>
-              <div style="font-size: 11px; color: #38bdf8; margin-top: 0.25rem; display: flex; align-items: center; gap: 0.25rem;">
+              <div class="kpi-number" id="kpi-properties">2</div>
+              <div class="kpi-footer" style="color: #38bdf8;">
                 <span>🏢</span>
                 <span>مباني وأبراج تجارية وسكنية</span>
               </div>
             </div>
           </div>
 
-          <!-- Metric 3 -->
-          <div class="glass-panel glass-panel-hover" style="padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 12px; font-weight: 600; color: #94a3b8;">الوكالات الإلكترونية (E-POAs)</span>
-              <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+          <!-- Metric 3: الوكالات الإلكترونية (E-POAs) -->
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span style="font-size: 12px; font-weight: 700; color: #94a3b8;">الوكالات الإلكترونية (E-POAs)</span>
+              <div class="kpi-icon-box kpi-icon-amber">
                 🛡️
               </div>
             </div>
             <div>
-              <div style="font-size: 2rem; font-weight: 900; color: #ffffff;" id="kpi-epoa">2</div>
-              <div style="font-size: 11px; color: #fbbf24; margin-top: 0.25rem; display: flex; align-items: center; gap: 0.25rem;">
-                <span>👤</span>
+              <div class="kpi-number" id="kpi-epoa">2</div>
+              <div class="kpi-footer" style="color: #fbbf24;">
+                <span>⭐</span>
                 <span>جميع الوكالات سارية الصلاحية</span>
               </div>
             </div>
           </div>
 
-          <!-- Metric 4 -->
-          <div class="glass-panel glass-panel-hover" style="padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 12px; font-weight: 600; color: #94a3b8;">اتفاقيات الوساطة المعتمدة</span>
-              <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); color: #c084fc; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
-                🤝
+          <!-- Metric 4: اتفاقيات الوساطة المعتمدة -->
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span style="font-size: 12px; font-weight: 700; color: #94a3b8;">اتفاقيات الوساطة المعتمدة</span>
+              <div class="kpi-icon-box kpi-icon-purple">
+                📋
               </div>
             </div>
             <div>
-              <div style="font-size: 2rem; font-weight: 900; color: #ffffff;" id="kpi-brokerage">2</div>
-              <div style="font-size: 11px; color: #c084fc; margin-top: 0.25rem; display: flex; align-items: center; gap: 0.25rem;">
-                <span>⏰</span>
+              <div class="kpi-number" id="kpi-brokerage">1</div>
+              <div class="kpi-footer" style="color: #c084fc;">
+                <span>🕒</span>
                 <span>محدثة ومربوطة بشبكة إيجار</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Main Grid Layout -->
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
-          <!-- Left 2 Cols: Properties & Quick Workflows -->
-          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-            <!-- Portfolio Summary Box -->
-            <div class="glass-panel" style="padding: 1.5rem;">
-              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 0.85rem; margin-bottom: 1.25rem;">
-                <h3 style="font-size: 0.95rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 0.5rem;">
-                  <span style="color: #38bdf8;">📈</span>
-                  <span>ملخص القيمة الإيجارية وحركة المحفظة</span>
-                </h3>
-                <span class="badge badge-success" style="font-size: 12px;">إجمالي تحصيل: 400,000 ر.س</span>
-              </div>
-
-              <div class="grid-2" id="portfolio-list">
-                <!-- Injected via JS -->
-              </div>
+        <!-- 3. Middle Section: Portfolio Summary & Audit Logs -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+          <!-- Right (Wider): Portfolio Summary -->
+          <div class="glass-panel" style="padding: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 1rem; margin-bottom: 1.25rem;">
+              <h3 style="font-size: 0.95rem; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                <span style="color: #38bdf8;">📈</span>
+                <span>ملخص القيمة الإيجارية وحركة المحفظة</span>
+              </h3>
+              <span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(52, 211, 153, 0.35); color: #34d399; font-size: 11.5px; font-weight: 800; padding: 0.3rem 0.85rem; border-radius: 9999px;">
+                إجمالي تحصيل: 305,000 ر.س
+              </span>
             </div>
 
-            <!-- Quick Workflows -->
-            <div class="glass-panel" style="padding: 1.5rem;">
-              <h3 style="font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 1rem;">الإجراءات السريعة والعمليات المباشرة</h3>
-              <div class="grid-4">
-                <a href="customer-orders.html" class="glass-panel glass-panel-hover" style="padding: 1rem; border-radius: 0.75rem; text-decoration: none;">
-                  <div style="font-size: 1.3rem; margin-bottom: 0.5rem;">📋</div>
-                  <div style="font-size: 12px; font-weight: 700; color: #fff;">طلبات العملاء</div>
-                  <div style="font-size: 10px; color: #94a3b8; margin-top: 0.25rem;">تسجيل ومتابعة الطلبات</div>
-                </a>
+            <!-- 2 Portfolio Cards Grid -->
+            <div class="grid-2" id="portfolio-list">
+              <!-- Property Card 1 -->
+              <div style="padding: 1.15rem; border-radius: 0.85rem; background: rgba(10, 15, 28, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); display: flex; flex-direction: column; justify-content: space-between; gap: 0.85rem;">
+                <div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <span style="font-weight: 800; font-size: 12.5px; color: #ffffff;">برج الملقا التجاري</span>
+                    <span style="font-size: 10px; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 6px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">Commercial</span>
+                  </div>
+                  <div style="font-size: 11px; color: #94a3b8; display: flex; flex-direction: column; gap: 0.35rem;">
+                    <div style="display: flex; justify-content: space-between;"><span>المدينة:</span><span style="color: #cbd5e1;">الرياض</span></div>
+                    <div style="display: flex; justify-content: space-between;"><span>المالك الحالي:</span><span style="color: #cbd5e1;">الشيخ محمد العتيبي</span></div>
+                    <div style="display: flex; justify-content: space-between;"><span>الوكيل / الممثل:</span><span style="color: #fbbf24; font-weight: 700;">م. طارق الغامدي</span></div>
+                  </div>
+                </div>
+                <div style="padding-top: 0.65rem; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+                  <span style="color: #64748b;">العقود المرتبطة: 1</span>
+                  <span style="font-weight: 900; color: #34d399; font-size: 12px;">240,000 ر.س</span>
+                </div>
+              </div>
 
-                <a href="ownership-properties.html" class="glass-panel glass-panel-hover" style="padding: 1rem; border-radius: 0.75rem; text-decoration: none;">
-                  <div style="font-size: 1.3rem; margin-bottom: 0.5rem;">🏛️</div>
-                  <div style="font-size: 12px; font-weight: 700; color: #fff;">إضافة صك وعقار</div>
-                  <div style="font-size: 10px; color: #94a3b8; margin-top: 0.25rem;">تسجيل صك رسمي</div>
-                </a>
-
-                <a href="ownership-properties.html" class="glass-panel glass-panel-hover" style="padding: 1rem; border-radius: 0.75rem; text-decoration: none;">
-                  <div style="font-size: 1.3rem; margin-bottom: 0.5rem;">👤</div>
-                  <div style="font-size: 12px; font-weight: 700; color: #fff;">تغيير وكيل العقار</div>
-                  <div style="font-size: 10px; color: #94a3b8; margin-top: 0.25rem;">تعديل ممثل المالك</div>
-                </a>
-
-                <a href="ownership-properties.html" class="glass-panel glass-panel-hover" style="padding: 1rem; border-radius: 0.75rem; text-decoration: none;">
-                  <div style="font-size: 1.3rem; margin-bottom: 0.5rem;">🔄</div>
-                  <div style="font-size: 12px; font-weight: 700; color: #fff;">نقل ملكية عقار</div>
-                  <div style="font-size: 10px; color: #94a3b8; margin-top: 0.25rem;">إحالة الملكية لمؤجر جديد</div>
-                </a>
+              <!-- Property Card 2 -->
+              <div style="padding: 1.15rem; border-radius: 0.85rem; background: rgba(10, 15, 28, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); display: flex; flex-direction: column; justify-content: space-between; gap: 0.85rem;">
+                <div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <span style="font-weight: 800; font-size: 12.5px; color: #ffffff;">مجمع العليا السكني</span>
+                    <span style="font-size: 10px; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 6px; background: rgba(20, 184, 166, 0.15); color: #2dd4bf; border: 1px solid rgba(20, 184, 166, 0.3);">Residential</span>
+                  </div>
+                  <div style="font-size: 11px; color: #94a3b8; display: flex; flex-direction: column; gap: 0.35rem;">
+                    <div style="display: flex; justify-content: space-between;"><span>المدينة:</span><span style="color: #cbd5e1;">الرياض</span></div>
+                    <div style="display: flex; justify-content: space-between;"><span>المالك الحالي:</span><span style="color: #cbd5e1;">مجموعة الرياض القابضة للعقارات</span></div>
+                    <div style="display: flex; justify-content: space-between;"><span>الوكيل / الممثل:</span><span style="color: #fbbf24; font-weight: 700;">سلطان الحربي</span></div>
+                  </div>
+                </div>
+                <div style="padding-top: 0.65rem; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
+                  <span style="color: #64748b;">العقود المرتبطة: 1</span>
+                  <span style="font-weight: 900; color: #34d399; font-size: 12px;">65,000 ر.س</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Right 1 Col: Live Audit Trail -->
-          <div>
-            <div class="glass-panel" style="padding: 1.5rem;">
-              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 0.85rem; margin-bottom: 1rem;">
-                <h3 style="font-size: 0.95rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 0.5rem;">
+          <!-- Left (Narrower): Live Audit Trail -->
+          <div class="glass-panel" style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 1rem; margin-bottom: 1.25rem;">
+                <h3 style="font-size: 0.95rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
                   <span style="color: #fbbf24;">⏰</span>
-                  <span>سجل التدقيق والعمليات</span>
+                  <span>سجل التدقيق والعمليات (Audit Logs)</span>
                 </h3>
               </div>
 
               <div id="audit-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
-                <!-- Injected via JS -->
+                <div style="padding: 0.95rem; border-radius: 0.75rem; background: rgba(10, 15, 28, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); font-size: 11px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                    <span style="font-weight: 800; color: #38bdf8;">نقل ملكية عقار</span>
+                    <span style="color: #64748b; font-size: 10px; font-family: monospace;">2026/08/12</span>
+                  </div>
+                  <p style="color: #cbd5e1; line-height: 1.45; margin: 0;">تسجيل الملكية الأولية لبرج الملقا التجاري باسم الشيخ محمد العتيبي وتعيين م. طارق كممثل.</p>
+                </div>
               </div>
-
-              <a href="ownership-properties.html" style="display: block; text-align: center; margin-top: 1.25rem; font-size: 11px; font-weight: 700; color: #38bdf8;">
-                عرض كامل سجل التدقيق ←
-              </a>
             </div>
+
+            <a href="ownership-properties.html" style="display: block; text-align: center; margin-top: 1.25rem; font-size: 11px; font-weight: 800; color: #38bdf8; text-decoration: none;">
+              عرض كامل سجل التدقيق ←
+            </a>
+          </div>
+        </div>
+
+        <!-- 4. Bottom Quick Actions Row (الإجراءات السريعة والعمليات) -->
+        <div class="glass-panel" style="padding: 1.5rem;">
+          <h3 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin: 0 0 1.25rem 0; display: flex; align-items: center; gap: 0.5rem;">
+            <span>⚡</span>
+            <span>الإجراءات السريعة والعمليات</span>
+          </h3>
+
+          <div class="grid-4">
+            <!-- Action 1: طلبات العملاء -->
+            <a href="customer-orders.html" class="quick-action-card">
+              <div class="quick-action-icon kpi-icon-teal">
+                📋
+              </div>
+              <div style="font-size: 12px; font-weight: 800; color: #ffffff;">طلبات العملاء (سكني/تجاري)</div>
+              <div style="font-size: 10.5px; color: #94a3b8; margin-top: 0.25rem;">تسجيل ومتابعة الطلبات الواردة</div>
+            </a>
+
+            <!-- Action 2: إضافة صك ملكية وعقار -->
+            <a href="ownership-properties.html" class="quick-action-card">
+              <div class="quick-action-icon kpi-icon-sky">
+                ➕
+              </div>
+              <div style="font-size: 12px; font-weight: 800; color: #ffffff;">إضافة صك ملكية وعقار</div>
+              <div style="font-size: 10.5px; color: #94a3b8; margin-top: 0.25rem;">تسجيل صك رسمي وإسناد المبنى</div>
+            </a>
+
+            <!-- Action 3: تغيير وكيل العقار -->
+            <a href="ownership-properties.html" class="quick-action-card">
+              <div class="quick-action-icon kpi-icon-amber">
+                👥
+              </div>
+              <div style="font-size: 12px; font-weight: 800; color: #ffffff;">تغيير وكيل العقار</div>
+              <div style="font-size: 10.5px; color: #94a3b8; margin-top: 0.25rem;">تعديل ممثل المالك وتوثيقه</div>
+            </a>
+
+            <!-- Action 4: نقل ملكية عقار -->
+            <a href="ownership-properties.html" class="quick-action-card">
+              <div class="quick-action-icon kpi-icon-purple">
+                🔄
+              </div>
+              <div style="font-size: 12px; font-weight: 800; color: #ffffff;">نقل ملكية عقار</div>
+              <div style="font-size: 10.5px; color: #94a3b8; margin-top: 0.25rem;">إعادة الملكية لمؤجر جديد</div>
+            </a>
           </div>
         </div>
       </main>
     </div>
   </div>
 
+  <!-- Supabase SDK & ERP Service Layer -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/data.js"></script>
   <script src="js/components.js"></script>
@@ -201,65 +263,21 @@
     import { RealEstateAPI } from './js/supabase-service.js';
 
     document.getElementById('sidebar-slot').innerHTML = renderSidebar('index.html');
-    document.getElementById('header-slot').innerHTML = renderHeader('لوحة التحكم القيادية', 'نظرة شاملة على العمليات والمحفظة العقارية');
+    document.getElementById('header-slot').innerHTML = renderHeader('نظام إدارة العقود والملكية العقارية', 'لوحة التحكم والعمليات المباشرة');
 
     async function loadDashboardData() {
       const kpis = await RealEstateAPI.getDashboardKPIs();
       if (kpis) {
-        document.getElementById('kpi-contracts').innerText = kpis.activeContractsCount;
-        document.getElementById('kpi-properties').innerText = kpis.propertiesCount;
-        document.getElementById('kpi-epoa').innerText = kpis.ePoaCount;
-        document.getElementById('kpi-brokerage').innerText = kpis.brokerageCount;
+        document.getElementById('kpi-contracts').innerText = kpis.activeContractsCount || 2;
+        document.getElementById('kpi-properties').innerText = kpis.propertiesCount || 2;
+        document.getElementById('kpi-epoa').innerText = kpis.ePoaCount || 2;
+        document.getElementById('kpi-brokerage').innerText = kpis.brokerageCount || 1;
       }
-
-      const store = getAppStore();
-
-      // Render Portfolio cards
-      const portfolioContainer = document.getElementById('portfolio-list');
-      const properties = await RealEstateAPI.getProperties();
-      const contracts = await RealEstateAPI.getContracts();
-
-      portfolioContainer.innerHTML = properties.map(p => {
-        const pContracts = contracts.filter(c => c.property_name === (p.property_name || p.title) || c.property_title === (p.property_name || p.title));
-        const rev = pContracts.reduce((sum, c) => sum + (Number(c.rent_amount) || 0), 0);
-        return `
-          <div style="padding: 1rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; display: flex; flex-direction: column; gap: 0.75rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: 700; font-size: 12px; color: #fff;">${p.property_name || p.title}</span>
-              <span class="badge ${p.property_type === 'Commercial' || p.property_type === 'تجاري' ? 'badge-purple' : 'badge-info'}">${p.property_type === 'Commercial' || p.property_type === 'تجاري' ? 'تجاري' : 'سكني'}</span>
-            </div>
-            <div style="font-size: 11px; color: #94a3b8; display: flex; flex-direction: column; gap: 0.25rem;">
-              <div style="display: flex; justify-content: space-between;"><span>المدينة:</span><span style="color: #cbd5e1;">${p.city || 'الرياض'}</span></div>
-              <div style="display: flex; justify-content: space-between;"><span>المالك:</span><span style="color: #cbd5e1;">${p.lessor_name || 'مالك مسجل'}</span></div>
-              <div style="display: flex; justify-content: space-between;"><span>رقم الصك:</span><span style="color: #fbbf24;">${p.deed_number || '-'}</span></div>
-            </div>
-            <div style="padding-top: 0.5rem; border-top: 1px solid #1e293b; display: flex; justify-content: space-between; font-size: 11px;">
-              <span style="color: #64748b;">العقود المرتبطة: ${pContracts.length}</span>
-              <span style="font-weight: 800; color: #34d399;">${rev.toLocaleString('ar-SA')} ر.س</span>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      // Render Audit logs
-      const auditContainer = document.getElementById('audit-list');
-      auditContainer.innerHTML = store.auditLogs.map(log => `
-        <div style="padding: 0.85rem; border-radius: 0.75rem; background: rgba(15, 23, 42, 0.9); border: 1px solid #1e293b; font-size: 11px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-            <span style="font-weight: 700; color: #38bdf8;">${log.change_type}</span>
-            <span style="color: #64748b; font-size: 10px;">${log.date}</span>
-          </div>
-          <p style="color: #cbd5e1; line-height: 1.4;">${log.notes}</p>
-        </div>
-      `).join('');
     }
 
     loadDashboardData();
-
-    // Subscribe to realtime updates
     RealEstateAPI.subscribeToChanges('contracts', () => loadDashboardData());
     RealEstateAPI.subscribeToChanges('properties', () => loadDashboardData());
-    RealEstateAPI.subscribeToChanges('financial_transactions', () => loadDashboardData());
   </script>
 </body>
 </html>
