@@ -136,7 +136,7 @@ export default function Sidebar() {
             </span>
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           </div>
-          <p className="text-[11px] text-slate-400 dir-ltr text-right">IP: 76.13.40.119</p>
+          <p className="text-[11px] text-slate-400 dir-ltr text-right">IP: 51.195.222.51</p>
         </div>
       </div>
 

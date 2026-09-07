@@ -102,7 +102,7 @@ function renderSidebar(activeHref) {
             </span>
             <span style="width: 0.5rem; height: 0.5rem; border-radius: 9999px; background-color: #34d399; box-shadow: 0 0 8px #34d399;"></span>
           </div>
-          <p style="font-size: 11px; color: #94a3b8; direction: ltr; text-align: right; margin-top: 0.5rem;">IP: 76.13.40.119</p>
+          <p style="font-size: 11px; color: #94a3b8; direction: ltr; text-align: right; margin-top: 0.5rem;">IP: 51.195.222.51</p>
         </div>
       </div>
 

@@ -10,19 +10,18 @@
 ---
 # APPLICATION PROFILE
 app_name: "real-estate-office-mgmt"
-subdomain: "office.mabotargagh.online"
+subdomain: "kohl.kohlestate-ksa.online"
 container_tech: "docker-compose"
-server_ip: "76.13.40.119"
-ssh_user: "root"
+server_ip: "51.195.222.51"
+ssh_user: "debian"
 
 # DATABASE CONFIGURATION
 database_type: "Supabase Self-Hosted"
 database_name: "postgres"
 env_vars:
-  - PORT: 8080
-  - NODE_ENV: production
-  - NEXT_PUBLIC_SUPABASE_URL: "https://office.mabotargagh.online"
-  - NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoid2ViX2Fub24iLCJpc3MiOiJwb3N0Z3Jlc3QiLCJpYXQiOjE2NDE3NjkyMDAsImV4cCI6MTk4ODE1MDQwMH0.bagwe56G6djpeZq2a3gBWeM83HSIjkb2ZM633wNs-5Q"
+  - PORT: 3010
+  - NEXT_PUBLIC_SUPABASE_URL: "https://kohl.kohlestate-ksa.online"
+  - NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE"
 ---
 ```
 
@@ -30,7 +29,10 @@ env_vars:
 
 ## 🌐 Live Production URL (الرابط المباشر)
 
-🚀 **رابط المنظومة المباشر على Netlify:**  
+🚀 **رابط المنظومة المباشر على السيرفر (VPS):**  
+👉 **[https://kohl.kohlestate-ksa.online](https://kohl.kohlestate-ksa.online)**
+
+🚀 **رابط المنظومة البديل على Netlify:**  
 👉 **[https://realestate-office-mgmt.netlify.app](https://realestate-office-mgmt.netlify.app)**
 
 ---

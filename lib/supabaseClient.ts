@@ -20,24 +20,16 @@ import {
 
 const getSupabaseUrl = () => {
   if (process.env.NEXT_PUBLIC_SUPABASE_URL) return process.env.NEXT_PUBLIC_SUPABASE_URL;
-  // Browser on the live HTTPS domain must call the same-origin HTTPS proxy path
-  // (proxied by Nginx Proxy Manager to the PostgREST gateway on :8020) —
-  // calling the bare http://IP:8020 endpoint directly gets silently blocked
-  // as mixed content by the browser when the page itself is served over HTTPS.
   if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
-    return 'https://office.mabotargagh.online';
+    return 'https://kohl.kohlestate-ksa.online';
   }
-  return 'http://76.13.40.119:8020';
+  return 'http://51.195.222.51:8000';
 };
 
 const supabaseUrl = getSupabaseUrl();
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoid2ViX2Fub24iLCJpc3MiOiJwb3N0Z3Jlc3QiLCJpYXQiOjE2NDE3NjkyMDAsImV4cCI6MTk4ODE1MDQwMH0.bagwe56G6djpeZq2a3gBWeM83HSIjkb2ZM633wNs-5Q';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
 
-// The app runs local-storage-only for now — the remote database is disconnected
-// until a new, properly access-controlled self-hosted Supabase instance replaces
-// it (the previous one had no auth on its anon role and lost all non-seed data).
-// Flip this back to true once that replacement is ready and configured above.
-const DB_ENABLED = false;
+const DB_ENABLED = true;
 
 // A chainable stand-in for the Supabase query builder that resolves every
 // select/insert/update/delete/eq/order/... call to { data: null, error: null }

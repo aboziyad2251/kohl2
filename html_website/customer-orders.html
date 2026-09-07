@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>طلبات العملاء العقارية | نظام إدارة المكتب العقاري</title>
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
   <div class="app-container">
@@ -27,14 +28,25 @@
             </p>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-            <button onclick="exportCustomerOrdersCSV()" class="btn btn-emerald">
-              <span>📊</span>
-              <span>تصدير إلى Excel/CSV</span>
+          <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+            <!-- Hidden Excel/CSV File Input -->
+            <input type="file" id="import-excel-file" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleExcelImport(event)">
+            
+            <button onclick="document.getElementById('import-excel-file').click()" class="btn btn-outline" style="background: rgba(14, 165, 233, 0.15); border: 1px solid rgba(14, 165, 233, 0.4); color: #38bdf8; font-weight: 700;" title="استيراد طلبات من ملف Excel أو CSV">
+              <span>📥</span>
+              <span>استيراد Excel / CSV</span>
             </button>
-            <button onclick="openModal('add-order-modal')" class="btn btn-primary">
+            <button onclick="downloadOrdersTemplate()" class="btn btn-outline" style="background: rgba(148, 163, 184, 0.1); border: 1px solid rgba(148, 163, 184, 0.3); color: #cbd5e1; font-weight: 600;" title="تحميل نموذج ملف Excel فارغ متوافق مع النظام">
+              <span>📋</span>
+              <span>تحميل النموذج</span>
+            </button>
+            <button onclick="exportCustomerOrdersCSV()" class="btn btn-emerald" style="font-weight: 700;">
+              <span>📊</span>
+              <span>تصدير Excel/CSV</span>
+            </button>
+            <button onclick="openModal('add-order-modal')" class="btn btn-primary" style="font-weight: 700;">
               <span>➕</span>
-              <span>تسجيل طلب عميل جديد</span>
+              <span>تسجيل طلب جديد</span>
             </button>
           </div>
         </div>
@@ -55,15 +67,15 @@
 
           <div class="glass-panel" style="padding: 1.25rem;">
             <div style="font-size: 11px; color: #94a3b8;">سكني vs تجاري</div>
-            <div style="font-size: 1.25rem; font-weight: 800; color: #fff; margin-top: 0.35rem;">
-              <span style="color: #38bdf8;">2 سكني</span> | <span style="color: #c084fc;">1 تجاري</span>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #fff; margin-top: 0.35rem;" id="stat-distribution">
+              <span style="color: #38bdf8;">0 سكني</span> | <span style="color: #c084fc;">0 تجاري</span>
             </div>
             <div style="font-size: 11px; color: #94a3b8; margin-top: 0.25rem;">توزيع السوق</div>
           </div>
 
           <div class="glass-panel" style="padding: 1.25rem;">
             <div style="font-size: 11px; color: #94a3b8;">تم توفيرها بنجاح</div>
-            <div style="font-size: 1.8rem; font-weight: 900; color: #34d399; margin-top: 0.35rem;" id="stat-fulfilled">1</div>
+            <div style="font-size: 1.8rem; font-weight: 900; color: #34d399; margin-top: 0.35rem;" id="stat-fulfilled">0</div>
             <div style="font-size: 11px; color: #34d399; margin-top: 0.25rem;">تم إبرام العقود</div>
           </div>
         </div>
@@ -108,7 +120,7 @@
                 <th style="text-align: center;">الإجراءات</th>
               </tr>
             </thead>
-            <tbody id="orders-tbody">
+            <tbody id="orders-table-body">
               <!-- Injected by JS -->
             </tbody>
           </table>
@@ -205,8 +217,21 @@
 
     function updateKPIs(orders) {
       document.getElementById('stat-total').innerText = orders.length;
-      document.getElementById('stat-searching').innerText = orders.filter(o => o.status === 'New' || o.status === 'new' || o.status === 'Searching' || o.status === 'قيد البحث').length;
-      document.getElementById('stat-fulfilled').innerText = orders.filter(o => o.status === 'Fulfilled' || o.status === 'completed' || o.status === 'منجز').length;
+      document.getElementById('stat-searching').innerText = orders.filter(o => {
+        const s = (o.status || '').toLowerCase();
+        return s === 'new' || s === 'searching' || s === 'جديد' || s === 'قيد البحث';
+      }).length;
+      document.getElementById('stat-fulfilled').innerText = orders.filter(o => {
+        const s = (o.status || '').toLowerCase();
+        return s === 'fulfilled' || s === 'completed' || s === 'منجز' || s === 'تم التوفير';
+      }).length;
+
+      const resCount = orders.filter(o => (o.category || '').toUpperCase() === 'RESIDENTIAL' || (o.category || '') === 'سكني').length;
+      const comCount = orders.filter(o => (o.category || '').toUpperCase() === 'COMMERCIAL' || (o.category || '') === 'تجاري').length;
+      const distEl = document.getElementById('stat-distribution');
+      if (distEl) {
+        distEl.innerHTML = `<span style="color: #38bdf8;">${resCount} سكني</span> | <span style="color: #c084fc;">${comCount} تجاري</span>`;
+      }
     }
 
     window.filterOrders = function() {
@@ -219,10 +244,27 @@
         const clientPhone = (ord.customer_phone || ord.client_phone || '');
         const bType = (ord.building_type || '').toLowerCase();
         const area = (ord.desired_area || '').toLowerCase();
-        const matchQ = !q || clientName.includes(q) || clientPhone.includes(q) || bType.includes(q) || area.includes(q);
-        const matchCat = cat === 'ALL' || ord.category === cat;
-        const ordStatus = (ord.status || '').toLowerCase();
-        const matchSt = st === 'ALL' || ordStatus === st.toLowerCase() || (st === 'New' && ordStatus === 'new');
+        const notes = (ord.notes || '').toLowerCase();
+        const ordNum = (ord.order_number || '').toLowerCase();
+        const matchQ = !q || clientName.includes(q) || clientPhone.includes(q) || bType.includes(q) || area.includes(q) || notes.includes(q) || ordNum.includes(q);
+
+        let matchCat = true;
+        if (cat === 'RESIDENTIAL') {
+          matchCat = (ord.category || '').toUpperCase() === 'RESIDENTIAL' || (ord.category || '') === 'سكني';
+        } else if (cat === 'COMMERCIAL') {
+          matchCat = (ord.category || '').toUpperCase() === 'COMMERCIAL' || (ord.category || '') === 'تجاري';
+        }
+
+        let matchSt = true;
+        const s = (ord.status || '').toLowerCase();
+        if (st === 'New') {
+          matchSt = s === 'new' || s === 'جديد';
+        } else if (st === 'Searching') {
+          matchSt = s === 'searching' || s === 'قيد البحث';
+        } else if (st === 'Fulfilled') {
+          matchSt = s === 'fulfilled' || s === 'completed' || s === 'منجز' || s === 'تم التوفير';
+        }
+
         return matchQ && matchCat && matchSt;
       });
 
@@ -230,27 +272,39 @@
     };
 
     function renderOrders(orders) {
-      const tbody = document.getElementById('orders-table-body');
+      const tbody = document.getElementById('orders-table-body') || document.getElementById('orders-tbody');
       if (!tbody) return;
 
       if (!orders.length) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 2.5rem; color: #94a3b8;">لا توجد طلبات مطابقة لمعايير البحث</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 2.5rem; color: #94a3b8; font-size: 14px;">لا توجد طلبات مطابقة لمعايير البحث</td></tr>`;
         return;
       }
 
       tbody.innerHTML = orders.map(ord => {
-        const isNew = ord.status === 'New' || ord.status === 'new' || ord.status === 'جديد';
-        const isFulfilled = ord.status === 'Fulfilled' || ord.status === 'completed' || ord.status === 'منجز';
+        const s = (ord.status || '').toLowerCase();
+        const isNew = s === 'new' || s === 'جديد';
+        const isFulfilled = s === 'fulfilled' || s === 'completed' || s === 'منجز' || s === 'تم التوفير';
         const statusBadge = isNew
-          ? `<span class="badge badge-warning">⚡ جديد</span>`
+          ? `<span class="badge badge-warning" style="font-weight: 700;">⚡ جديد</span>`
           : isFulfilled
-          ? `<span class="badge badge-success">✅ تم التوفير</span>`
-          : `<span class="badge badge-info">🔍 قيد البحث</span>`;
+          ? `<span class="badge badge-success" style="font-weight: 700;">✅ تم التوفير</span>`
+          : `<span class="badge badge-info" style="font-weight: 700;">🔍 قيد البحث</span>`;
 
         const name = ord.customer_name || ord.client_name || 'عميل';
         const phone = ord.customer_phone || ord.client_phone || '-';
         const bMin = Number(ord.budget_min || 0);
         const bMax = Number(ord.budget_max || 0);
+
+        let budgetDisplay = 'غير محدد';
+        if (bMin && bMax && bMin !== bMax) {
+          budgetDisplay = `${bMin.toLocaleString('ar-SA')} - ${bMax.toLocaleString('ar-SA')} ر.س`;
+        } else if (bMax) {
+          budgetDisplay = `${bMax.toLocaleString('ar-SA')} ر.س`;
+        } else if (bMin) {
+          budgetDisplay = `${bMin.toLocaleString('ar-SA')} ر.س`;
+        }
+
+        const isRes = (ord.category || '').toUpperCase() === 'RESIDENTIAL' || (ord.category || '') === 'سكني';
 
         return `
           <tr>
@@ -259,25 +313,24 @@
               <div style="font-weight: 700; color: #fff;">${name}</div>
               <div style="font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 0.35rem; margin-top: 0.15rem;">
                 <span style="direction: ltr;">${phone}</span>
-                <a href="https://wa.me/966${phone.replace(/^0/, '')}" target="_blank" style="color: #34d399;" title="واتساب">💬</a>
+                ${phone && phone !== '-' ? `<a href="https://wa.me/966${phone.replace(/^0/, '')}" target="_blank" style="color: #34d399;" title="واتساب">💬</a>` : ''}
               </div>
             </td>
             <td>
-              <span class="badge ${ord.category === 'RESIDENTIAL' || ord.category === 'سكني' ? 'badge-info' : 'badge-purple'}">
-                ${ord.category === 'RESIDENTIAL' || ord.category === 'سكني' ? '🏠 سكني' : '💼 تجاري'}
+              <span class="badge ${isRes ? 'badge-info' : 'badge-purple'}" style="font-weight: 700;">
+                ${isRes ? '🏠 سكني' : '💼 تجاري'}
               </span>
             </td>
             <td style="font-weight: 600; color: #f1f5f9;">${ord.building_type || 'وحدة عقارية'}</td>
             <td style="color: #cbd5e1;">📍 ${ord.desired_area || 'الرياض'}</td>
-            <td style="font-weight: 800; color: #34d399;">
-              ${bMin ? `${bMin.toLocaleString('ar-SA')} - ` : ''}
-              ${bMax ? `${bMax.toLocaleString('ar-SA')} ر.س` : 'غير محدد'}
+            <td style="font-weight: 800; color: #34d399; white-space: nowrap;">
+              ${budgetDisplay}
             </td>
-            <td style="max-width: 200px; color: #cbd5e1; font-size: 11px;">${ord.notes || '—'}</td>
+            <td style="max-width: 260px; color: #cbd5e1; font-size: 11px; line-height: 1.4; white-space: pre-line;">${ord.notes || '—'}</td>
             <td>${statusBadge}</td>
             <td style="text-align: center;">
               <div style="display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
-                <button onclick="window.handleDeleteOrder('${ord.id || ord.order_number}')" class="btn-icon" style="color: #f87171; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; cursor: pointer;" title="حذف">🗑️</button>
+                <button onclick="window.handleDeleteOrder('${ord.id || ord.order_number}')" class="btn-icon" style="color: #f87171; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; cursor: pointer; padding: 4px 8px;" title="حذف">🗑️</button>
               </div>
             </td>
           </tr>
@@ -302,8 +355,128 @@
         building_type: 'نوع العقار',
         desired_area: 'الحي المطلوب',
         budget_max: 'الميزانية القصوى',
-        status: 'الحالة'
+        status: 'الحالة',
+        notes: 'الملاحظات'
       });
+    };
+
+    // Excel / CSV Import Functionality
+    window.handleExcelImport = async function(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      try {
+        UI.toast('جاري قراءة وتحليل ملف Excel / CSV...', 'info');
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+        if (!rawRows.length) {
+          UI.toast('الملف فارغ أو لا يحتوي على صفوف بيانات صالحة', 'error');
+          event.target.value = '';
+          return;
+        }
+
+        const parsedOrders = [];
+        for (let i = 0; i < rawRows.length; i++) {
+          const row = rawRows[i];
+          const getVal = (...keys) => {
+            for (const k of keys) {
+              if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') {
+                return String(row[k]).trim();
+              }
+            }
+            return '';
+          };
+
+          const customerName = getVal('اسم العميل', 'العميل', 'customer_name', 'client_name', 'الاسم');
+          if (!customerName) continue;
+
+          const orderNumber = getVal('رقم الطلب', 'order_number', 'رقم') || ('ORD-2026-' + Math.floor(100 + Math.random() * 900));
+          const customerPhone = getVal('رقم الجوال', 'الجوال', 'الهاتف', 'customer_phone', 'phone') || '';
+          const rawCat = getVal('التصنيف', 'category', 'نوع الطلب') || 'سكني';
+          const category = (rawCat.includes('تجار') || rawCat.toUpperCase() === 'COMMERCIAL') ? 'تجاري' : 'سكني';
+          const buildingType = getVal('نوع العقار المطلوب', 'نوع العقار', 'العقار المطلوب', 'building_type') || 'وحدة عقارية';
+          const desiredArea = getVal('المنطقة والمساحة', 'الحي والمنطقة', 'المنطقة', 'الحي', 'desired_area') || 'الرياض';
+
+          const rawBudgetMin = getVal('الميزانية الدنيا (ر.س)', 'الميزانية الدنيا', 'أقل ميزانية', 'budget_min');
+          const rawBudgetMax = getVal('الميزانية القصوى (ر.س)', 'الميزانية القصوى', 'أعلى ميزانية', 'الميزانية المتوقعة', 'budget_max');
+          const budgetMin = parseFloat(String(rawBudgetMin).replace(/[^0-9.]/g, '')) || 0;
+          const budgetMax = parseFloat(String(rawBudgetMax).replace(/[^0-9.]/g, '')) || budgetMin || 0;
+
+          const rawStatus = getVal('حالة الطلب', 'الحالة', 'status') || 'جديد';
+          let status = 'جديد';
+          if (rawStatus.includes('بحث') || rawStatus.toLowerCase() === 'searching') status = 'قيد البحث';
+          else if (rawStatus.includes('توفير') || rawStatus.includes('منجز') || rawStatus.toLowerCase() === 'fulfilled' || rawStatus.toLowerCase() === 'completed') status = 'منجز';
+
+          const notes = getVal('الملاحظات والشروط', 'الملاحظات', 'ملاحظات', 'الشروط', 'notes') || '';
+          const createdAt = getVal('تاريخ التسجيل', 'التاريخ', 'created_at') || new Date().toISOString().split('T')[0];
+
+          const isRent = notes.includes('إيجار') || notes.includes('ايجار') || notes.includes('شهري') || notes.includes('الاجار') || notes.includes('تاجير');
+          const orderType = isRent ? 'إيجار' : 'شراء';
+
+          parsedOrders.push({
+            order_number: orderNumber,
+            customer_name: customerName,
+            customer_phone: customerPhone,
+            order_type: orderType,
+            category: category,
+            building_type: buildingType,
+            desired_area: desiredArea,
+            budget_min: budgetMin,
+            budget_max: budgetMax,
+            status: status,
+            notes: notes,
+            created_at: createdAt
+          });
+        }
+
+        if (!parsedOrders.length) {
+          UI.toast('لم يتم العثور على بيانات صالحة للاستيراد. تحقق من أسماء الأعمدة.', 'error');
+          event.target.value = '';
+          return;
+        }
+
+        UI.toast(`جاري حفظ ${parsedOrders.length} طلب في قاعدة البيانات...`, 'info');
+        const res = await RealEstateAPI.batchAddCustomerOrders(parsedOrders);
+        if (!res.error) {
+          UI.toast(`✅ تم استيراد وتحديث ${parsedOrders.length} طلب بنجاح!`, 'success');
+          event.target.value = '';
+          await loadOrdersTable();
+        } else {
+          UI.toast('حدث خطأ أثناء حفظ البيانات: ' + (res.error.message || JSON.stringify(res.error)), 'error');
+          event.target.value = '';
+        }
+      } catch (err) {
+        console.error('Import error:', err);
+        UI.toast('خطأ في معالجة الملف: ' + err.message, 'error');
+        event.target.value = '';
+      }
+    };
+
+    window.downloadOrdersTemplate = function() {
+      const templateData = [
+        {
+          '#': 1,
+          'رقم الطلب': 'ORD-2026-802',
+          'اسم العميل': 'عبدالوهاب الغامدي (هدد)',
+          'رقم الجوال': '0542227666',
+          'التصنيف': 'سكني',
+          'نوع العقار المطلوب': 'فيلا مودرن',
+          'المنطقة والمساحة': 'ابحر',
+          'الميزانية الدنيا (ر.س)': 3200000,
+          'الميزانية القصوى (ر.س)': 3200000,
+          'حالة الطلب': 'جديد',
+          'الملاحظات والشروط': 'للبيع فيلا هدد في ابحر الجنوبية موقع ممتاز بالقرب من مسجد',
+          'تاريخ التسجيل': '2026-08-18'
+        }
+      ];
+      const ws = XLSX.utils.json_to_sheet(templateData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'نموذج_طلبات_العملاء');
+      XLSX.writeFile(wb, 'نموذج_استيراد_طلبات_العملاء.xlsx');
     };
 
     // Handle Form Submit

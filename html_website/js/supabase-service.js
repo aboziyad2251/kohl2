@@ -4,9 +4,9 @@
  */
 
 const SUPABASE_CONFIG = {
-    url: "https://office.mabotargagh.online",
-    fallbackUrl: "https://supabase.mabotargagh.online",
-    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoid2ViX2Fub24iLCJpc3MiOiJwb3N0Z3Jlc3QiLCJpYXQiOjE2NDE3NjkyMDAsImV4cCI6MTk4ODE1MDQwMH0.bagwe56G6djpeZq2a3gBWeM83HSIjkb2ZM633wNs-5Q"
+    url: typeof window !== 'undefined' ? window.location.origin : "https://kohl.kohlestate-ksa.online",
+    fallbackUrl: "http://51.195.222.51:8000",
+    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE"
 };
 
 // تهيئة عميل Supabase
@@ -397,7 +397,110 @@ export const RealEstateAPI = {
         return { data: serviceData, error: null };
     },
 
-    // ==================== 9. التزامن اللحظي العام (Realtime Listener) ====================
+    // ==================== 10. طلبات العملاء العقارية (customer-orders.html) ====================
+    async getCustomerOrders() {
+        if (db) {
+            try {
+                const res = await db.from('customer_orders').select('*').order('created_at', { ascending: false });
+                if (res.data && res.data.length > 0) return res.data;
+            } catch (err) {
+                console.warn('Supabase customer orders error:', err);
+            }
+        }
+        return window.getAppStore ? (window.getAppStore().customerOrders || []) : [];
+    },
+
+    async addCustomerOrder(orderData) {
+        if (!orderData.order_number) {
+            orderData.order_number = 'ORD-2026-' + Math.floor(100 + Math.random() * 900);
+        }
+        if (db) {
+            try {
+                const res = await db.from('customer_orders').insert([orderData]).select().single();
+                if (res.data) {
+                    if (window.getAppStore) {
+                        const store = window.getAppStore();
+                        if (!store.customerOrders) store.customerOrders = [];
+                        store.customerOrders.unshift(res.data);
+                        window.saveAppStore(store);
+                    }
+                    return { data: res.data, error: null };
+                }
+                if (res.error) {
+                    console.warn('Supabase add customer order error:', res.error);
+                    return { data: null, error: res.error };
+                }
+            } catch (err) {
+                console.warn('Supabase add customer order error:', err);
+                return { data: null, error: err };
+            }
+        }
+        if (window.getAppStore) {
+            const store = window.getAppStore();
+            if (!store.customerOrders) store.customerOrders = [];
+            store.customerOrders.unshift(orderData);
+            window.saveAppStore(store);
+        }
+        return { data: orderData, error: null };
+    },
+
+    async batchAddCustomerOrders(ordersList) {
+        if (!ordersList || !ordersList.length) return { data: [], error: null };
+        if (db) {
+            try {
+                const res = await db.from('customer_orders').upsert(ordersList, { onConflict: 'order_number' }).select();
+                if (res.data) {
+                    if (window.getAppStore) {
+                        const store = window.getAppStore();
+                        if (!store.customerOrders) store.customerOrders = [];
+                        const newIds = new Set(res.data.map(o => o.order_number));
+                        store.customerOrders = [...res.data, ...store.customerOrders.filter(o => !newIds.has(o.order_number))];
+                        window.saveAppStore(store);
+                    }
+                    return { data: res.data, error: null };
+                }
+                if (res.error) {
+                    console.warn('Supabase batch insert error:', res.error);
+                    return { data: null, error: res.error };
+                }
+            } catch (err) {
+                console.warn('Supabase batch insert error:', err);
+                return { data: null, error: err };
+            }
+        }
+        if (window.getAppStore) {
+            const store = window.getAppStore();
+            if (!store.customerOrders) store.customerOrders = [];
+            store.customerOrders = [...ordersList, ...store.customerOrders];
+            window.saveAppStore(store);
+        }
+        return { data: ordersList, error: null };
+    },
+
+    async deleteCustomerOrder(id) {
+        if (db) {
+            try {
+                const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+                if (isUuid) {
+                    await db.from('customer_orders').delete().eq('id', id);
+                } else {
+                    await db.from('customer_orders').delete().eq('order_number', id);
+                }
+            } catch (err) {
+                console.warn('Supabase delete customer order error:', err);
+            }
+        }
+        if (window.getAppStore) {
+            const store = window.getAppStore();
+            if (store.customerOrders) {
+                store.customerOrders = store.customerOrders.filter(o => o.id !== id && o.order_number !== id);
+                window.saveAppStore(store);
+            }
+        }
+        return { success: true };
+    },
+
+    // ==================== 11. التزامن اللحظي العام (Realtime Listener) ====================
     subscribeToChanges(tableName, onUpdateCallback) {
         if (!db) return null;
         try {
