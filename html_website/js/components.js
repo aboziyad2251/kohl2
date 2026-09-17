@@ -17,13 +17,13 @@ function renderSidebar(activeHref) {
     {
       name: 'طلبات العملاء (سكني/تجاري)',
       href: 'customer-orders.html',
-      badge: 'جديد 📋',
+      badge: 'جديد',
       icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><path d="M12 11h4"></path><path d="M12 16h4"></path><path d="M8 11h.01"></path><path d="M8 16h.01"></path></svg>`
     },
     {
       name: 'إدارة الأملاك والتشغيل',
       href: 'property-management.html',
-      badge: 'جديد 🏢',
+      badge: 'جديد',
       icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"></rect><path d="M9 22v-4h6v4"></path><path d="M8 6h.01"></path><path d="M16 6h.01"></path><path d="M12 6h.01"></path><path d="M12 10h.01"></path><path d="M12 14h.01"></path><path d="M16 10h.01"></path><path d="M16 14h.01"></path><path d="M8 10h.01"></path><path d="M8 14h.01"></path></svg>`
     },
     {
@@ -35,7 +35,7 @@ function renderSidebar(activeHref) {
     {
       name: 'التقرير اليومي ومستشار AI',
       href: 'financials-daily-reports.html',
-      badge: 'ذكاء AI',
+      badge: 'نظام AI',
       icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path><path d="M20 3v4"></path><path d="M22 5h-4"></path><path d="M4 17v2"></path><path d="M5 18H3"></path></svg>`
     },
     {
@@ -65,14 +65,14 @@ function renderSidebar(activeHref) {
   ];
 
   const navLinksHtml = navItems.map(item => {
-    const isActive = activeHref === item.href;
+    const isActive = activeHref === item.href || (activeHref.includes('archive') && item.href.includes('archive'));
     return `
-      <a href="${item.href}" class="nav-item ${isActive ? 'active' : ''}">
+      <a href="${item.href}" class="nav-link-item ${isActive ? 'active' : ''}">
         <div style="display: flex; align-items: center; gap: 0.75rem;">
           ${item.icon}
           <span>${item.name}</span>
         </div>
-        ${item.badge ? `<span class="badge ${item.badge.includes('جديد') ? 'badge-new' : item.badge.includes('مالي') ? 'badge-financial' : item.badge.includes('معتمد') ? 'badge-verified' : item.badge.includes('ذكاء') ? 'badge-ai' : 'badge-general'}">${item.badge}</span>` : ''}
+        ${item.badge ? `<span class="nav-badge-pill">${item.badge}</span>` : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #475569; transform: rotate(180deg);"><path d="m9 18 6-6-6-6"></path></svg>`}
       </a>
     `;
   }).join('');

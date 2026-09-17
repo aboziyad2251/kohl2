@@ -37,13 +37,13 @@ const navItems = [
     name: 'طلبات العملاء (سكني/تجاري)',
     href: '/customer-orders',
     icon: ClipboardList,
-    badge: 'جديد 📋',
+    badge: 'جديد',
   },
   {
     name: 'إدارة الأملاك والتشغيل',
     href: '/property-management',
     icon: Building,
-    badge: 'جديد 🏢',
+    badge: 'جديد',
   },
   {
     name: 'الأرباح والمعاملات المالية',
@@ -55,7 +55,7 @@ const navItems = [
     name: 'التقرير اليومي ومستشار AI',
     href: '/financials/daily-reports',
     icon: Sparkles,
-    badge: 'ذكاء AI',
+    badge: 'نظام AI',
   },
   {
     name: 'مركز العقود والإيجارات',
