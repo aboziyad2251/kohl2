@@ -282,3 +282,38 @@ export interface CustomerOrder {
   notes?: string; // تفاصيل وشروط إضافية
   created_at?: string;
 }
+
+// ----------------------------------------------------
+// ARCHIVE & ELECTRONIC DOCUMENTS TYPES (الأرشيف الإلكتروني والوثائق)
+// ----------------------------------------------------
+export type ArchivedDocumentCategory =
+  | 'CONTRACT'
+  | 'DEED'
+  | 'BROKERAGE'
+  | 'EPOA'
+  | 'GENERAL_SERVICE'
+  | 'CUSTOMER_ORDER'
+  | 'FINANCIAL'
+  | 'MAINTENANCE'
+  | 'OTHER';
+
+export type ArchivedDocumentStatus = 'ACTIVE' | 'ARCHIVED' | 'EXPIRED';
+
+export interface ArchivedDocument {
+  id: string;
+  archive_code: string; // كود الأرشفة المرجعي (e.g. ARC-2026-001)
+  title: string; // عنوان الوثيقة أو المستند
+  category: ArchivedDocumentCategory; // تصنيف الوثيقة
+  reference_number: string; // رقم الوثيقة المرجعي (رقم الصك، العقد، السند، إلخ)
+  client_or_entity: string; // اسم العميل أو الجهة المرتبطة
+  date: string; // تاريخ الوثيقة أو تاريخ الأرشفة
+  status: ArchivedDocumentStatus; // حالة الوثيقة (ساري، مؤرشف، منتهي)
+  file_name?: string; // اسم ملف PDF
+  file_size?: number; // حجم الملف بالبايت
+  file_data_url?: string; // محتوى ملف PDF المشفر Base64 للمعاينة والتنزيل الفوري
+  notes?: string; // ملاحظات وشروحات
+  tags?: string[]; // وسوم تصنيفية
+  source_module?: string; // الوحدة المصدرية في حال تم تجميعها تلقائياً
+  created_at?: string;
+}
+

@@ -18,6 +18,7 @@ import {
   CustomerOrder,
   ManagedPropertyContract,
   PropertyMaintenanceTask,
+  ArchivedDocument,
 } from '../lib/types';
 import {
   INITIAL_LESSORS,
@@ -36,6 +37,7 @@ import {
   INITIAL_CUSTOMER_ORDERS,
   INITIAL_MANAGED_PROPERTIES,
   INITIAL_MAINTENANCE_TASKS,
+  INITIAL_ARCHIVED_DOCUMENTS,
 } from '../lib/supabaseClient';
 import {
   dbFetchAllData,
@@ -82,6 +84,9 @@ import {
   dbInsertMaintenanceTask,
   dbUpdateMaintenanceTask,
   dbDeleteMaintenanceTask,
+  dbInsertArchivedDocument,
+  dbUpdateArchivedDocument,
+  dbDeleteArchivedDocument,
 } from '../lib/services/dbService';
 import { computeDailySummaryFromTransactions } from '../lib/services/financials';
 
@@ -103,6 +108,7 @@ interface DataContextType {
   customerOrders: CustomerOrder[];
   managedProperties: ManagedPropertyContract[];
   maintenanceTasks: PropertyMaintenanceTask[];
+  archivedDocuments: ArchivedDocument[];
 
   // Entity Actions
   addProperty: (property: Property, document?: OwnershipDocument) => Promise<void>;
@@ -159,6 +165,10 @@ interface DataContextType {
   updateMaintenanceTask: (task: PropertyMaintenanceTask) => Promise<void>;
   deleteMaintenanceTask: (taskId: string) => Promise<void>;
 
+  addArchivedDocument: (doc: ArchivedDocument) => Promise<void>;
+  updateArchivedDocument: (doc: ArchivedDocument) => Promise<void>;
+  deleteArchivedDocument: (docId: string) => Promise<void>;
+
   resetToDefaults: () => void;
 }
 
@@ -183,6 +193,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [customerOrders, setCustomerOrders] = useState<CustomerOrder[]>(INITIAL_CUSTOMER_ORDERS);
   const [managedProperties, setManagedProperties] = useState<ManagedPropertyContract[]>(INITIAL_MANAGED_PROPERTIES);
   const [maintenanceTasks, setMaintenanceTasks] = useState<PropertyMaintenanceTask[]>(INITIAL_MAINTENANCE_TASKS);
+  const [archivedDocuments, setArchivedDocuments] = useState<ArchivedDocument[]>(INITIAL_ARCHIVED_DOCUMENTS);
 
   useEffect(() => {
     async function initData() {
@@ -204,6 +215,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.customerOrders) setCustomerOrders(data.customerOrders);
       if (data.managedProperties) setManagedProperties(data.managedProperties);
       if (data.maintenanceTasks) setMaintenanceTasks(data.maintenanceTasks);
+      if (data.archivedDocuments) setArchivedDocuments(data.archivedDocuments);
       setIsLoading(false);
     }
     initData();
@@ -677,6 +689,30 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await dbDeleteMaintenanceTask(taskId);
   };
 
+  // ------------------------------------
+  // ARCHIVED DOCUMENTS ACTIONS
+  // ------------------------------------
+  const addArchivedDocument = async (doc: ArchivedDocument) => {
+    const updated = [doc, ...archivedDocuments];
+    setArchivedDocuments(updated);
+    syncLocal(STORAGE_KEYS.ARCHIVED_DOCUMENTS, updated);
+    await dbInsertArchivedDocument(doc);
+  };
+
+  const updateArchivedDocument = async (doc: ArchivedDocument) => {
+    const updated = archivedDocuments.map((d) => (d.id === doc.id ? doc : d));
+    setArchivedDocuments(updated);
+    syncLocal(STORAGE_KEYS.ARCHIVED_DOCUMENTS, updated);
+    await dbUpdateArchivedDocument(doc);
+  };
+
+  const deleteArchivedDocument = async (docId: string) => {
+    const updated = archivedDocuments.filter((d) => d.id !== docId);
+    setArchivedDocuments(updated);
+    syncLocal(STORAGE_KEYS.ARCHIVED_DOCUMENTS, updated);
+    await dbDeleteArchivedDocument(docId);
+  };
+
   const resetToDefaults = () => {
     clearAllLocalData();
     setLessors(INITIAL_LESSORS);
@@ -695,6 +731,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCustomerOrders(INITIAL_CUSTOMER_ORDERS);
     setManagedProperties(INITIAL_MANAGED_PROPERTIES);
     setMaintenanceTasks(INITIAL_MAINTENANCE_TASKS);
+    setArchivedDocuments(INITIAL_ARCHIVED_DOCUMENTS);
   };
 
   return (
@@ -717,6 +754,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         customerOrders,
         managedProperties,
         maintenanceTasks,
+        archivedDocuments,
 
         addProperty,
         updateProperty,
@@ -771,6 +809,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addMaintenanceTask,
         updateMaintenanceTask,
         deleteMaintenanceTask,
+
+        addArchivedDocument,
+        updateArchivedDocument,
+        deleteArchivedDocument,
 
         resetToDefaults,
       }}

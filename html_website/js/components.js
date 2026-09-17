@@ -9,6 +9,12 @@ function renderSidebar(activeHref) {
       icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>`
     },
     {
+      name: 'الأرشيف الإلكتروني والوثائق',
+      href: 'archive.html',
+      badge: 'PDF 📂',
+      icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><circle cx="15" cy="19" r="2"></circle><path d="M20.9 19.8A2 2 0 0 0 22 18V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h5.1"></path><path d="M15 11v-1"></path><path d="M15 17v-2"></path></svg>`
+    },
+    {
       name: 'طلبات العملاء (سكني/تجاري)',
       href: 'customer-orders.html',
       badge: 'جديد 📋',
@@ -58,15 +64,15 @@ function renderSidebar(activeHref) {
     }
   ];
 
-  let navLinksHtml = navItems.map(item => {
-    const isActive = activeHref.includes(item.href) || (activeHref === '' && item.href === 'index.html');
+  const navLinksHtml = navItems.map(item => {
+    const isActive = activeHref === item.href;
     return `
-      <a href="${item.href}" class="nav-link-item ${isActive ? 'active' : ''}">
+      <a href="${item.href}" class="nav-item ${isActive ? 'active' : ''}">
         <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <span style="display: flex; align-items: center; color: ${isActive ? '#38bdf8' : '#94a3b8'};">${item.icon}</span>
+          ${item.icon}
           <span>${item.name}</span>
         </div>
-        ${item.badge ? `<span class="nav-badge-pill">${item.badge}</span>` : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #475569; transform: rotate(180deg);"><path d="m9 18 6-6-6-6"></path></svg>`}
+        ${item.badge ? `<span class="badge ${item.badge.includes('جديد') ? 'badge-new' : item.badge.includes('مالي') ? 'badge-financial' : item.badge.includes('معتمد') ? 'badge-verified' : item.badge.includes('ذكاء') ? 'badge-ai' : 'badge-general'}">${item.badge}</span>` : ''}
       </a>
     `;
   }).join('');
@@ -81,7 +87,7 @@ function renderSidebar(activeHref) {
           </div>
           <div>
             <h1 style="font-size: 1.125rem; font-weight: 700; color: #ffffff; line-height: 1.25;">نظام إدارة المكتب</h1>
-            <p style="font-size: 0.75rem; color: #38bdf8; font-weight: 500;">office.mabotargagh.online</p>
+            <p style="font-size: 0.75rem; color: #38bdf8; font-weight: 500;">kohl.kohlestate-ksa.online</p>
           </div>
         </div>
 
