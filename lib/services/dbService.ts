@@ -14,6 +14,7 @@ import {
   GeneralService,
   Tenant,
   CustomerOrder,
+  ArchivedDocument,
 } from '../types';
 import {
   INITIAL_LESSORS,
@@ -32,6 +33,7 @@ import {
   INITIAL_CUSTOMER_ORDERS,
   INITIAL_MANAGED_PROPERTIES,
   INITIAL_MAINTENANCE_TASKS,
+  INITIAL_ARCHIVED_DOCUMENTS,
 } from '../supabaseClient';
 import { ManagedPropertyContract, PropertyMaintenanceTask } from '../types';
 
@@ -52,6 +54,7 @@ const STORAGE_KEYS = {
   CUSTOMER_ORDERS: 'kohl_customer_orders_v1',
   MANAGED_PROPERTIES: 'kohl_managed_properties_v1',
   MAINTENANCE_TASKS: 'kohl_maintenance_tasks_v1',
+  ARCHIVED_DOCUMENTS: 'kohl_archived_documents_v1',
   DELETED_IDS: 'kohl_deleted_ids_v1',
 };
 
@@ -147,6 +150,7 @@ export async function dbFetchAllData() {
   const localCustomerOrders = getLocalData<CustomerOrder[]>(STORAGE_KEYS.CUSTOMER_ORDERS, INITIAL_CUSTOMER_ORDERS);
   const localManagedProps = getLocalData<ManagedPropertyContract[]>(STORAGE_KEYS.MANAGED_PROPERTIES, INITIAL_MANAGED_PROPERTIES);
   const localMaintenanceTasks = getLocalData<PropertyMaintenanceTask[]>(STORAGE_KEYS.MAINTENANCE_TASKS, INITIAL_MAINTENANCE_TASKS);
+  const localArchivedDocs = getLocalData<ArchivedDocument[]>(STORAGE_KEYS.ARCHIVED_DOCUMENTS, INITIAL_ARCHIVED_DOCUMENTS);
 
   const deletedSet = getDeletedIdsSet();
 
@@ -166,6 +170,7 @@ export async function dbFetchAllData() {
   let sbCustomerOrders: CustomerOrder[] | null = null;
   let sbManagedProps: ManagedPropertyContract[] | null = null;
   let sbMaintenanceTasks: PropertyMaintenanceTask[] | null = null;
+  let sbArchivedDocs: ArchivedDocument[] | null = null;
 
   try {
     const [
@@ -185,6 +190,7 @@ export async function dbFetchAllData() {
       resCustomerOrders,
       resManagedProps,
       resMaintenanceTasks,
+      resArchivedDocs,
     ] = await Promise.allSettled([
       supabase.from('lessors').select('*'),
       supabase.from('tenants').select('*'),
@@ -202,6 +208,7 @@ export async function dbFetchAllData() {
       supabase.from('customer_orders').select('*'),
       supabase.from('managed_property_contracts').select('*'),
       supabase.from('property_maintenance_tasks').select('*'),
+      supabase.from('archived_documents').select('*'),
     ]);
 
     if (resLessors.status === 'fulfilled' && resLessors.value.data) sbLessors = resLessors.value.data as Lessor[];
@@ -220,6 +227,7 @@ export async function dbFetchAllData() {
     if (resCustomerOrders.status === 'fulfilled' && resCustomerOrders.value.data) sbCustomerOrders = resCustomerOrders.value.data as CustomerOrder[];
     if (resManagedProps.status === 'fulfilled' && resManagedProps.value.data) sbManagedProps = resManagedProps.value.data as ManagedPropertyContract[];
     if (resMaintenanceTasks.status === 'fulfilled' && resMaintenanceTasks.value.data) sbMaintenanceTasks = resMaintenanceTasks.value.data as PropertyMaintenanceTask[];
+    if (resArchivedDocs.status === 'fulfilled' && resArchivedDocs.value.data) sbArchivedDocs = resArchivedDocs.value.data as ArchivedDocument[];
   } catch (err) {
     console.warn('Supabase fetch failed, relying on localStorage persistence:', err);
   }
@@ -241,6 +249,7 @@ export async function dbFetchAllData() {
   const customerOrders = mergeEntities(localCustomerOrders, sbCustomerOrders, deletedSet);
   const managedProperties = mergeEntities(localManagedProps, sbManagedProps, deletedSet);
   const maintenanceTasks = mergeEntities(localMaintenanceTasks, sbMaintenanceTasks, deletedSet);
+  const archivedDocuments = mergeEntities(localArchivedDocs, sbArchivedDocs, deletedSet);
 
   // Sync back merged data into localStorage
   setLocalData(STORAGE_KEYS.LESSORS, lessors);
@@ -259,6 +268,7 @@ export async function dbFetchAllData() {
   setLocalData(STORAGE_KEYS.CUSTOMER_ORDERS, customerOrders);
   setLocalData(STORAGE_KEYS.MANAGED_PROPERTIES, managedProperties);
   setLocalData(STORAGE_KEYS.MAINTENANCE_TASKS, maintenanceTasks);
+  setLocalData(STORAGE_KEYS.ARCHIVED_DOCUMENTS, archivedDocuments);
 
   // Attach relations
   const properties: Property[] = rawProps.map((p) => ({
@@ -313,6 +323,7 @@ export async function dbFetchAllData() {
     customerOrders,
     managedProperties,
     maintenanceTasks,
+    archivedDocuments,
   };
 }
 
@@ -1007,6 +1018,77 @@ export async function dbDeleteMaintenanceTask(id: string) {
     await supabase.from('property_maintenance_tasks').delete().eq('id', id);
   } catch (e) {
     console.warn('Supabase dbDeleteMaintenanceTask error:', e);
+  }
+}
+
+// -------------------
+// ARCHIVED DOCUMENTS CRUD
+// -------------------
+export async function dbFetchArchivedDocuments(): Promise<ArchivedDocument[]> {
+  try {
+    const { data, error } = await supabase.from('archived_documents').select('*');
+    if (error || !data) throw error;
+    return data as ArchivedDocument[];
+  } catch (e) {
+    console.warn('Supabase dbFetchArchivedDocuments error, falling back to local storage:', e);
+    return getLocalData<ArchivedDocument[]>(STORAGE_KEYS.ARCHIVED_DOCUMENTS, INITIAL_ARCHIVED_DOCUMENTS);
+  }
+}
+
+export async function dbInsertArchivedDocument(doc: ArchivedDocument) {
+  try {
+    await supabase.from('archived_documents').insert([
+      {
+        id: doc.id,
+        archive_code: doc.archive_code,
+        title: doc.title,
+        category: doc.category,
+        reference_number: doc.reference_number,
+        client_or_entity: doc.client_or_entity,
+        date: doc.date,
+        status: doc.status,
+        file_name: doc.file_name,
+        file_size: doc.file_size,
+        file_data_url: doc.file_data_url,
+        notes: doc.notes,
+        tags: doc.tags,
+        source_module: doc.source_module,
+        created_at: doc.created_at || new Date().toISOString(),
+      },
+    ]);
+  } catch (e) {
+    console.warn('Supabase dbInsertArchivedDocument error:', e);
+  }
+}
+
+export async function dbUpdateArchivedDocument(doc: ArchivedDocument) {
+  try {
+    await supabase.from('archived_documents').update({
+      archive_code: doc.archive_code,
+      title: doc.title,
+      category: doc.category,
+      reference_number: doc.reference_number,
+      client_or_entity: doc.client_or_entity,
+      date: doc.date,
+      status: doc.status,
+      file_name: doc.file_name,
+      file_size: doc.file_size,
+      file_data_url: doc.file_data_url,
+      notes: doc.notes,
+      tags: doc.tags,
+      source_module: doc.source_module,
+    }).eq('id', doc.id);
+  } catch (e) {
+    console.warn('Supabase dbUpdateArchivedDocument error:', e);
+  }
+}
+
+export async function dbDeleteArchivedDocument(id: string) {
+  markIdAsDeleted(id);
+  try {
+    await supabase.from('archived_documents').delete().eq('id', id);
+  } catch (e) {
+    console.warn('Supabase dbDeleteArchivedDocument error:', e);
   }
 }
 

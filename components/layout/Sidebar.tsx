@@ -17,6 +17,7 @@ import {
   Sparkles,
   Briefcase,
   ClipboardList,
+  FolderArchive,
 } from 'lucide-react';
 
 const navItems = [
@@ -27,16 +28,22 @@ const navItems = [
     badge: null,
   },
   {
+    name: 'الأرشيف الإلكتروني والوثائق',
+    href: '/archive',
+    icon: FolderArchive,
+    badge: 'PDF 📂',
+  },
+  {
     name: 'طلبات العملاء (سكني/تجاري)',
     href: '/customer-orders',
     icon: ClipboardList,
-    badge: 'جديد 📋',
+    badge: 'جديد',
   },
   {
     name: 'إدارة الأملاك والتشغيل',
     href: '/property-management',
     icon: Building,
-    badge: 'جديد 🏢',
+    badge: 'جديد',
   },
   {
     name: 'الأرباح والمعاملات المالية',
@@ -48,7 +55,7 @@ const navItems = [
     name: 'التقرير اليومي ومستشار AI',
     href: '/financials/daily-reports',
     icon: Sparkles,
-    badge: 'ذكاء AI',
+    badge: 'نظام AI',
   },
   {
     name: 'مركز العقود والإيجارات',
@@ -89,7 +96,7 @@ export default function Sidebar() {
           </div>
           <div>
             <h1 className="font-bold text-lg text-white leading-tight">نظام إدارة المكتب</h1>
-            <p className="text-xs text-sky-400 font-medium">office.mabotargagh.online</p>
+            <p className="text-xs text-sky-400 font-medium">kohl.kohlestate-ksa.online</p>
           </div>
         </div>
 
