@@ -6,6 +6,7 @@ import { CustomerOrder, CustomerOrderCategory, CustomerOrderStatus } from '../..
 import NewCustomerOrderModal from '../../components/customer-orders/NewCustomerOrderModal';
 import EditCustomerOrderModal from '../../components/customer-orders/EditCustomerOrderModal';
 import ImportCustomerOrdersModal from '../../components/customer-orders/ImportCustomerOrdersModal';
+import UniversalPrintModal, { PrintItemDetail } from '../../components/common/UniversalPrintModal';
 import * as XLSX from 'xlsx';
 import {
   ClipboardList,
@@ -29,10 +30,12 @@ import {
   FileSpreadsheet,
   Upload,
   FileText,
+  Printer,
+  FolderArchive,
 } from 'lucide-react';
 
 export default function CustomerOrdersPage() {
-  const { customerOrders, updateCustomerOrder } = useData();
+  const { customerOrders, updateCustomerOrder, archiveProcessRecord } = useData();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<'ALL' | CustomerOrderCategory>('ALL');
@@ -42,6 +45,7 @@ export default function CustomerOrdersPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<CustomerOrder | null>(null);
   const [viewingOrder, setViewingOrder] = useState<CustomerOrder | null>(null);
+  const [printingOrder, setPrintingOrder] = useState<CustomerOrder | null>(null);
 
   // Filtered Orders
   const filteredOrders = customerOrders.filter((ord) => {
@@ -472,13 +476,20 @@ export default function CustomerOrdersPage() {
 
                     {/* Actions */}
                     <td className="py-3.5 px-4">
-                      <div className="flex items-center justify-center gap-2">
+                      <div className="flex items-center justify-center gap-1.5">
                         <button
                           onClick={() => setViewingOrder(ord)}
                           className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 transition"
                           title="عرض التفاصيل"
                         >
                           <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setPrintingOrder(ord)}
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-purple-400 transition"
+                          title="طباعة استمارة PDF وأرشفة"
+                        >
+                          <Printer className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setEditingOrder(ord)}
@@ -602,6 +613,17 @@ export default function CustomerOrdersPage() {
               </button>
               <button
                 onClick={() => {
+                  const target = viewingOrder;
+                  setViewingOrder(null);
+                  setPrintingOrder(target);
+                }}
+                className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-lg shadow-purple-600/20"
+              >
+                <Printer className="w-4 h-4" />
+                <span>طباعة PDF وأرشفة</span>
+              </button>
+              <button
+                onClick={() => {
                   setEditingOrder(viewingOrder);
                   setViewingOrder(null);
                 }}
@@ -613,6 +635,51 @@ export default function CustomerOrdersPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Universal Print & Archive Modal */}
+      {printingOrder && (
+        <UniversalPrintModal
+          isOpen={!!printingOrder}
+          onClose={() => setPrintingOrder(null)}
+          title="استمارة طلب عميل عقاري"
+          subtitle="سند توثيق رغبة شراء / استئجار عقار"
+          documentNumber={printingOrder.order_number}
+          documentDate={printingOrder.created_at ? printingOrder.created_at.split('T')[0] : new Date().toISOString().split('T')[0]}
+          category="OTHER"
+          categoryLabel={printingOrder.category === 'RESIDENTIAL' ? 'طلب سكني' : 'طلب تجاري'}
+          clientOrPartyName={printingOrder.client_name}
+          partyRoleLabel="صاحب الطلب"
+          sourceModule="customer-orders"
+          tags={['طلب عميل', printingOrder.building_type, printingOrder.category === 'RESIDENTIAL' ? 'سكني' : 'تجاري']}
+          notes={printingOrder.notes}
+          details={[
+            { label: 'رقم هاتف العميل', value: printingOrder.client_phone },
+            { label: 'تصنيف العقار', value: printingOrder.category === 'RESIDENTIAL' ? 'سكني' : 'تجاري', isHighlight: true },
+            { label: 'نوع العقار المطلوب', value: printingOrder.building_type, isHighlight: true },
+            { label: 'المنطقة والمواصفات', value: printingOrder.desired_area },
+            { 
+              label: 'نطاق الميزانية', 
+              value: `${printingOrder.budget_min?.toLocaleString('ar-SA') || '0'} إلى ${printingOrder.budget_max?.toLocaleString('ar-SA') || '0'} ر.س`,
+              isHighlight: true 
+            },
+            { 
+              label: 'حالة الطلب الحالية', 
+              value: printingOrder.status === 'Fulfilled' ? 'تم التوفير بنجاح' : printingOrder.status === 'Searching' ? 'قيد البحث والفرز' : 'طلب جديد' 
+            },
+          ]}
+          financialTotal={printingOrder.budget_max ? {
+            label: 'الميزانية القصوى المرصودة',
+            amount: printingOrder.budget_max,
+            currency: 'ر.س'
+          } : undefined}
+          onArchiveSuccess={() => {
+            // mark fulfilled if not yet
+            if (printingOrder.status !== 'Fulfilled') {
+              updateCustomerOrder({ ...printingOrder, status: 'Fulfilled' });
+            }
+          }}
+        />
       )}
     </div>
   );

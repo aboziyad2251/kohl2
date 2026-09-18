@@ -1,8 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+interface Transaction {
+  flow_type: 'INCOME' | 'EXPENSE';
+  net_amount?: number;
+  [key: string]: any;
+}
+
+interface OperationalStatus {
+  vacantUnitsCount?: number;
+  [key: string]: any;
+}
+
+interface RequestPayload {
+  report_date?: string;
+  grossIncome?: number;
+  netIncome?: number;
+  transactions?: Transaction[];
+  operationalStatus?: OperationalStatus;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const body: RequestPayload = await req.json();
     const {
       report_date = new Date().toISOString().split('T')[0],
       grossIncome = 50000,
@@ -13,25 +32,29 @@ export async function POST(req: NextRequest) {
 
     const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
-    let aiResult = null;
+    let aiResult: {
+      what_went_well: string[];
+      what_went_bad: string[];
+      ai_recommendations: string[];
+      income_increment_strategy: string;
+    } | null = null;
 
     if (apiKey) {
       try {
         const systemPrompt = `You are a Chief Financial Officer and Senior Real Estate Business Strategist for a Saudi Real Estate Office.
-Analyze the provided daily financial ledger and operational data:
+Analyze the daily financial ledger and operational data:
 - Daily Gross Income: ${grossIncome} SAR
 - Daily Net Income: ${netIncome} SAR
 - Transactions Log: ${JSON.stringify(transactions)}
 - Vacant Units & Pending Agreements: ${JSON.stringify(operationalStatus)}
 
-Provide a structured assessment containing JSON format:
+Provide a structured assessment matching this JSON schema:
 {
-  "what_went_well": ["achievement 1", "achievement 2"],
-  "what_went_bad": ["bottleneck 1", "leak 2"],
-  "ai_recommendations": ["actionable advice 1", "actionable advice 2"],
+  "what_went_well": ["point 1", "point 2"],
+  "what_went_bad": ["point 1", "point 2"],
+  "ai_recommendations": ["recommendation 1", "recommendation 2"],
   "income_increment_strategy": "2-sentence summary of single highest-impact action"
-}
-Return ONLY pure JSON without markdown codeblock wrapper formatting.`;
+}`;
 
         const res = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
@@ -40,16 +63,18 @@ Return ONLY pure JSON without markdown codeblock wrapper formatting.`;
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               contents: [{ parts: [{ text: systemPrompt }] }],
+              generationConfig: {
+                responseMimeType: 'application/json',
+              },
             }),
           }
         );
 
         if (res.ok) {
           const data = await res.json();
-          const textResponse = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (textResponse) {
-            const cleanedText = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
-            aiResult = JSON.parse(cleanedText);
+          const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (rawText) {
+            aiResult = JSON.parse(rawText.trim());
           }
         }
       } catch (err) {
@@ -57,11 +82,12 @@ Return ONLY pure JSON without markdown codeblock wrapper formatting.`;
       }
     }
 
-    // Dynamic Contextual Saudi Real Estate Fallback Engine (when API Key is missing or during demo)
-    if (!aiResult || !aiResult.what_went_well) {
+    // Dynamic Contextual Saudi Real Estate Fallback Engine
+    if (!aiResult || !Array.isArray(aiResult.what_went_well)) {
       const txCount = transactions.length;
-      const incomeTx = transactions.filter((t: any) => t.flow_type === 'INCOME');
-      const expenseTx = transactions.filter((t: any) => t.flow_type === 'EXPENSE');
+      const incomeTx = transactions.filter((t) => t.flow_type === 'INCOME');
+      const expenseTx = transactions.filter((t) => t.flow_type === 'EXPENSE');
+      const totalExpense = expenseTx.reduce((acc, curr) => acc + (Number(curr.net_amount) || 0), 0);
 
       aiResult = {
         what_went_well: [
@@ -71,7 +97,7 @@ Return ONLY pure JSON without markdown codeblock wrapper formatting.`;
         ],
         what_went_bad: [
           `وجود ${operationalStatus.vacantUnitsCount || 3} وحدات سكنية وتجارية شاغرة متبقية تسببت في هدر إيجاري تقديري بقيمة 18,000 ريال شهرياً.`,
-          `تسجيل مصروفات صيانة وتحديث طارئة بقيمة ${expenseTx.reduce((acc: number, curr: any) => acc + (curr.net_amount || 0), 0).toLocaleString('ar-SA')} ريال اليوم.`,
+          `تسجيل مصروفات صيانة وتحديث طارئة بقيمة ${totalExpense.toLocaleString('ar-SA')} ريال اليوم.`,
           `تأخر إنهاء مراجعة وكالة إلكترونية (E-POA) معلقة يعطل إغلاق اتفاقية وساطة بقيمة 120,000 ريال.`
         ],
         ai_recommendations: [

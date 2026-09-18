@@ -15,6 +15,14 @@ import {
   Tenant,
   CustomerOrder,
   ArchivedDocument,
+  Employee,
+  TimesheetEntry,
+  PayrollPayment,
+  LeaveRequest,
+  TaskDelegation,
+  CrmLead,
+  CrmDeal,
+  CrmActivity,
 } from '../types';
 import {
   INITIAL_LESSORS,
@@ -34,6 +42,14 @@ import {
   INITIAL_MANAGED_PROPERTIES,
   INITIAL_MAINTENANCE_TASKS,
   INITIAL_ARCHIVED_DOCUMENTS,
+  INITIAL_EMPLOYEES,
+  INITIAL_TIMESHEET_ENTRIES,
+  INITIAL_PAYROLL_PAYMENTS,
+  INITIAL_LEAVE_REQUESTS,
+  INITIAL_TASK_DELEGATIONS,
+  INITIAL_CRM_LEADS,
+  INITIAL_CRM_DEALS,
+  INITIAL_CRM_ACTIVITIES,
 } from '../supabaseClient';
 import { ManagedPropertyContract, PropertyMaintenanceTask } from '../types';
 
@@ -55,6 +71,14 @@ const STORAGE_KEYS = {
   MANAGED_PROPERTIES: 'kohl_managed_properties_v1',
   MAINTENANCE_TASKS: 'kohl_maintenance_tasks_v1',
   ARCHIVED_DOCUMENTS: 'kohl_archived_documents_v1',
+  EMPLOYEES: 'kohl_employees_v1',
+  TIMESHEET: 'kohl_timesheet_v1',
+  PAYROLL: 'kohl_payroll_v1',
+  LEAVES: 'kohl_leaves_v1',
+  TASK_DELEGATIONS: 'kohl_task_delegations_v1',
+  CRM_LEADS: 'kohl_crm_leads_v1',
+  CRM_DEALS: 'kohl_crm_deals_v1',
+  CRM_ACTIVITIES: 'kohl_crm_activities_v1',
   DELETED_IDS: 'kohl_deleted_ids_v1',
 };
 
@@ -151,6 +175,14 @@ export async function dbFetchAllData() {
   const localManagedProps = getLocalData<ManagedPropertyContract[]>(STORAGE_KEYS.MANAGED_PROPERTIES, INITIAL_MANAGED_PROPERTIES);
   const localMaintenanceTasks = getLocalData<PropertyMaintenanceTask[]>(STORAGE_KEYS.MAINTENANCE_TASKS, INITIAL_MAINTENANCE_TASKS);
   const localArchivedDocs = getLocalData<ArchivedDocument[]>(STORAGE_KEYS.ARCHIVED_DOCUMENTS, INITIAL_ARCHIVED_DOCUMENTS);
+  const localEmployees = getLocalData<Employee[]>(STORAGE_KEYS.EMPLOYEES, INITIAL_EMPLOYEES);
+  const localTimesheet = getLocalData<TimesheetEntry[]>(STORAGE_KEYS.TIMESHEET, INITIAL_TIMESHEET_ENTRIES);
+  const localPayroll = getLocalData<PayrollPayment[]>(STORAGE_KEYS.PAYROLL, INITIAL_PAYROLL_PAYMENTS);
+  const localLeaves = getLocalData<LeaveRequest[]>(STORAGE_KEYS.LEAVES, INITIAL_LEAVE_REQUESTS);
+  const localTaskDelegations = getLocalData<TaskDelegation[]>(STORAGE_KEYS.TASK_DELEGATIONS, INITIAL_TASK_DELEGATIONS);
+  const localCrmLeads = getLocalData<CrmLead[]>(STORAGE_KEYS.CRM_LEADS, INITIAL_CRM_LEADS);
+  const localCrmDeals = getLocalData<CrmDeal[]>(STORAGE_KEYS.CRM_DEALS, INITIAL_CRM_DEALS);
+  const localCrmActivities = getLocalData<CrmActivity[]>(STORAGE_KEYS.CRM_ACTIVITIES, INITIAL_CRM_ACTIVITIES);
 
   const deletedSet = getDeletedIdsSet();
 
@@ -171,6 +203,14 @@ export async function dbFetchAllData() {
   let sbManagedProps: ManagedPropertyContract[] | null = null;
   let sbMaintenanceTasks: PropertyMaintenanceTask[] | null = null;
   let sbArchivedDocs: ArchivedDocument[] | null = null;
+  let sbEmployees: Employee[] | null = null;
+  let sbTimesheet: TimesheetEntry[] | null = null;
+  let sbPayroll: PayrollPayment[] | null = null;
+  let sbLeaves: LeaveRequest[] | null = null;
+  let sbTaskDelegations: TaskDelegation[] | null = null;
+  let sbCrmLeads: CrmLead[] | null = null;
+  let sbCrmDeals: CrmDeal[] | null = null;
+  let sbCrmActivities: CrmActivity[] | null = null;
 
   try {
     const [
@@ -191,6 +231,14 @@ export async function dbFetchAllData() {
       resManagedProps,
       resMaintenanceTasks,
       resArchivedDocs,
+      resEmployees,
+      resTimesheet,
+      resPayroll,
+      resLeaves,
+      resTasks,
+      resLeads,
+      resDeals,
+      resActivities,
     ] = await Promise.allSettled([
       supabase.from('lessors').select('*'),
       supabase.from('tenants').select('*'),
@@ -209,6 +257,14 @@ export async function dbFetchAllData() {
       supabase.from('managed_property_contracts').select('*'),
       supabase.from('property_maintenance_tasks').select('*'),
       supabase.from('archived_documents').select('*'),
+      supabase.from('employees').select('*'),
+      supabase.from('timesheet_entries').select('*'),
+      supabase.from('payroll_payments').select('*'),
+      supabase.from('leave_requests').select('*'),
+      supabase.from('task_delegations').select('*'),
+      supabase.from('crm_leads').select('*'),
+      supabase.from('crm_deals').select('*'),
+      supabase.from('crm_activities').select('*'),
     ]);
 
     if (resLessors.status === 'fulfilled' && resLessors.value.data) sbLessors = resLessors.value.data as Lessor[];
@@ -228,6 +284,14 @@ export async function dbFetchAllData() {
     if (resManagedProps.status === 'fulfilled' && resManagedProps.value.data) sbManagedProps = resManagedProps.value.data as ManagedPropertyContract[];
     if (resMaintenanceTasks.status === 'fulfilled' && resMaintenanceTasks.value.data) sbMaintenanceTasks = resMaintenanceTasks.value.data as PropertyMaintenanceTask[];
     if (resArchivedDocs.status === 'fulfilled' && resArchivedDocs.value.data) sbArchivedDocs = resArchivedDocs.value.data as ArchivedDocument[];
+    if (resEmployees.status === 'fulfilled' && resEmployees.value.data) sbEmployees = resEmployees.value.data as Employee[];
+    if (resTimesheet.status === 'fulfilled' && resTimesheet.value.data) sbTimesheet = resTimesheet.value.data as TimesheetEntry[];
+    if (resPayroll.status === 'fulfilled' && resPayroll.value.data) sbPayroll = resPayroll.value.data as PayrollPayment[];
+    if (resLeaves.status === 'fulfilled' && resLeaves.value.data) sbLeaves = resLeaves.value.data as LeaveRequest[];
+    if (resTasks.status === 'fulfilled' && resTasks.value.data) sbTaskDelegations = resTasks.value.data as TaskDelegation[];
+    if (resLeads.status === 'fulfilled' && resLeads.value.data) sbCrmLeads = resLeads.value.data as CrmLead[];
+    if (resDeals.status === 'fulfilled' && resDeals.value.data) sbCrmDeals = resDeals.value.data as CrmDeal[];
+    if (resActivities.status === 'fulfilled' && resActivities.value.data) sbCrmActivities = resActivities.value.data as CrmActivity[];
   } catch (err) {
     console.warn('Supabase fetch failed, relying on localStorage persistence:', err);
   }
@@ -250,6 +314,14 @@ export async function dbFetchAllData() {
   const managedProperties = mergeEntities(localManagedProps, sbManagedProps, deletedSet);
   const maintenanceTasks = mergeEntities(localMaintenanceTasks, sbMaintenanceTasks, deletedSet);
   const archivedDocuments = mergeEntities(localArchivedDocs, sbArchivedDocs, deletedSet);
+  const employees = mergeEntities(localEmployees, sbEmployees, deletedSet);
+  const timesheetEntries = mergeEntities(localTimesheet, sbTimesheet, deletedSet);
+  const payrollPayments = mergeEntities(localPayroll, sbPayroll, deletedSet);
+  const leaveRequests = mergeEntities(localLeaves, sbLeaves, deletedSet);
+  const taskDelegations = mergeEntities(localTaskDelegations, sbTaskDelegations, deletedSet);
+  const crmLeads = mergeEntities(localCrmLeads, sbCrmLeads, deletedSet);
+  const crmDeals = mergeEntities(localCrmDeals, sbCrmDeals, deletedSet);
+  const crmActivities = mergeEntities(localCrmActivities, sbCrmActivities, deletedSet);
 
   // Sync back merged data into localStorage
   setLocalData(STORAGE_KEYS.LESSORS, lessors);
@@ -269,6 +341,14 @@ export async function dbFetchAllData() {
   setLocalData(STORAGE_KEYS.MANAGED_PROPERTIES, managedProperties);
   setLocalData(STORAGE_KEYS.MAINTENANCE_TASKS, maintenanceTasks);
   setLocalData(STORAGE_KEYS.ARCHIVED_DOCUMENTS, archivedDocuments);
+  setLocalData(STORAGE_KEYS.EMPLOYEES, employees);
+  setLocalData(STORAGE_KEYS.TIMESHEET, timesheetEntries);
+  setLocalData(STORAGE_KEYS.PAYROLL, payrollPayments);
+  setLocalData(STORAGE_KEYS.LEAVES, leaveRequests);
+  setLocalData(STORAGE_KEYS.TASK_DELEGATIONS, taskDelegations);
+  setLocalData(STORAGE_KEYS.CRM_LEADS, crmLeads);
+  setLocalData(STORAGE_KEYS.CRM_DEALS, crmDeals);
+  setLocalData(STORAGE_KEYS.CRM_ACTIVITIES, crmActivities);
 
   // Attach relations
   const properties: Property[] = rawProps.map((p) => ({
@@ -324,6 +404,14 @@ export async function dbFetchAllData() {
     managedProperties,
     maintenanceTasks,
     archivedDocuments,
+    employees,
+    timesheetEntries,
+    payrollPayments,
+    leaveRequests,
+    taskDelegations,
+    crmLeads,
+    crmDeals,
+    crmActivities,
   };
 }
 
@@ -1089,6 +1177,463 @@ export async function dbDeleteArchivedDocument(id: string) {
     await supabase.from('archived_documents').delete().eq('id', id);
   } catch (e) {
     console.warn('Supabase dbDeleteArchivedDocument error:', e);
+  }
+}
+
+// -------------------
+// EMPLOYEES CRUD
+// -------------------
+export async function dbInsertEmployee(emp: Employee) {
+  try {
+    await supabase.from('employees').insert([
+      {
+        id: emp.id,
+        employee_number: emp.employee_number,
+        name: emp.name,
+        national_id_or_iqama: emp.national_id_or_iqama,
+        job_title: emp.job_title,
+        department: emp.department,
+        phone: emp.phone,
+        email: emp.email,
+        hire_date: emp.hire_date,
+        basic_salary: emp.basic_salary,
+        housing_allowance: emp.housing_allowance,
+        transport_allowance: emp.transport_allowance,
+        other_allowances: emp.other_allowances || 0,
+        status: emp.status,
+        system_role: emp.system_role,
+        notes: emp.notes,
+        created_at: emp.created_at || new Date().toISOString(),
+      },
+    ]);
+  } catch (e) {
+    console.warn('Supabase dbInsertEmployee error:', e);
+  }
+}
+
+export async function dbUpdateEmployee(emp: Employee) {
+  try {
+    await supabase.from('employees').update({
+      employee_number: emp.employee_number,
+      name: emp.name,
+      national_id_or_iqama: emp.national_id_or_iqama,
+      job_title: emp.job_title,
+      department: emp.department,
+      phone: emp.phone,
+      email: emp.email,
+      hire_date: emp.hire_date,
+      basic_salary: emp.basic_salary,
+      housing_allowance: emp.housing_allowance,
+      transport_allowance: emp.transport_allowance,
+      other_allowances: emp.other_allowances || 0,
+      status: emp.status,
+      system_role: emp.system_role,
+      notes: emp.notes,
+    }).eq('id', emp.id);
+  } catch (e) {
+    console.warn('Supabase dbUpdateEmployee error:', e);
+  }
+}
+
+export async function dbDeleteEmployee(id: string) {
+  markIdAsDeleted(id);
+  try {
+    await supabase.from('employees').delete().eq('id', id);
+  } catch (e) {
+    console.warn('Supabase dbDeleteEmployee error:', e);
+  }
+}
+
+// -------------------
+// TIMESHEET CRUD
+// -------------------
+export async function dbInsertTimesheet(ts: TimesheetEntry) {
+  try {
+    await supabase.from('timesheet_entries').insert([
+      {
+        id: ts.id,
+        employee_id: ts.employee_id,
+        employee_name: ts.employee_name,
+        date: ts.date,
+        check_in: ts.check_in,
+        check_out: ts.check_out,
+        total_hours: ts.total_hours,
+        status: ts.status,
+        notes: ts.notes,
+        created_at: ts.created_at || new Date().toISOString(),
+      },
+    ]);
+  } catch (e) {
+    console.warn('Supabase dbInsertTimesheet error:', e);
+  }
+}
+
+export async function dbUpdateTimesheet(ts: TimesheetEntry) {
+  try {
+    await supabase.from('timesheet_entries').update({
+      check_in: ts.check_in,
+      check_out: ts.check_out,
+      total_hours: ts.total_hours,
+      status: ts.status,
+      notes: ts.notes,
+    }).eq('id', ts.id);
+  } catch (e) {
+    console.warn('Supabase dbUpdateTimesheet error:', e);
+  }
+}
+
+export async function dbDeleteTimesheet(id: string) {
+  markIdAsDeleted(id);
+  try {
+    await supabase.from('timesheet_entries').delete().eq('id', id);
+  } catch (e) {
+    console.warn('Supabase dbDeleteTimesheet error:', e);
+  }
+}
+
+// -------------------
+// PAYROLL CRUD
+// -------------------
+export async function dbInsertPayroll(pay: PayrollPayment) {
+  try {
+    await supabase.from('payroll_payments').insert([
+      {
+        id: pay.id,
+        payment_number: pay.payment_number,
+        employee_id: pay.employee_id,
+        employee_name: pay.employee_name,
+        month_year: pay.month_year,
+        basic_salary: pay.basic_salary,
+        allowances: pay.allowances,
+        commissions: pay.commissions,
+        deductions: pay.deductions,
+        net_amount: pay.net_amount,
+        payment_date: pay.payment_date,
+        payment_method: pay.payment_method,
+        reference_number: pay.reference_number,
+        status: pay.status,
+        is_archived: pay.is_archived || false,
+        notes: pay.notes,
+        created_at: pay.created_at || new Date().toISOString(),
+      },
+    ]);
+  } catch (e) {
+    console.warn('Supabase dbInsertPayroll error:', e);
+  }
+}
+
+export async function dbUpdatePayroll(pay: PayrollPayment) {
+  try {
+    await supabase.from('payroll_payments').update({
+      payment_number: pay.payment_number,
+      basic_salary: pay.basic_salary,
+      allowances: pay.allowances,
+      commissions: pay.commissions,
+      deductions: pay.deductions,
+      net_amount: pay.net_amount,
+      payment_date: pay.payment_date,
+      payment_method: pay.payment_method,
+      reference_number: pay.reference_number,
+      status: pay.status,
+      is_archived: pay.is_archived,
+      notes: pay.notes,
+    }).eq('id', pay.id);
+  } catch (e) {
+    console.warn('Supabase dbUpdatePayroll error:', e);
+  }
+}
+
+export async function dbDeletePayroll(id: string) {
+  markIdAsDeleted(id);
+  try {
+    await supabase.from('payroll_payments').delete().eq('id', id);
+  } catch (e) {
+    console.warn('Supabase dbDeletePayroll error:', e);
+  }
+}
+
+// -------------------
+// LEAVE REQUESTS CRUD
+// -------------------
+export async function dbInsertLeaveRequest(lv: LeaveRequest) {
+  try {
+    await supabase.from('leave_requests').insert([
+      {
+        id: lv.id,
+        employee_id: lv.employee_id,
+        employee_name: lv.employee_name,
+        leave_type: lv.leave_type,
+        start_date: lv.start_date,
+        end_date: lv.end_date,
+        days_count: lv.days_count,
+        reason: lv.reason,
+        status: lv.status,
+        approved_by: lv.approved_by,
+        approved_at: lv.approved_at,
+        created_at: lv.created_at || new Date().toISOString(),
+      },
+    ]);
+  } catch (e) {
+    console.warn('Supabase dbInsertLeaveRequest error:', e);
+  }
+}
+
+export async function dbUpdateLeaveRequest(lv: LeaveRequest) {
+  try {
+    await supabase.from('leave_requests').update({
+      leave_type: lv.leave_type,
+      start_date: lv.start_date,
+      end_date: lv.end_date,
+      days_count: lv.days_count,
+      reason: lv.reason,
+      status: lv.status,
+      approved_by: lv.approved_by,
+      approved_at: lv.approved_at,
+    }).eq('id', lv.id);
+  } catch (e) {
+    console.warn('Supabase dbUpdateLeaveRequest error:', e);
+  }
+}
+
+export async function dbDeleteLeaveRequest(id: string) {
+  markIdAsDeleted(id);
+  try {
+    await supabase.from('leave_requests').delete().eq('id', id);
+  } catch (e) {
+    console.warn('Supabase dbDeleteLeaveRequest error:', e);
+  }
+}
+
+// -------------------
+// TASK DELEGATIONS CRUD
+// -------------------
+export async function dbInsertTaskDelegation(tsk: TaskDelegation) {
+  try {
+    await supabase.from('task_delegations').insert([
+      {
+        id: tsk.id,
+        task_code: tsk.task_code,
+        title: tsk.title,
+        description: tsk.description,
+        assigned_to_employee_id: tsk.assigned_to_employee_id,
+        assigned_to_name: tsk.assigned_to_name,
+        delegated_by_id: tsk.delegated_by_id,
+        delegated_by_name: tsk.delegated_by_name,
+        priority: tsk.priority,
+        due_date: tsk.due_date,
+        status: tsk.status,
+        is_delegated_action: tsk.is_delegated_action || false,
+        completed_at: tsk.completed_at,
+        notes: tsk.notes,
+        created_at: tsk.created_at || new Date().toISOString(),
+      },
+    ]);
+  } catch (e) {
+    console.warn('Supabase dbInsertTaskDelegation error:', e);
+  }
+}
+
+export async function dbUpdateTaskDelegation(tsk: TaskDelegation) {
+  try {
+    await supabase.from('task_delegations').update({
+      title: tsk.title,
+      description: tsk.description,
+      priority: tsk.priority,
+      due_date: tsk.due_date,
+      status: tsk.status,
+      is_delegated_action: tsk.is_delegated_action,
+      completed_at: tsk.completed_at,
+      notes: tsk.notes,
+    }).eq('id', tsk.id);
+  } catch (e) {
+    console.warn('Supabase dbUpdateTaskDelegation error:', e);
+  }
+}
+
+export async function dbDeleteTaskDelegation(id: string) {
+  markIdAsDeleted(id);
+  try {
+    await supabase.from('task_delegations').delete().eq('id', id);
+  } catch (e) {
+    console.warn('Supabase dbDeleteTaskDelegation error:', e);
+  }
+}
+
+// -------------------
+// CRM LEADS CRUD
+// -------------------
+export async function dbInsertCrmLead(lead: CrmLead) {
+  try {
+    await supabase.from('crm_leads').insert([
+      {
+        id: lead.id,
+        lead_code: lead.lead_code,
+        name: lead.name,
+        phone: lead.phone,
+        email: lead.email,
+        lead_type: lead.lead_type,
+        stage: lead.stage,
+        priority: lead.priority,
+        source: lead.source,
+        budget_min: lead.budget_min,
+        budget_max: lead.budget_max,
+        preferred_property_type: lead.preferred_property_type,
+        preferred_city: lead.preferred_city,
+        preferred_district: lead.preferred_district,
+        assigned_agent_id: lead.assigned_agent_id,
+        assigned_agent_name: lead.assigned_agent_name,
+        notes: lead.notes,
+        is_archived: lead.is_archived || false,
+        created_at: lead.created_at || new Date().toISOString(),
+      },
+    ]);
+  } catch (e) {
+    console.warn('Supabase dbInsertCrmLead error:', e);
+  }
+}
+
+export async function dbUpdateCrmLead(lead: CrmLead) {
+  try {
+    await supabase.from('crm_leads').update({
+      name: lead.name,
+      phone: lead.phone,
+      email: lead.email,
+      lead_type: lead.lead_type,
+      stage: lead.stage,
+      priority: lead.priority,
+      source: lead.source,
+      budget_min: lead.budget_min,
+      budget_max: lead.budget_max,
+      preferred_property_type: lead.preferred_property_type,
+      preferred_city: lead.preferred_city,
+      preferred_district: lead.preferred_district,
+      assigned_agent_id: lead.assigned_agent_id,
+      assigned_agent_name: lead.assigned_agent_name,
+      notes: lead.notes,
+      is_archived: lead.is_archived,
+    }).eq('id', lead.id);
+  } catch (e) {
+    console.warn('Supabase dbUpdateCrmLead error:', e);
+  }
+}
+
+export async function dbDeleteCrmLead(id: string) {
+  markIdAsDeleted(id);
+  try {
+    await supabase.from('crm_leads').delete().eq('id', id);
+  } catch (e) {
+    console.warn('Supabase dbDeleteCrmLead error:', e);
+  }
+}
+
+// -------------------
+// CRM DEALS CRUD
+// -------------------
+export async function dbInsertCrmDeal(deal: CrmDeal) {
+  try {
+    await supabase.from('crm_deals').insert([
+      {
+        id: deal.id,
+        deal_code: deal.deal_code,
+        title: deal.title,
+        lead_id: deal.lead_id,
+        lead_name: deal.lead_name,
+        lead_phone: deal.lead_phone,
+        property_id: deal.property_id,
+        property_title: deal.property_title,
+        deal_value: deal.deal_value,
+        commission_rate: deal.commission_rate,
+        commission_amount: deal.commission_amount,
+        office_profit: deal.office_profit,
+        stage: deal.stage,
+        expected_closing_date: deal.expected_closing_date,
+        assigned_agent_id: deal.assigned_agent_id,
+        assigned_agent_name: deal.assigned_agent_name,
+        is_archived: deal.is_archived || false,
+        notes: deal.notes,
+        created_at: deal.created_at || new Date().toISOString(),
+      },
+    ]);
+  } catch (e) {
+    console.warn('Supabase dbInsertCrmDeal error:', e);
+  }
+}
+
+export async function dbUpdateCrmDeal(deal: CrmDeal) {
+  try {
+    await supabase.from('crm_deals').update({
+      title: deal.title,
+      property_id: deal.property_id,
+      property_title: deal.property_title,
+      deal_value: deal.deal_value,
+      commission_rate: deal.commission_rate,
+      commission_amount: deal.commission_amount,
+      office_profit: deal.office_profit,
+      stage: deal.stage,
+      expected_closing_date: deal.expected_closing_date,
+      assigned_agent_id: deal.assigned_agent_id,
+      assigned_agent_name: deal.assigned_agent_name,
+      is_archived: deal.is_archived,
+      notes: deal.notes,
+    }).eq('id', deal.id);
+  } catch (e) {
+    console.warn('Supabase dbUpdateCrmDeal error:', e);
+  }
+}
+
+export async function dbDeleteCrmDeal(id: string) {
+  markIdAsDeleted(id);
+  try {
+    await supabase.from('crm_deals').delete().eq('id', id);
+  } catch (e) {
+    console.warn('Supabase dbDeleteCrmDeal error:', e);
+  }
+}
+
+// -------------------
+// CRM ACTIVITIES CRUD
+// -------------------
+export async function dbInsertCrmActivity(act: CrmActivity) {
+  try {
+    await supabase.from('crm_activities').insert([
+      {
+        id: act.id,
+        lead_id: act.lead_id,
+        deal_id: act.deal_id,
+        lead_or_client_name: act.lead_or_client_name,
+        activity_type: act.activity_type,
+        title: act.title,
+        notes: act.notes,
+        due_date: act.due_date,
+        status: act.status,
+        created_by_name: act.created_by_name,
+        created_at: act.created_at || new Date().toISOString(),
+      },
+    ]);
+  } catch (e) {
+    console.warn('Supabase dbInsertCrmActivity error:', e);
+  }
+}
+
+export async function dbUpdateCrmActivity(act: CrmActivity) {
+  try {
+    await supabase.from('crm_activities').update({
+      title: act.title,
+      notes: act.notes,
+      due_date: act.due_date,
+      status: act.status,
+    }).eq('id', act.id);
+  } catch (e) {
+    console.warn('Supabase dbUpdateCrmActivity error:', e);
+  }
+}
+
+export async function dbDeleteCrmActivity(id: string) {
+  markIdAsDeleted(id);
+  try {
+    await supabase.from('crm_activities').delete().eq('id', id);
+  } catch (e) {
+    console.warn('Supabase dbDeleteCrmActivity error:', e);
   }
 }
 

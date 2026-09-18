@@ -8,6 +8,7 @@ import EditManagedPropertyModal from '../../components/property-management/EditM
 import NewMaintenanceTaskModal from '../../components/property-management/NewMaintenanceTaskModal';
 import EditMaintenanceTaskModal from '../../components/property-management/EditMaintenanceTaskModal';
 import * as XLSX from 'xlsx';
+import UniversalPrintModal, { PrintItemDetail } from '../../components/common/UniversalPrintModal';
 import {
   Building,
   Wrench,
@@ -30,10 +31,12 @@ import {
   Edit,
   Eye,
   Percent,
+  Printer,
+  FolderArchive,
 } from 'lucide-react';
 
 export default function PropertyManagementPage() {
-  const { managedProperties, maintenanceTasks, updateManagedProperty, updateMaintenanceTask } = useData();
+  const { managedProperties, maintenanceTasks, updateManagedProperty, updateMaintenanceTask, archiveProcessRecord } = useData();
 
   const [activeTab, setActiveTab] = useState<'CONTRACTS' | 'MAINTENANCE' | 'STATEMENTS'>('CONTRACTS');
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,6 +49,8 @@ export default function PropertyManagementPage() {
   const [editingContract, setEditingContract] = useState<ManagedPropertyContract | null>(null);
   const [editingTask, setEditingTask] = useState<PropertyMaintenanceTask | null>(null);
   const [viewingContract, setViewingContract] = useState<ManagedPropertyContract | null>(null);
+  const [printingPropertyContract, setPrintingPropertyContract] = useState<ManagedPropertyContract | null>(null);
+  const [printingMaintenanceTask, setPrintingMaintenanceTask] = useState<PropertyMaintenanceTask | null>(null);
 
   // Filtered Managed Properties
   const filteredProperties = managedProperties.filter((prop) => {
@@ -518,13 +523,20 @@ export default function PropertyManagementPage() {
                         <td className="py-3.5 px-4">{getStatusBadge(prop.status)}</td>
 
                         <td className="py-3.5 px-4">
-                          <div className="flex items-center justify-center gap-2">
+                          <div className="flex items-center justify-center gap-1.5">
                             <button
                               onClick={() => setViewingContract(prop)}
                               className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 transition"
                               title="عرض التفاصيل"
                             >
                               <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => setPrintingPropertyContract(prop)}
+                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-purple-400 transition"
+                              title="طباعة عقد إدارة أملاك وأرشفة"
+                            >
+                              <Printer className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => setEditingContract(prop)}
@@ -608,7 +620,14 @@ export default function PropertyManagementPage() {
                       <td className="py-3.5 px-4">{getTaskStatusBadge(task.status)}</td>
 
                       <td className="py-3.5 px-4">
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => setPrintingMaintenanceTask(task)}
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-purple-400 transition"
+                            title="طباعة أمر صيانة وأرشفة"
+                          >
+                            <Printer className="w-4 h-4" />
+                          </button>
                           <button
                             onClick={() => setEditingTask(task)}
                             className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 transition"
@@ -684,6 +703,93 @@ export default function PropertyManagementPage() {
         onClose={() => setEditingTask(null)}
         task={editingTask}
       />
+
+      {/* Universal Print & Archive: Managed Property Contract */}
+      {printingPropertyContract && (
+        <UniversalPrintModal
+          isOpen={!!printingPropertyContract}
+          onClose={() => setPrintingPropertyContract(null)}
+          title="عقد إدارة وتشغيل أملاك"
+          subtitle="اتفاقية إدارة مجمع وعقارات واستلام الإيجارات"
+          documentNumber={printingPropertyContract.contract_number}
+          documentDate={printingPropertyContract.start_date}
+          category="CONTRACT"
+          categoryLabel="عقد إدارة أملاك"
+          clientOrPartyName={printingPropertyContract.lessor_name}
+          partyRoleLabel="مالك العقار"
+          sourceModule="property-management"
+          tags={['إدارة أملاك', printingPropertyContract.property_name, printingPropertyContract.property_type]}
+          notes={printingPropertyContract.notes}
+          details={[
+            { label: 'اسم العقار / المجمع', value: printingPropertyContract.property_name, isHighlight: true },
+            { 
+              label: 'نوع العقار', 
+              value: printingPropertyContract.property_type === 'Residential' ? 'عمارة سكنية' : printingPropertyContract.property_type === 'Commercial' ? 'مجمع تجاري' : 'برج مختلط' 
+            },
+            { label: 'رقم هاتف المالك', value: printingPropertyContract.lessor_phone },
+            { 
+              label: 'إجمالي الوحدات', 
+              value: `${printingPropertyContract.total_units} وحدة (المؤجرة: ${printingPropertyContract.occupied_units} / الشاغرة: ${printingPropertyContract.vacant_units})` 
+            },
+            { 
+              label: 'أتعاب الإدارة للمكتب', 
+              value: printingPropertyContract.fee_type === 'PERCENTAGE' ? `${printingPropertyContract.fee_value}%` : `${printingPropertyContract.fee_value.toLocaleString('ar-SA')} ر.س`, 
+              isHighlight: true 
+            },
+            { label: 'التحصيل الإيجاري الفعلي', value: `${printingPropertyContract.collected_revenue.toLocaleString('ar-SA')} ر.س` },
+            { label: 'الصافي المستحق للمالك', value: `${printingPropertyContract.transferred_to_owner.toLocaleString('ar-SA')} ر.س`, isHighlight: true },
+            { label: 'فترة التعاقد', value: `من ${printingPropertyContract.start_date} إلى ${printingPropertyContract.end_date}` }
+          ]}
+          financialTotal={{
+            label: 'الإيراد الإيجاري السنوي المتوقع',
+            amount: printingPropertyContract.annual_expected_revenue,
+            currency: 'ر.س'
+          }}
+          onArchiveSuccess={() => {
+            // Already active/recorded
+          }}
+        />
+      )}
+
+      {/* Universal Print & Archive: Property Maintenance Task */}
+      {printingMaintenanceTask && (
+        <UniversalPrintModal
+          isOpen={!!printingMaintenanceTask}
+          onClose={() => setPrintingMaintenanceTask(null)}
+          title="أمر عمل وصيانة عقار"
+          subtitle="سند تشغيل وصيانة وتكاليف الوحدات العقارية"
+          documentNumber={printingMaintenanceTask.task_number}
+          documentDate={printingMaintenanceTask.created_at || new Date().toISOString()}
+          category="OTHER"
+          categoryLabel="صيانة وتشغيل أملاك"
+          clientOrPartyName={printingMaintenanceTask.property_name}
+          partyRoleLabel="العقار المعني"
+          sourceModule="property-management"
+          tags={['أمر صيانة', printingMaintenanceTask.maintenance_type, printingMaintenanceTask.property_name]}
+          notes={printingMaintenanceTask.notes}
+          details={[
+            { label: 'اسم العقار', value: printingMaintenanceTask.property_name, isHighlight: true },
+            { label: 'الوحدة / الشقة', value: printingMaintenanceTask.unit_name || 'عام لكامل المبنى' },
+            { label: 'نوع الصيانة المطلوبة', value: printingMaintenanceTask.maintenance_type, isHighlight: true },
+            { label: 'المقاول / الفني المنفذ', value: printingMaintenanceTask.contractor_name || 'غير محدد' },
+            { label: 'رقم جوال الفني', value: printingMaintenanceTask.contractor_phone || 'غير مسجل' },
+            { 
+              label: 'حالة أمر الصيانة', 
+              value: printingMaintenanceTask.status === 'Completed' ? 'مكتمل' : printingMaintenanceTask.status === 'In_Progress' ? 'جاري التنفيذ' : 'معلق' 
+            }
+          ]}
+          financialTotal={{
+            label: 'تكلفة الصيانة الإجمالية',
+            amount: printingMaintenanceTask.cost_amount,
+            currency: 'ر.س'
+          }}
+          onArchiveSuccess={() => {
+            if (printingMaintenanceTask.status !== 'Completed') {
+              updateMaintenanceTask({ ...printingMaintenanceTask, status: 'Completed' });
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

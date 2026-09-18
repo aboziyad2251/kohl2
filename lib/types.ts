@@ -102,6 +102,9 @@ export interface Contract {
   primary_lessor_consent?: boolean;
   property?: Property;
   lessor?: Lessor;
+  assigned_agent_id?: string;
+  assigned_agent_name?: string;
+  is_archived?: boolean;
   created_at?: string;
 }
 
@@ -118,6 +121,9 @@ export interface BrokerageAgreement {
   file_url?: string;
   property?: Property;
   lessor?: Lessor;
+  assigned_agent_id?: string;
+  assigned_agent_name?: string;
+  is_archived?: boolean;
   created_at?: string;
 }
 
@@ -316,4 +322,185 @@ export interface ArchivedDocument {
   source_module?: string; // الوحدة المصدرية في حال تم تجميعها تلقائياً
   created_at?: string;
 }
+
+// ----------------------------------------------------
+// RBAC & USER SESSION TYPES (الأدوار والصلاحيات والمستخدمين)
+// ----------------------------------------------------
+export type UserRole = 'ADMIN' | 'CEO' | 'HR' | 'EMPLOYEE';
+
+export interface AppUser {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: UserRole;
+  role_display: string;
+  avatar_initials: string;
+  department?: string;
+  employee_id?: string;
+  allowed_modules?: string[];
+}
+
+// ----------------------------------------------------
+// EMPLOYEES & TIMESHEET TYPES (إدارة الموظفين، الدوام، والرواتب)
+// ----------------------------------------------------
+export type EmployeeStatus = 'ACTIVE' | 'ON_LEAVE' | 'TERMINATED';
+export type AttendanceStatus = 'PRESENT' | 'LATE' | 'ABSENT' | 'ON_LEAVE' | 'EXCUSED';
+export type PayrollStatus = 'PAID' | 'PENDING' | 'CANCELLED';
+export type LeaveType = 'ANNUAL' | 'SICK' | 'EMERGENCY' | 'UNPAID';
+export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface Employee {
+  id: string;
+  employee_number: string; // e.g. EMP-101
+  name: string;
+  national_id_or_iqama: string;
+  job_title: string;
+  department: string;
+  phone: string;
+  email: string;
+  hire_date: string;
+  basic_salary: number;
+  housing_allowance: number;
+  transport_allowance: number;
+  other_allowances?: number;
+  status: EmployeeStatus;
+  system_role: UserRole;
+  notes?: string;
+  created_at?: string;
+}
+
+export interface TimesheetEntry {
+  id: string;
+  employee_id: string;
+  employee_name: string;
+  date: string; // YYYY-MM-DD
+  check_in: string; // HH:mm
+  check_out?: string; // HH:mm
+  total_hours?: number;
+  status: AttendanceStatus;
+  notes?: string;
+  created_at?: string;
+}
+
+export interface PayrollPayment {
+  id: string;
+  payment_number: string; // PAY-2026-001
+  employee_id: string;
+  employee_name: string;
+  month_year: string; // e.g. 2026-09
+  basic_salary: number;
+  allowances: number;
+  commissions: number;
+  deductions: number;
+  net_amount: number;
+  payment_date: string;
+  payment_method: 'BANK_TRANSFER' | 'CASH' | 'CHEQUE';
+  reference_number?: string;
+  status: PayrollStatus;
+  is_archived?: boolean;
+  notes?: string;
+  created_at?: string;
+}
+
+export interface LeaveRequest {
+  id: string;
+  employee_id: string;
+  employee_name: string;
+  leave_type: LeaveType;
+  start_date: string;
+  end_date: string;
+  days_count: number;
+  reason?: string;
+  status: LeaveStatus;
+  approved_by?: string;
+  approved_at?: string;
+  created_at?: string;
+}
+
+export interface TaskDelegation {
+  id: string;
+  task_code: string; // TSK-2026-001
+  title: string;
+  description: string;
+  assigned_to_employee_id: string;
+  assigned_to_name: string;
+  delegated_by_id: string;
+  delegated_by_name: string;
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  due_date: string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  is_delegated_action?: boolean; // هل تم التنفيذ بالنيابة عن الموظف
+  completed_at?: string;
+  notes?: string;
+  created_at?: string;
+}
+
+// ----------------------------------------------------
+// REAL ESTATE CRM TYPES (نظام إدارة علاقات العملاء العقاري)
+// ----------------------------------------------------
+export type CrmLeadType = 'BUYER' | 'SELLER' | 'TENANT' | 'LANDLORD' | 'INVESTOR';
+export type CrmPipelineStage = 'NEW' | 'CONTACTED' | 'SHOWING' | 'NEGOTIATION' | 'WON' | 'LOST';
+export type CrmPriority = 'HIGH' | 'MEDIUM' | 'LOW';
+export type CrmSource = 'WEBSITE' | 'WHATSAPP' | 'REFERRAL' | 'SOCIAL_MEDIA' | 'WALK_IN' | 'PHONE' | 'OTHER';
+export type CrmActivityType = 'CALL' | 'WHATSAPP' | 'SHOWING' | 'MEETING' | 'OFFER' | 'NOTE';
+
+export interface CrmLead {
+  id: string;
+  lead_code: string; // LED-2026-001
+  name: string;
+  phone: string;
+  email?: string;
+  lead_type: CrmLeadType;
+  stage: CrmPipelineStage;
+  priority: CrmPriority;
+  source: CrmSource;
+  budget_min?: number;
+  budget_max?: number;
+  preferred_property_type?: string; // فيلا، شقة، أرض، معرض تجاري
+  preferred_city?: string;
+  preferred_district?: string;
+  assigned_agent_id?: string;
+  assigned_agent_name?: string;
+  notes?: string;
+  is_archived?: boolean;
+  created_at?: string;
+}
+
+export interface CrmDeal {
+  id: string;
+  deal_code: string; // DLR-2026-001
+  title: string;
+  lead_id: string;
+  lead_name: string;
+  lead_phone: string;
+  property_id?: string;
+  property_title?: string;
+  deal_value: number; // قيمة الصفقة (إيجار سنوي أو بيع)
+  commission_rate: number; // نسبة السعي %
+  commission_amount: number; // قيمة السعي
+  office_profit: number; // ربح المكتب
+  stage: CrmPipelineStage;
+  expected_closing_date: string;
+  assigned_agent_id?: string;
+  assigned_agent_name?: string;
+  is_archived?: boolean;
+  notes?: string;
+  created_at?: string;
+}
+
+export interface CrmActivity {
+  id: string;
+  lead_id?: string;
+  deal_id?: string;
+  lead_or_client_name: string;
+  activity_type: CrmActivityType;
+  title: string;
+  notes?: string;
+  due_date: string;
+  status: 'PENDING' | 'COMPLETED';
+  created_by_name: string;
+  created_at?: string;
+}
+
 

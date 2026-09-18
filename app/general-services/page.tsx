@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useData } from '@/context/DataContext';
 import NewGeneralServiceModal from '@/components/general-services/NewGeneralServiceModal';
 import EditGeneralServiceModal from '@/components/general-services/EditGeneralServiceModal';
+import UniversalPrintModal, { PrintItemDetail } from '@/components/common/UniversalPrintModal';
 import { GeneralService, ServiceCategory, ServiceStatus } from '@/lib/types';
 import {
   Briefcase,
@@ -21,6 +22,7 @@ import {
   Phone,
   Layers,
   Sparkles,
+  Printer,
 } from 'lucide-react';
 
 export default function GeneralServicesPage() {
@@ -31,6 +33,7 @@ export default function GeneralServicesPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<GeneralService | null>(null);
+  const [printingService, setPrintingService] = useState<GeneralService | null>(null);
 
   // Filter logic
   const filteredServices = generalServices.filter((s) => {
@@ -261,6 +264,13 @@ export default function GeneralServicesPage() {
                           <td className="p-4 text-center">
                             <div className="flex items-center justify-center gap-1.5">
                               <button
+                                onClick={() => setPrintingService(service)}
+                                className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-purple-400 hover:text-purple-300 transition"
+                                title="طباعة سند معاملة وأرشفة"
+                              >
+                                <Printer className="w-4 h-4" />
+                              </button>
+                              <button
                                 onClick={() => setEditingService(service)}
                                 className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 transition"
                                 title="تعديل المعاملة"
@@ -310,6 +320,54 @@ export default function GeneralServicesPage() {
           deleteGeneralService(id);
         }}
       />
+
+      {/* Universal Print & Archive Modal */}
+      {printingService && (
+        <UniversalPrintModal
+          isOpen={!!printingService}
+          onClose={() => setPrintingService(null)}
+          title="فاتورة وسند إنجاز معاملة حكومية"
+          subtitle="إثبات تقديم خدمة ووساطة إلكترونية ومعاملات"
+          documentNumber={printingService.service_number}
+          documentDate={printingService.created_at ? printingService.created_at.split('T')[0] : new Date().toISOString().split('T')[0]}
+          category="OTHER"
+          categoryLabel="خدمات عامة ومعاملات"
+          clientOrPartyName={printingService.client_name}
+          partyRoleLabel="العميل / المستفيد"
+          sourceModule="general-services"
+          tags={['خدمات حكومية', printingService.category, printingService.title]}
+          notes={printingService.notes}
+          details={[
+            { label: 'رقم هاتف العميل', value: printingService.client_phone || 'غير مسجل' },
+            { 
+              label: 'منصة / تصنيف الخدمة', 
+              value: categoryLabels[printingService.category as ServiceCategory]?.label || printingService.category, 
+              isHighlight: true 
+            },
+            { label: 'موضوع المعاملة', value: printingService.title, isHighlight: true },
+            { label: 'رسوم وتكاليف الجهة', value: `${printingService.cost_amount.toLocaleString('ar-SA')} ر.س` },
+            { 
+              label: 'أتعاب وربح المكتب', 
+              value: `${printingService.office_profit.toLocaleString('ar-SA')} ر.س`, 
+              isHighlight: true 
+            },
+            { 
+              label: 'حالة إنجاز المعاملة', 
+              value: statusBadges[printingService.status as ServiceStatus]?.label || printingService.status 
+            }
+          ]}
+          financialTotal={{
+            label: 'إجمالي المبلغ المحصل من العميل',
+            amount: printingService.fee_amount,
+            currency: 'ر.س'
+          }}
+          onArchiveSuccess={() => {
+            if (printingService.status !== 'Completed') {
+              updateGeneralService({ ...printingService, status: 'Completed' });
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -17,15 +17,22 @@ import {
   X,
   Trash2,
   Pencil,
+  Printer,
+  FolderArchive,
+  Upload,
 } from 'lucide-react';
 import { useData } from '@/context/DataContext';
+import { useAuth } from '@/context/AuthContext';
 import { Contract, Property } from '@/lib/types';
 import ContractWizard from '@/components/contracts/ContractWizard';
 import EditContractModal from '@/components/contracts/EditContractModal';
 import ConfirmDeleteModal from '@/components/common/ConfirmDeleteModal';
+import UniversalPrintModal from '@/components/common/UniversalPrintModal';
+import UniversalImportModal from '@/components/common/UniversalImportModal';
 
 export default function ContractsPage() {
   const { contracts, properties, lessors, tenants, addContract, updateContract, deleteContract, addTenant } = useData();
+  const { currentUser, isEmployee } = useAuth();
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,9 +44,17 @@ export default function ContractsPage() {
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const [editContract, setEditContract] = useState<Contract | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [printContract, setPrintContract] = useState<Contract | null>(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+
+  // Role Filtering (Employee sees own contracts or unassigned)
+  const currentEmpId = currentUser.employee_id || 'emp-001';
+  const myContracts = isEmployee
+    ? contracts.filter((c) => !c.assigned_agent_id || c.assigned_agent_id === currentEmpId)
+    : contracts;
 
   // Filtered Contracts Logic
-  const filteredContracts = contracts.filter((contract) => {
+  const filteredContracts = myContracts.filter((contract) => {
     const matchesSearch =
       contract.contract_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
       contract.tenant_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -53,6 +68,27 @@ export default function ContractsPage() {
 
   const handleContractCreated = (newContract: Contract) => {
     addContract(newContract);
+  };
+
+  const handleBulkImportContracts = async (rows: any[]) => {
+    for (const row of rows) {
+      const codeNum = Math.floor(1000 + Math.random() * 9000);
+      const newC: Contract = {
+        id: `cnt-${Date.now()}-${Math.random()}`,
+        contract_number: row['رقم العقد'] || `CNT-2026-${codeNum}`,
+        type: row['النوع'] || 'RESIDENTIAL',
+        property_id: properties[0]?.id || '',
+        lessor_id: lessors[0]?.id || '',
+        tenant_name: row['اسم المستأجر'] || 'مستأجر جديد',
+        tenant_national_id: String(row['هوية المستأجر'] || '1000000000'),
+        rent_amount: Number(row['قيمة الإيجار'] || 30000),
+        payment_schedule: 'Annual',
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0],
+        status: 'Active',
+      };
+      await addContract(newC);
+    }
   };
 
   const handleConfirmDelete = () => {
@@ -80,13 +116,22 @@ export default function ContractsPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsWizardOpen(true)}
-          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-sky-600/30"
-        >
-          <Plus className="w-4 h-4" />
-          <span>إنشاء عقد إيجار جديد</span>
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setIsImportOpen(true)}
+            className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium flex items-center gap-2 transition"
+          >
+            <Upload className="w-4 h-4 text-emerald-400" />
+            <span>استيراد عقود (Excel)</span>
+          </button>
+          <button
+            onClick={() => setIsWizardOpen(true)}
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-sky-600/30"
+          >
+            <Plus className="w-4 h-4" />
+            <span>إنشاء عقد إيجار جديد</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter & Search Toolbar */}
@@ -235,6 +280,13 @@ export default function ContractsPage() {
                       </td>
 
                       <td className="p-4 text-center flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => setPrintContract(contract)}
+                          className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 transition"
+                          title="طباعة العقد PDF وأرشفته"
+                        >
+                          <Printer className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => setSelectedContract(contract)}
                           className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 transition"
@@ -418,6 +470,57 @@ export default function ContractsPage() {
         onConfirm={handleConfirmDelete}
         itemName={deleteTarget?.name}
       />
+
+      {/* Universal Contract PDF Print & Archive Modal */}
+      {printContract && (
+        <UniversalPrintModal
+          isOpen={!!printContract}
+          onClose={() => setPrintContract(null)}
+          title={`عقد إيجار موحد معتمد (${printContract.type === 'COMMERCIAL' ? 'تجاري' : 'سكني'})`}
+          subtitle="موثق عبر شبكة إيجار الإلكترونية التابعة لوزارة الإسكان"
+          documentNumber={printContract.contract_number}
+          documentDate={printContract.start_date}
+          category="CONTRACT"
+          categoryLabel="عقد إيجار موحد"
+          clientOrPartyName={printContract.tenant_name}
+          partyRoleLabel="المستأجر"
+          details={[
+            { label: 'رقم العقد الموحد', value: printContract.contract_number, isHighlight: true },
+            { label: 'نوع العقد', value: printContract.type === 'COMMERCIAL' ? 'عقد إيجار تجاري' : 'عقد إيجار سكني' },
+            { label: 'اسم المستأجر', value: printContract.tenant_name },
+            { label: 'هوية / سجل المستأجر', value: printContract.tenant_national_id },
+            { label: 'مدة العقد', value: `من ${printContract.start_date} إلى ${printContract.end_date}` },
+            { label: 'دورية سداد الإيجار', value: printContract.payment_schedule },
+            { label: 'العقار المرتبط', value: printContract.property?.title || 'عقار مسجل بالمكتب' },
+            { label: 'المدينة والعنوان', value: `${printContract.property?.city || 'الرياض'} - ${printContract.property?.address || 'الموقع المعتمد'}` },
+          ]}
+          financialTotal={{
+            label: 'إجمالي قيمة الإيجار السنوي التعاقدي:',
+            amount: printContract.rent_amount,
+          }}
+          notes={printContract.lessor_requirements || 'العقد خاضع لأحكام نظام التنفيذ ولوائح شبكة إيجار الوطنية.'}
+          sourceModule="مركز العقود والإيجارات"
+          tags={['عقد إيجار', printContract.type, 'شبكة إيجار']}
+        />
+      )}
+
+      {/* Universal Import Modal for Contracts */}
+      {isImportOpen && (
+        <UniversalImportModal
+          isOpen={isImportOpen}
+          onClose={() => setIsImportOpen(false)}
+          title="استيراد عقود إيجار من ملف Excel"
+          expectedColumns={['رقم العقد', 'النوع', 'اسم المستأجر', 'هوية المستأجر', 'قيمة الإيجار']}
+          sampleDataRow={{
+            'رقم العقد': 'CNT-2026-901',
+            'النوع': 'RESIDENTIAL',
+            'اسم المستأجر': 'فهد بن خالد السبيعي',
+            'هوية المستأجر': '1048291029',
+            'قيمة الإيجار': 45000,
+          }}
+          onImportSuccess={handleBulkImportContracts}
+        />
+      )}
     </div>
   );
 }

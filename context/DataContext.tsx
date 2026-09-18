@@ -19,6 +19,15 @@ import {
   ManagedPropertyContract,
   PropertyMaintenanceTask,
   ArchivedDocument,
+  ArchivedDocumentCategory,
+  Employee,
+  TimesheetEntry,
+  PayrollPayment,
+  LeaveRequest,
+  TaskDelegation,
+  CrmLead,
+  CrmDeal,
+  CrmActivity,
 } from '../lib/types';
 import {
   INITIAL_LESSORS,
@@ -38,6 +47,14 @@ import {
   INITIAL_MANAGED_PROPERTIES,
   INITIAL_MAINTENANCE_TASKS,
   INITIAL_ARCHIVED_DOCUMENTS,
+  INITIAL_EMPLOYEES,
+  INITIAL_TIMESHEET_ENTRIES,
+  INITIAL_PAYROLL_PAYMENTS,
+  INITIAL_LEAVE_REQUESTS,
+  INITIAL_TASK_DELEGATIONS,
+  INITIAL_CRM_LEADS,
+  INITIAL_CRM_DEALS,
+  INITIAL_CRM_ACTIVITIES,
 } from '../lib/supabaseClient';
 import {
   dbFetchAllData,
@@ -87,6 +104,30 @@ import {
   dbInsertArchivedDocument,
   dbUpdateArchivedDocument,
   dbDeleteArchivedDocument,
+  dbInsertEmployee,
+  dbUpdateEmployee,
+  dbDeleteEmployee,
+  dbInsertTimesheet,
+  dbUpdateTimesheet,
+  dbDeleteTimesheet,
+  dbInsertPayroll,
+  dbUpdatePayroll,
+  dbDeletePayroll,
+  dbInsertLeaveRequest,
+  dbUpdateLeaveRequest,
+  dbDeleteLeaveRequest,
+  dbInsertTaskDelegation,
+  dbUpdateTaskDelegation,
+  dbDeleteTaskDelegation,
+  dbInsertCrmLead,
+  dbUpdateCrmLead,
+  dbDeleteCrmLead,
+  dbInsertCrmDeal,
+  dbUpdateCrmDeal,
+  dbDeleteCrmDeal,
+  dbInsertCrmActivity,
+  dbUpdateCrmActivity,
+  dbDeleteCrmActivity,
 } from '../lib/services/dbService';
 import { computeDailySummaryFromTransactions } from '../lib/services/financials';
 
@@ -109,6 +150,14 @@ interface DataContextType {
   managedProperties: ManagedPropertyContract[];
   maintenanceTasks: PropertyMaintenanceTask[];
   archivedDocuments: ArchivedDocument[];
+  employees: Employee[];
+  timesheetEntries: TimesheetEntry[];
+  payrollPayments: PayrollPayment[];
+  leaveRequests: LeaveRequest[];
+  taskDelegations: TaskDelegation[];
+  crmLeads: CrmLead[];
+  crmDeals: CrmDeal[];
+  crmActivities: CrmActivity[];
 
   // Entity Actions
   addProperty: (property: Property, document?: OwnershipDocument) => Promise<void>;
@@ -169,6 +218,59 @@ interface DataContextType {
   updateArchivedDocument: (doc: ArchivedDocument) => Promise<void>;
   deleteArchivedDocument: (docId: string) => Promise<void>;
 
+  // Employees & HR Actions
+  addEmployee: (emp: Employee) => Promise<void>;
+  updateEmployee: (emp: Employee) => Promise<void>;
+  deleteEmployee: (empId: string) => Promise<void>;
+
+  addTimesheet: (ts: TimesheetEntry) => Promise<void>;
+  updateTimesheet: (ts: TimesheetEntry) => Promise<void>;
+  deleteTimesheet: (tsId: string) => Promise<void>;
+  clockInToday: (employeeId: string, employeeName: string) => Promise<void>;
+  clockOutToday: (employeeId: string) => Promise<void>;
+
+  addPayroll: (pay: PayrollPayment) => Promise<void>;
+  updatePayroll: (pay: PayrollPayment) => Promise<void>;
+  deletePayroll: (payId: string) => Promise<void>;
+
+  addLeaveRequest: (lv: LeaveRequest) => Promise<void>;
+  updateLeaveRequest: (lv: LeaveRequest) => Promise<void>;
+  deleteLeaveRequest: (lvId: string) => Promise<void>;
+  approveLeave: (lvId: string, approverName: string) => Promise<void>;
+  rejectLeave: (lvId: string) => Promise<void>;
+
+  addTaskDelegation: (tsk: TaskDelegation) => Promise<void>;
+  updateTaskDelegation: (tsk: TaskDelegation) => Promise<void>;
+  deleteTaskDelegation: (tskId: string) => Promise<void>;
+
+  // CRM Actions
+  addCrmLead: (lead: CrmLead) => Promise<void>;
+  updateCrmLead: (lead: CrmLead) => Promise<void>;
+  deleteCrmLead: (leadId: string) => Promise<void>;
+  updateLeadStage: (leadId: string, stage: CrmLead['stage']) => Promise<void>;
+
+  addCrmDeal: (deal: CrmDeal) => Promise<void>;
+  updateCrmDeal: (deal: CrmDeal) => Promise<void>;
+  deleteCrmDeal: (dealId: string) => Promise<void>;
+  updateDealStage: (dealId: string, stage: CrmDeal['stage']) => Promise<void>;
+
+  addCrmActivity: (act: CrmActivity) => Promise<void>;
+  updateCrmActivity: (act: CrmActivity) => Promise<void>;
+  deleteCrmActivity: (actId: string) => Promise<void>;
+
+  // Universal Archive Process
+  archiveProcessRecord: (params: {
+    title: string;
+    category: ArchivedDocumentCategory;
+    referenceNumber: string;
+    clientOrEntity: string;
+    notes?: string;
+    tags?: string[];
+    sourceModule: string;
+    fileDataUrl?: string;
+    fileName?: string;
+  }) => Promise<ArchivedDocument>;
+
   resetToDefaults: () => void;
 }
 
@@ -195,6 +297,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [maintenanceTasks, setMaintenanceTasks] = useState<PropertyMaintenanceTask[]>(INITIAL_MAINTENANCE_TASKS);
   const [archivedDocuments, setArchivedDocuments] = useState<ArchivedDocument[]>(INITIAL_ARCHIVED_DOCUMENTS);
 
+  const [employees, setEmployees] = useState<Employee[]>(INITIAL_EMPLOYEES);
+  const [timesheetEntries, setTimesheetEntries] = useState<TimesheetEntry[]>(INITIAL_TIMESHEET_ENTRIES);
+  const [payrollPayments, setPayrollPayments] = useState<PayrollPayment[]>(INITIAL_PAYROLL_PAYMENTS);
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(INITIAL_LEAVE_REQUESTS);
+  const [taskDelegations, setTaskDelegations] = useState<TaskDelegation[]>(INITIAL_TASK_DELEGATIONS);
+  const [crmLeads, setCrmLeads] = useState<CrmLead[]>(INITIAL_CRM_LEADS);
+  const [crmDeals, setCrmDeals] = useState<CrmDeal[]>(INITIAL_CRM_DEALS);
+  const [crmActivities, setCrmActivities] = useState<CrmActivity[]>(INITIAL_CRM_ACTIVITIES);
+
   useEffect(() => {
     async function initData() {
       setIsLoading(true);
@@ -216,6 +327,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.managedProperties) setManagedProperties(data.managedProperties);
       if (data.maintenanceTasks) setMaintenanceTasks(data.maintenanceTasks);
       if (data.archivedDocuments) setArchivedDocuments(data.archivedDocuments);
+      if (data.employees) setEmployees(data.employees);
+      if (data.timesheetEntries) setTimesheetEntries(data.timesheetEntries);
+      if (data.payrollPayments) setPayrollPayments(data.payrollPayments);
+      if (data.leaveRequests) setLeaveRequests(data.leaveRequests);
+      if (data.taskDelegations) setTaskDelegations(data.taskDelegations);
+      if (data.crmLeads) setCrmLeads(data.crmLeads);
+      if (data.crmDeals) setCrmDeals(data.crmDeals);
+      if (data.crmActivities) setCrmActivities(data.crmActivities);
       setIsLoading(false);
     }
     initData();
@@ -713,6 +832,311 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await dbDeleteArchivedDocument(docId);
   };
 
+  // ------------------------------------
+  // EMPLOYEES & HR ACTIONS
+  // ------------------------------------
+  const addEmployee = async (emp: Employee) => {
+    const updated = [emp, ...employees];
+    setEmployees(updated);
+    syncLocal(STORAGE_KEYS.EMPLOYEES, updated);
+    await dbInsertEmployee(emp);
+  };
+
+  const updateEmployee = async (emp: Employee) => {
+    const updated = employees.map((e) => (e.id === emp.id ? emp : e));
+    setEmployees(updated);
+    syncLocal(STORAGE_KEYS.EMPLOYEES, updated);
+    await dbUpdateEmployee(emp);
+  };
+
+  const deleteEmployee = async (empId: string) => {
+    const updated = employees.filter((e) => e.id !== empId);
+    setEmployees(updated);
+    syncLocal(STORAGE_KEYS.EMPLOYEES, updated);
+    await dbDeleteEmployee(empId);
+  };
+
+  // ------------------------------------
+  // TIMESHEET & ATTENDANCE ACTIONS
+  // ------------------------------------
+  const addTimesheet = async (ts: TimesheetEntry) => {
+    const updated = [ts, ...timesheetEntries];
+    setTimesheetEntries(updated);
+    syncLocal(STORAGE_KEYS.TIMESHEET, updated);
+    await dbInsertTimesheet(ts);
+  };
+
+  const updateTimesheet = async (ts: TimesheetEntry) => {
+    const updated = timesheetEntries.map((t) => (t.id === ts.id ? ts : t));
+    setTimesheetEntries(updated);
+    syncLocal(STORAGE_KEYS.TIMESHEET, updated);
+    await dbUpdateTimesheet(ts);
+  };
+
+  const deleteTimesheet = async (tsId: string) => {
+    const updated = timesheetEntries.filter((t) => t.id !== tsId);
+    setTimesheetEntries(updated);
+    syncLocal(STORAGE_KEYS.TIMESHEET, updated);
+    await dbDeleteTimesheet(tsId);
+  };
+
+  const clockInToday = async (employeeId: string, employeeName: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    const nowHours = new Date().toTimeString().slice(0, 5);
+    const existing = timesheetEntries.find((t) => t.employee_id === employeeId && t.date === today);
+    if (existing) return; // already clocked in
+
+    const newEntry: TimesheetEntry = {
+      id: `ts-${Date.now()}`,
+      employee_id: employeeId,
+      employee_name: employeeName,
+      date: today,
+      check_in: nowHours,
+      status: 'PRESENT',
+      created_at: new Date().toISOString(),
+    };
+    await addTimesheet(newEntry);
+  };
+
+  const clockOutToday = async (employeeId: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    const nowHours = new Date().toTimeString().slice(0, 5);
+    const match = timesheetEntries.find((t) => t.employee_id === employeeId && t.date === today);
+    if (!match) return;
+
+    let totalHrs = 8.0;
+    try {
+      const [inH, inM] = match.check_in.split(':').map(Number);
+      const [outH, outM] = nowHours.split(':').map(Number);
+      const diff = (outH * 60 + outM - (inH * 60 + inM)) / 60;
+      totalHrs = Math.max(0.5, Math.round(diff * 10) / 10);
+    } catch {
+      totalHrs = 8.0;
+    }
+
+    const updated: TimesheetEntry = {
+      ...match,
+      check_out: nowHours,
+      total_hours: totalHrs,
+    };
+    await updateTimesheet(updated);
+  };
+
+  // ------------------------------------
+  // PAYROLL ACTIONS
+  // ------------------------------------
+  const addPayroll = async (pay: PayrollPayment) => {
+    const updated = [pay, ...payrollPayments];
+    setPayrollPayments(updated);
+    syncLocal(STORAGE_KEYS.PAYROLL, updated);
+    await dbInsertPayroll(pay);
+  };
+
+  const updatePayroll = async (pay: PayrollPayment) => {
+    const updated = payrollPayments.map((p) => (p.id === pay.id ? pay : p));
+    setPayrollPayments(updated);
+    syncLocal(STORAGE_KEYS.PAYROLL, updated);
+    await dbUpdatePayroll(pay);
+  };
+
+  const deletePayroll = async (payId: string) => {
+    const updated = payrollPayments.filter((p) => p.id !== payId);
+    setPayrollPayments(updated);
+    syncLocal(STORAGE_KEYS.PAYROLL, updated);
+    await dbDeletePayroll(payId);
+  };
+
+  // ------------------------------------
+  // LEAVE REQUESTS ACTIONS
+  // ------------------------------------
+  const addLeaveRequest = async (lv: LeaveRequest) => {
+    const updated = [lv, ...leaveRequests];
+    setLeaveRequests(updated);
+    syncLocal(STORAGE_KEYS.LEAVES, updated);
+    await dbInsertLeaveRequest(lv);
+  };
+
+  const updateLeaveRequest = async (lv: LeaveRequest) => {
+    const updated = leaveRequests.map((l) => (l.id === lv.id ? lv : l));
+    setLeaveRequests(updated);
+    syncLocal(STORAGE_KEYS.LEAVES, updated);
+    await dbUpdateLeaveRequest(lv);
+  };
+
+  const deleteLeaveRequest = async (lvId: string) => {
+    const updated = leaveRequests.filter((l) => l.id !== lvId);
+    setLeaveRequests(updated);
+    syncLocal(STORAGE_KEYS.LEAVES, updated);
+    await dbDeleteLeaveRequest(lvId);
+  };
+
+  const approveLeave = async (lvId: string, approverName: string) => {
+    const match = leaveRequests.find((l) => l.id === lvId);
+    if (match) {
+      await updateLeaveRequest({
+        ...match,
+        status: 'APPROVED',
+        approved_by: approverName,
+        approved_at: new Date().toISOString(),
+      });
+    }
+  };
+
+  const rejectLeave = async (lvId: string) => {
+    const match = leaveRequests.find((l) => l.id === lvId);
+    if (match) {
+      await updateLeaveRequest({
+        ...match,
+        status: 'REJECTED',
+      });
+    }
+  };
+
+  // ------------------------------------
+  // TASK DELEGATIONS ACTIONS
+  // ------------------------------------
+  const addTaskDelegation = async (tsk: TaskDelegation) => {
+    const updated = [tsk, ...taskDelegations];
+    setTaskDelegations(updated);
+    syncLocal(STORAGE_KEYS.TASK_DELEGATIONS, updated);
+    await dbInsertTaskDelegation(tsk);
+  };
+
+  const updateTaskDelegation = async (tsk: TaskDelegation) => {
+    const updated = taskDelegations.map((t) => (t.id === tsk.id ? tsk : t));
+    setTaskDelegations(updated);
+    syncLocal(STORAGE_KEYS.TASK_DELEGATIONS, updated);
+    await dbUpdateTaskDelegation(tsk);
+  };
+
+  const deleteTaskDelegation = async (tskId: string) => {
+    const updated = taskDelegations.filter((t) => t.id !== tskId);
+    setTaskDelegations(updated);
+    syncLocal(STORAGE_KEYS.TASK_DELEGATIONS, updated);
+    await dbDeleteTaskDelegation(tskId);
+  };
+
+  // ------------------------------------
+  // CRM LEADS ACTIONS
+  // ------------------------------------
+  const addCrmLead = async (lead: CrmLead) => {
+    const updated = [lead, ...crmLeads];
+    setCrmLeads(updated);
+    syncLocal(STORAGE_KEYS.CRM_LEADS, updated);
+    await dbInsertCrmLead(lead);
+  };
+
+  const updateCrmLead = async (lead: CrmLead) => {
+    const updated = crmLeads.map((l) => (l.id === lead.id ? lead : l));
+    setCrmLeads(updated);
+    syncLocal(STORAGE_KEYS.CRM_LEADS, updated);
+    await dbUpdateCrmLead(lead);
+  };
+
+  const deleteCrmLead = async (leadId: string) => {
+    const updated = crmLeads.filter((l) => l.id !== leadId);
+    setCrmLeads(updated);
+    syncLocal(STORAGE_KEYS.CRM_LEADS, updated);
+    await dbDeleteCrmLead(leadId);
+  };
+
+  const updateLeadStage = async (leadId: string, stage: CrmLead['stage']) => {
+    const match = crmLeads.find((l) => l.id === leadId);
+    if (match) {
+      await updateCrmLead({ ...match, stage });
+    }
+  };
+
+  // ------------------------------------
+  // CRM DEALS ACTIONS
+  // ------------------------------------
+  const addCrmDeal = async (deal: CrmDeal) => {
+    const updated = [deal, ...crmDeals];
+    setCrmDeals(updated);
+    syncLocal(STORAGE_KEYS.CRM_DEALS, updated);
+    await dbInsertCrmDeal(deal);
+  };
+
+  const updateCrmDeal = async (deal: CrmDeal) => {
+    const updated = crmDeals.map((d) => (d.id === deal.id ? deal : d));
+    setCrmDeals(updated);
+    syncLocal(STORAGE_KEYS.CRM_DEALS, updated);
+    await dbUpdateCrmDeal(deal);
+  };
+
+  const deleteCrmDeal = async (dealId: string) => {
+    const updated = crmDeals.filter((d) => d.id !== dealId);
+    setCrmDeals(updated);
+    syncLocal(STORAGE_KEYS.CRM_DEALS, updated);
+    await dbDeleteCrmDeal(dealId);
+  };
+
+  const updateDealStage = async (dealId: string, stage: CrmDeal['stage']) => {
+    const match = crmDeals.find((d) => d.id === dealId);
+    if (match) {
+      await updateCrmDeal({ ...match, stage });
+    }
+  };
+
+  // ------------------------------------
+  // CRM ACTIVITIES ACTIONS
+  // ------------------------------------
+  const addCrmActivity = async (act: CrmActivity) => {
+    const updated = [act, ...crmActivities];
+    setCrmActivities(updated);
+    syncLocal(STORAGE_KEYS.CRM_ACTIVITIES, updated);
+    await dbInsertCrmActivity(act);
+  };
+
+  const updateCrmActivity = async (act: CrmActivity) => {
+    const updated = crmActivities.map((a) => (a.id === act.id ? act : a));
+    setCrmActivities(updated);
+    syncLocal(STORAGE_KEYS.CRM_ACTIVITIES, updated);
+    await dbUpdateCrmActivity(act);
+  };
+
+  const deleteCrmActivity = async (actId: string) => {
+    const updated = crmActivities.filter((a) => a.id !== actId);
+    setCrmActivities(updated);
+    syncLocal(STORAGE_KEYS.CRM_ACTIVITIES, updated);
+    await dbDeleteCrmActivity(actId);
+  };
+
+  // ------------------------------------
+  // UNIVERSAL ARCHIVE PROCESS ACTION
+  // ------------------------------------
+  const archiveProcessRecord = async (params: {
+    title: string;
+    category: ArchivedDocumentCategory;
+    referenceNumber: string;
+    clientOrEntity: string;
+    notes?: string;
+    tags?: string[];
+    sourceModule: string;
+    fileDataUrl?: string;
+    fileName?: string;
+  }): Promise<ArchivedDocument> => {
+    const codeNumber = Math.floor(1000 + Math.random() * 9000);
+    const newDoc: ArchivedDocument = {
+      id: `arc-${Date.now()}`,
+      archive_code: `ARC-2026-${codeNumber}`,
+      title: params.title,
+      category: params.category,
+      reference_number: params.referenceNumber,
+      client_or_entity: params.clientOrEntity,
+      date: new Date().toISOString().split('T')[0],
+      status: 'ARCHIVED',
+      file_name: params.fileName || `${params.referenceNumber || 'مستند_مؤرشف'}.pdf`,
+      file_data_url: params.fileDataUrl,
+      notes: params.notes,
+      tags: params.tags || [params.sourceModule, 'أرشيف إلكتروني'],
+      source_module: params.sourceModule,
+      created_at: new Date().toISOString(),
+    };
+    await addArchivedDocument(newDoc);
+    return newDoc;
+  };
+
   const resetToDefaults = () => {
     clearAllLocalData();
     setLessors(INITIAL_LESSORS);
@@ -732,6 +1156,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setManagedProperties(INITIAL_MANAGED_PROPERTIES);
     setMaintenanceTasks(INITIAL_MAINTENANCE_TASKS);
     setArchivedDocuments(INITIAL_ARCHIVED_DOCUMENTS);
+    setEmployees(INITIAL_EMPLOYEES);
+    setTimesheetEntries(INITIAL_TIMESHEET_ENTRIES);
+    setPayrollPayments(INITIAL_PAYROLL_PAYMENTS);
+    setLeaveRequests(INITIAL_LEAVE_REQUESTS);
+    setTaskDelegations(INITIAL_TASK_DELEGATIONS);
+    setCrmLeads(INITIAL_CRM_LEADS);
+    setCrmDeals(INITIAL_CRM_DEALS);
+    setCrmActivities(INITIAL_CRM_ACTIVITIES);
   };
 
   return (
@@ -755,6 +1187,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         managedProperties,
         maintenanceTasks,
         archivedDocuments,
+        employees,
+        timesheetEntries,
+        payrollPayments,
+        leaveRequests,
+        taskDelegations,
+        crmLeads,
+        crmDeals,
+        crmActivities,
 
         addProperty,
         updateProperty,
@@ -813,6 +1253,43 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addArchivedDocument,
         updateArchivedDocument,
         deleteArchivedDocument,
+
+        // Employees & HR Actions
+        addEmployee,
+        updateEmployee,
+        deleteEmployee,
+        addTimesheet,
+        updateTimesheet,
+        deleteTimesheet,
+        clockInToday,
+        clockOutToday,
+        addPayroll,
+        updatePayroll,
+        deletePayroll,
+        addLeaveRequest,
+        updateLeaveRequest,
+        deleteLeaveRequest,
+        approveLeave,
+        rejectLeave,
+        addTaskDelegation,
+        updateTaskDelegation,
+        deleteTaskDelegation,
+
+        // CRM Actions
+        addCrmLead,
+        updateCrmLead,
+        deleteCrmLead,
+        updateLeadStage,
+        addCrmDeal,
+        updateCrmDeal,
+        deleteCrmDeal,
+        updateDealStage,
+        addCrmActivity,
+        updateCrmActivity,
+        deleteCrmActivity,
+
+        // Universal Archive
+        archiveProcessRecord,
 
         resetToDefaults,
       }}
