@@ -19,6 +19,8 @@ import {
   Users,
   UserCheck,
   ShieldAlert,
+  Lock,
+  KeyRound,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -119,7 +121,7 @@ const allNavItems: NavItem[] = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { currentUser, role, canAccess } = useAuth();
+  const { currentUser, role, canAccess, lockSession, openChangePasswordModal } = useAuth();
 
   // Filter items matching user's permissions
   const visibleNavItems = allNavItems.filter((item) => canAccess(item.moduleKey));
@@ -196,9 +198,26 @@ export default function Sidebar() {
             {currentUser.avatar_initials}
           </div>
           <div className="overflow-hidden">
-            <div className="text-xs font-semibold text-white truncate max-w-[140px]">{currentUser.name}</div>
+            <div className="text-xs font-semibold text-white truncate max-w-[130px]">{currentUser.name}</div>
             <div className="text-[10px] text-sky-400 font-medium">{currentUser.role_display}</div>
           </div>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <button
+            onClick={openChangePasswordModal}
+            title="تغيير كلمة المرور"
+            className="p-1.5 text-slate-500 hover:text-sky-400 hover:bg-slate-800 rounded-lg transition"
+          >
+            <KeyRound className="w-4 h-4" />
+          </button>
+          <button
+            onClick={lockSession}
+            title="قفل النظام وتسجيل الخروج"
+            className="p-1.5 text-slate-500 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition"
+          >
+            <Lock className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </aside>

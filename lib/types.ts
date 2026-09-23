@@ -339,6 +339,7 @@ export interface AppUser {
   department?: string;
   employee_id?: string;
   allowed_modules?: string[];
+  password?: string;
 }
 
 // ----------------------------------------------------

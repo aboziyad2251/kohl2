@@ -250,9 +250,9 @@ export default function SalarySlipPrintModal({
 
               <div>
                 <div className="text-xs text-slate-500 mb-1">مدير الموارد البشرية / اعتماد</div>
-                <div className="text-xs font-bold text-slate-800">أمل المطيري (HR)</div>
+                <div className="text-xs font-bold text-slate-800">إدارة الموارد البشرية (HR)</div>
                 <div className="h-12 flex items-center justify-center text-[10px] text-slate-400 italic">
-                  [توقيع إلكتروني]
+                  [توقيع إلكتروني معتمد]
                 </div>
               </div>
 
