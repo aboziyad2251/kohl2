@@ -14,8 +14,11 @@ import {
   Lock,
   LogOut,
   KeyRound,
+  Menu,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useLayout } from '@/context/LayoutContext';
 import { AppUser, UserRole } from '@/lib/types';
 import PasswordPromptModal from '@/components/auth/PasswordPromptModal';
 import LockScreenModal from '@/components/auth/LockScreenModal';
@@ -48,6 +51,8 @@ export default function Header({
     openChangePasswordModal,
   } = useAuth();
 
+  const { toggleMobileNav, isMobileNavOpen } = useLayout();
+
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
   const [selectedTargetUser, setSelectedTargetUser] = useState<AppUser | null>(null);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -76,21 +81,39 @@ export default function Header({
 
   return (
     <>
-      <header className="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-6 md:px-8 py-3.5 sticky top-0 z-30 flex items-center justify-between">
-        <div>
-          <h2 className="text-lg md:text-xl font-bold text-white leading-tight">{title}</h2>
-          <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>
+      <header className="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-3.5 sm:px-6 md:px-8 py-3 sticky top-0 z-30 flex items-center justify-between">
+        {/* Left / Title area */}
+        <div className="flex items-center gap-2.5 min-w-0">
+          {/* Mobile Hamburger Drawer Trigger */}
+          <button
+            onClick={toggleMobileNav}
+            className="flex md:hidden p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition shrink-0"
+            title="القائمة الرئيسية"
+            aria-label="القائمة الرئيسية"
+          >
+            {isMobileNavOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+          </button>
+
+          <div className="min-w-0">
+            <h2 className="text-sm sm:text-base md:text-xl font-bold text-white leading-tight truncate max-w-[130px] sm:max-w-xs md:max-w-none">
+              {title}
+            </h2>
+            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 hidden sm:block truncate">
+              {subtitle}
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Date Display */}
+        {/* Right / Actions area */}
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          {/* Date Display (Desktop) */}
           <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-slate-300">
             <Calendar className="w-3.5 h-3.5 text-sky-400" />
             <span>{currentDate}</span>
           </div>
 
-          {/* Global Search input */}
-          <div className="relative hidden lg:block w-56">
+          {/* Global Search input (Large Desktop) */}
+          <div className="relative hidden lg:block w-48 xl:w-56">
             <Search className="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
             <input
               type="text"
@@ -99,7 +122,7 @@ export default function Header({
             />
           </div>
 
-          {/* Ejar Status Badge */}
+          {/* Ejar Status Badge (Tablet & Desktop) */}
           <div className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium">
             <Shield className="w-3.5 h-3.5" />
             <span>إيجار نشط</span>
@@ -109,7 +132,7 @@ export default function Header({
           <button
             onClick={openChangePasswordModal}
             title="تغيير كلمة المرور الخاصة بحسابك"
-            className="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-sky-400 transition"
+            className="p-1.5 sm:p-2 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-sky-400 transition"
           >
             <KeyRound className="w-4 h-4" />
           </button>
@@ -118,7 +141,7 @@ export default function Header({
           <button
             onClick={lockSession}
             title="قفل النظام وتسجيل الخروج"
-            className="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-amber-400 transition"
+            className="p-1.5 sm:p-2 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-amber-400 transition"
           >
             <Lock className="w-4 h-4" />
           </button>
@@ -127,15 +150,15 @@ export default function Header({
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsSwitcherOpen(!isSwitcherOpen)}
-              className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-right transition shadow-sm"
+              className="flex items-center gap-1.5 sm:gap-2.5 px-2 sm:px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-right transition shadow-sm"
               title="تبديل حساب المستخدم ومستوى الصلاحيات"
             >
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
                 {currentUser.avatar_initials}
               </div>
               <div className="hidden sm:block text-right">
                 <div className="text-xs font-bold text-white leading-tight flex items-center gap-1.5">
-                  <span>{currentUser.name}</span>
+                  <span className="truncate max-w-[110px]">{currentUser.name}</span>
                   <span
                     className={`text-[10px] px-1.5 py-0.2 rounded border font-semibold ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border}`}
                   >
@@ -153,7 +176,7 @@ export default function Header({
 
             {/* User & Role Dropdown Menu */}
             {isSwitcherOpen && (
-              <div className="absolute left-0 mt-2 w-72 rounded-2xl bg-slate-900 border border-slate-700/90 shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute left-0 mt-2 w-72 max-w-[calc(100vw-24px)] rounded-2xl bg-slate-900 border border-slate-700/90 shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
                 <div className="px-3 py-2 border-b border-slate-800 flex items-center justify-between">
                   <div>
                     <p className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -189,12 +212,12 @@ export default function Header({
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-sky-400">
+                          <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-sky-400 shrink-0">
                             {user.avatar_initials}
                           </div>
                           <div>
                             <div className="text-xs font-semibold text-white flex items-center gap-1.5">
-                              <span>{user.name}</span>
+                              <span className="truncate max-w-[130px]">{user.name}</span>
                               <span
                                 className={`text-[9px] px-1.5 py-0.2 rounded border ${uBadge.bg} ${uBadge.text} ${uBadge.border}`}
                               >
@@ -205,9 +228,9 @@ export default function Header({
                           </div>
                         </div>
                         {isSelected ? (
-                          <Check className="w-4 h-4 text-sky-400" />
+                          <Check className="w-4 h-4 text-sky-400 shrink-0" />
                         ) : (
-                          <Lock className="w-3.5 h-3.5 text-slate-500" />
+                          <Lock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                         )}
                       </button>
                     );

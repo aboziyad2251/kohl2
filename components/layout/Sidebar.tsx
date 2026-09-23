@@ -21,8 +21,10 @@ import {
   ShieldAlert,
   Lock,
   KeyRound,
+  X,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useLayout } from '@/context/LayoutContext';
 
 interface NavItem {
   name: string;
@@ -119,29 +121,47 @@ const allNavItems: NavItem[] = [
   },
 ];
 
-export default function Sidebar() {
+interface SidebarContentProps {
+  onCloseMobileNav?: () => void;
+  isMobileDrawer?: boolean;
+}
+
+function SidebarContent({ onCloseMobileNav, isMobileDrawer = false }: SidebarContentProps) {
   const pathname = usePathname();
-  const { currentUser, role, canAccess, lockSession, openChangePasswordModal } = useAuth();
+  const { currentUser, canAccess, lockSession, openChangePasswordModal } = useAuth();
 
   // Filter items matching user's permissions
   const visibleNavItems = allNavItems.filter((item) => canAccess(item.moduleKey));
 
   return (
-    <aside className="w-72 bg-slate-900 border-l border-slate-800 flex flex-col justify-between h-screen sticky top-0 z-40 select-none overflow-y-auto">
+    <div className="flex flex-col justify-between h-full">
       <div>
         {/* Brand Header */}
-        <div className="p-6 border-b border-slate-800 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-sky-500/20">
-            <Building className="w-6 h-6" />
+        <div className="p-5 md:p-6 border-b border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-sky-500/20 shrink-0">
+              <Building className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="font-bold text-base md:text-lg text-white leading-tight">نظام إدارة المكتب</h1>
+              <p className="text-[11px] md:text-xs text-sky-400 font-medium">kohl.kohlestate-ksa.online</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-bold text-lg text-white leading-tight">نظام إدارة المكتب</h1>
-            <p className="text-xs text-sky-400 font-medium">kohl.kohlestate-ksa.online</p>
-          </div>
+
+          {/* Close button for mobile drawer */}
+          {isMobileDrawer && (
+            <button
+              onClick={onCloseMobileNav}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              title="إغلاق القائمة"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Navigation Items */}
-        <nav className="p-4 space-y-1.5">
+        <nav className="p-3 md:p-4 space-y-1">
           <div className="px-3 pb-2 flex items-center justify-between text-[11px] font-semibold text-slate-400 tracking-wider">
             <span>القائمة الرئيسية</span>
             <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-sky-400 border border-slate-700">
@@ -156,14 +176,15 @@ export default function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
+                onClick={onCloseMobileNav}
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-medium transition-all duration-150 ${
                   isActive
                     ? 'bg-sky-600/15 text-sky-400 border border-sky-500/30 font-semibold shadow-inner'
                     : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Icon className={`w-5 h-5 ${isActive ? 'text-sky-400' : 'text-slate-400'}`} />
+                  <Icon className={`w-4 h-4 md:w-5 md:h-5 ${isActive ? 'text-sky-400' : 'text-slate-400'}`} />
                   <span>{item.name}</span>
                 </div>
                 {item.badge ? (
@@ -171,7 +192,7 @@ export default function Sidebar() {
                     {item.badge}
                   </span>
                 ) : (
-                  <ChevronRight className="w-4 h-4 text-slate-600 rotate-180" />
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-600 rotate-180" />
                 )}
               </Link>
             );
@@ -179,47 +200,82 @@ export default function Sidebar() {
         </nav>
 
         {/* Quick System Status */}
-        <div className="mx-4 mt-4 p-3 rounded-xl bg-slate-800/50 border border-slate-800 text-xs text-slate-300 space-y-1.5">
+        <div className="mx-3 md:mx-4 mt-2 p-3 rounded-xl bg-slate-800/50 border border-slate-800 text-xs text-slate-300 space-y-1.5">
           <div className="flex items-center justify-between text-slate-400">
             <span className="flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               خادم Supabase VPS
             </span>
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           </div>
-          <p className="text-[11px] text-slate-400 dir-ltr text-right">IP: 51.195.222.51</p>
+          <p className="text-[10px] md:text-[11px] text-slate-400 dir-ltr text-right font-mono">IP: 51.195.222.51</p>
         </div>
       </div>
 
       {/* User Profile & Role Footer */}
-      <div className="p-4 border-t border-slate-800 bg-slate-900/80 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-600 to-indigo-600 border border-sky-400/40 flex items-center justify-center text-white font-bold text-xs shadow">
+      <div className="p-3.5 md:p-4 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-gradient-to-tr from-sky-600 to-indigo-600 border border-sky-400/40 flex items-center justify-center text-white font-bold text-xs shadow shrink-0">
             {currentUser.avatar_initials}
           </div>
           <div className="overflow-hidden">
-            <div className="text-xs font-semibold text-white truncate max-w-[130px]">{currentUser.name}</div>
+            <div className="text-xs font-semibold text-white truncate max-w-[120px]">{currentUser.name}</div>
             <div className="text-[10px] text-sky-400 font-medium">{currentUser.role_display}</div>
           </div>
         </div>
 
         <div className="flex items-center gap-1">
           <button
-            onClick={openChangePasswordModal}
+            onClick={() => {
+              onCloseMobileNav?.();
+              openChangePasswordModal();
+            }}
             title="تغيير كلمة المرور"
-            className="p-1.5 text-slate-500 hover:text-sky-400 hover:bg-slate-800 rounded-lg transition"
+            className="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-slate-800 rounded-lg transition"
           >
             <KeyRound className="w-4 h-4" />
           </button>
           <button
-            onClick={lockSession}
+            onClick={() => {
+              onCloseMobileNav?.();
+              lockSession();
+            }}
             title="قفل النظام وتسجيل الخروج"
-            className="p-1.5 text-slate-500 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition"
+            className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition"
           >
             <Lock className="w-4 h-4" />
           </button>
         </div>
       </div>
-    </aside>
+    </div>
+  );
+}
+
+export default function Sidebar() {
+  const { isMobileNavOpen, closeMobileNav } = useLayout();
+
+  return (
+    <>
+      {/* Desktop Sticky Sidebar (Auto detected for screens >= 768px) */}
+      <aside className="hidden md:flex md:w-64 lg:w-72 bg-slate-900 border-l border-slate-800 flex-col justify-between h-screen sticky top-0 z-40 select-none overflow-y-auto shrink-0">
+        <SidebarContent />
+      </aside>
+
+      {/* Mobile Drawer (Auto detected for mobile screens < 768px) */}
+      {isMobileNavOpen && (
+        <>
+          {/* Backdrop overlay */}
+          <div
+            onClick={closeMobileNav}
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 md:hidden animate-in fade-in duration-200"
+          />
+
+          {/* Slide-out Drawer */}
+          <aside className="fixed inset-y-0 right-0 z-50 w-72 max-w-[85vw] bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col justify-between h-full select-none overflow-y-auto md:hidden animate-in slide-in-from-right duration-250">
+            <SidebarContent onCloseMobileNav={closeMobileNav} isMobileDrawer />
+          </aside>
+        </>
+      )}
+    </>
   );
 }
