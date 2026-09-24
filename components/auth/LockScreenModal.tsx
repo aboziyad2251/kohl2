@@ -56,12 +56,17 @@ export default function LockScreenModal() {
       <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden p-8 text-center relative">
         {/* Brand Header */}
         <div className="flex flex-col items-center mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-600 via-indigo-600 to-cyan-400 flex items-center justify-center text-white shadow-xl shadow-sky-500/25 mb-3">
-            <Building className="w-7 h-7" />
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/60 border border-emerald-500/40 p-2 flex items-center justify-center shadow-xl shadow-emerald-950/50 mb-3">
+            <img
+              src="/kohl-icon.png"
+              alt="شعار كحل العقارية"
+              className="w-full h-full object-contain filter drop-shadow"
+            />
           </div>
-          <h1 className="text-xl font-bold text-white">نظام إدارة المكتب العقاري</h1>
-          <p className="text-xs text-sky-400 font-medium mt-0.5">kohl.kohlestate-ksa.online</p>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-[11px] text-slate-400 mt-2">
+          <h1 className="text-xl font-extrabold text-white">كحل العقارية</h1>
+          <p className="text-xs font-semibold text-emerald-400 mt-0.5">نظام إدارة المكتب العقاري</p>
+          <p className="text-[11px] text-slate-400 font-mono mt-0.5">Kohl Real Estate • kohlestate-ksa.online</p>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-[11px] text-slate-300 mt-2.5">
             <Lock className="w-3 h-3 text-amber-400" />
             <span>النظام مقفل - تسجيل الدخول مطلوب</span>
           </div>

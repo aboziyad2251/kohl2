@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   Bell,
   Search,
@@ -77,6 +78,26 @@ export default function Header({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const pathname = usePathname();
+
+  // Dynamic route titles
+  const routeTitles: Record<string, string> = {
+    '/': 'لوحة التحكم القيادية',
+    '/dashboard': 'لوحة التحكم القيادية',
+    '/crm': 'إدارة علاقات العملاء (CRM)',
+    '/employees': 'شؤون الموظفين والدوام والرواتب',
+    '/archive': 'الأرشيف الإلكتروني والوثائق',
+    '/customer-orders': 'طلبات العملاء العقارية',
+    '/property-management': 'إدارة الأملاك والتشغيل',
+    '/financials/earnings': 'الأرباح والمعاملات المالية',
+    '/financials/daily-reports': 'التقرير اليومي ومستشار AI',
+    '/contracts': 'مركز العقود والإيجارات',
+    '/ownership-properties': 'الملكية والعقارات والوكالات',
+    '/brokerage-agreements': 'اتفاقيات الوساطة العقارية',
+    '/general-services': 'الخدمات العامة والمعاملات',
+  };
+
+  const currentTitle = title || routeTitles[pathname] || 'نظام إدارة المكتب العقاري';
   const badgeStyle = ROLE_BADGE_STYLES[role] || ROLE_BADGE_STYLES.EMPLOYEE;
 
   return (
@@ -94,12 +115,23 @@ export default function Header({
             {isMobileNavOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
 
+          {/* Mobile Company Logo Icon */}
+          <div className="flex md:hidden w-8 h-8 rounded-xl bg-slate-900 border border-emerald-500/30 p-1 items-center justify-center shrink-0 shadow-sm">
+            <img src="/kohl-icon.png" alt="كحل العقارية" className="w-full h-full object-contain" />
+          </div>
+
           <div className="min-w-0">
-            <h2 className="text-sm sm:text-base md:text-xl font-bold text-white leading-tight truncate max-w-[130px] sm:max-w-xs md:max-w-none">
-              {title}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm sm:text-base md:text-xl font-bold text-white leading-tight truncate max-w-[130px] sm:max-w-xs md:max-w-none">
+                {currentTitle}
+              </h2>
+              <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                كحل العقارية
+              </span>
+            </div>
             <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 hidden sm:block truncate">
-              {subtitle}
+              نظام إدارة المكتب العقاري • Kohl Real Estate
             </p>
           </div>
         </div>

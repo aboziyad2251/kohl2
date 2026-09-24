@@ -162,11 +162,13 @@ export default function UniversalPrintModal({
             {/* Header / Letterhead */}
             <div className="border-b-2 border-slate-900 pb-6 flex items-start justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-bold text-2xl shadow">
-                  <Building className="w-8 h-8 text-sky-400" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-black text-slate-950 tracking-tight">مكتب الكحل للإدارة العقارية والوساطة</h1>
+                <img
+                  src="/kohl-logo.png"
+                  alt="كحل العقارية - Kohl Real Estate"
+                  className="h-14 w-auto object-contain"
+                />
+                <div className="border-r border-slate-300 pr-3">
+                  <h1 className="text-lg font-black text-slate-950 tracking-tight">كحل العقارية - إدارة الأملاك والمكتب العقاري</h1>
                   <p className="text-xs text-slate-600 font-medium">سجل تجاري رقم: 1010899210 | رخصة فال العقارية: 1200019283</p>
                   <p className="text-[11px] text-slate-500">المملكة العربية السعودية - الرياض</p>
                 </div>
@@ -280,7 +282,7 @@ export default function UniversalPrintModal({
             </div>
 
             <div className="mt-6 text-center text-[10px] text-slate-400">
-              وثيقة صادرة إلكترونياً من نظام إدارة المكتب العقاري ومحفوظة في الأرشيف الإلكتروني المشفر.
+              وثيقة صادرة إلكترونياً من نظام إدارة المكتب العقاري - كحل العقارية (Kohl Real Estate) ومحفوظة في الأرشيف الإلكتروني المشفر.
             </div>
           </div>
         </div>

@@ -8,8 +8,19 @@ import { AuthProvider } from '@/context/AuthContext';
 import { LayoutProvider } from '@/context/LayoutContext';
 
 export const metadata: Metadata = {
-  title: 'نظام إدارة المكتب العقاري | Real Estate Office Management',
-  description: 'منظومة إدارية متكاملة لإدارة العقارات، العقود (إيجار)، الموظفين والدوام، ونظام علاقات العملاء CRM',
+  title: {
+    default: 'كحل العقارية | نظام إدارة المكتب العقاري',
+    template: '%s | كحل العقارية - نظام إدارة المكتب العقاري',
+  },
+  description: 'منظومة كحل العقارية المتكاملة لإدارة المكتب العقاري، العقود (إيجار)، إدارة الأملاك والتشغيل، شؤون الموظفين، ونظام علاقات العملاء CRM',
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/kohl-icon.png', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/kohl-icon.png',
+  },
 };
 
 export const viewport: Viewport = {

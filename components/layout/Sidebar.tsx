@@ -137,16 +137,33 @@ function SidebarContent({ onCloseMobileNav, isMobileDrawer = false }: SidebarCon
     <div className="flex flex-col justify-between h-full">
       <div>
         {/* Brand Header */}
-        <div className="p-5 md:p-6 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-sky-500/20 shrink-0">
-              <Building className="w-6 h-6" />
+        <div className="p-4 md:p-5 border-b border-slate-800 flex items-center justify-between">
+          <Link
+            href="/dashboard"
+            onClick={onCloseMobileNav}
+            className="flex items-center gap-3 group transition min-w-0"
+          >
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/50 border border-emerald-500/30 p-1.5 flex items-center justify-center shadow-lg shadow-emerald-950/40 shrink-0 group-hover:border-emerald-400/60 group-hover:shadow-emerald-900/40 transition">
+              <img
+                src="/kohl-icon.png"
+                alt="شعار كحل العقارية"
+                className="w-full h-full object-contain filter drop-shadow"
+              />
             </div>
-            <div>
-              <h1 className="font-bold text-base md:text-lg text-white leading-tight">نظام إدارة المكتب</h1>
-              <p className="text-[11px] md:text-xs text-sky-400 font-medium">kohl.kohlestate-ksa.online</p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="font-extrabold text-base md:text-lg text-white leading-tight group-hover:text-emerald-300 transition">
+                  كحل العقارية
+                </span>
+              </div>
+              <h1 className="text-[11px] md:text-xs text-emerald-400 font-semibold leading-tight truncate">
+                نظام إدارة المكتب العقاري
+              </h1>
+              <p className="text-[10px] text-slate-400 font-medium dir-ltr text-right">
+                Kohl Real Estate
+              </p>
             </div>
-          </div>
+          </Link>
 
           {/* Close button for mobile drawer */}
           {isMobileDrawer && (
