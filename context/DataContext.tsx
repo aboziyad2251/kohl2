@@ -197,6 +197,7 @@ interface DataContextType {
   addTransaction: (tx: FinancialTransaction) => Promise<void>;
   updateTransaction: (tx: FinancialTransaction) => Promise<void>;
   deleteTransaction: (txId: string) => Promise<void>;
+  rezeroFinancialDate: (targetDate: string) => Promise<void>;
 
   addGeneralService: (service: GeneralService) => Promise<void>;
   updateGeneralService: (service: GeneralService) => Promise<void>;
@@ -708,6 +709,64 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     await dbDeleteFinancialTransaction(txId);
+  };
+
+  const rezeroFinancialDate = async (targetDate: string) => {
+    // 1. Remove transactions for this date
+    const updatedTx = transactions.filter((t) => t.transaction_date !== targetDate);
+    setTransactions(updatedTx);
+    syncLocal(STORAGE_KEYS.TRANSACTIONS, updatedTx);
+
+    // 2. Reset or create zero summary for this date
+    const zeroSummary: DailyFinancialSummary = {
+      id: `dfs-${targetDate}`,
+      summary_date: targetDate,
+      total_gross_income: 0,
+      total_expenses: 0,
+      total_net_income: 0,
+      new_contracts_count: 0,
+      active_brokerage_deals_count: 0,
+      occupancy_rate: 0,
+      created_at: new Date().toISOString(),
+    };
+    const updatedSummaries = [
+      zeroSummary,
+      ...dailySummaries.filter((s) => s.summary_date !== targetDate),
+    ];
+    setDailySummaries(updatedSummaries);
+    syncLocal(STORAGE_KEYS.SUMMARIES, updatedSummaries);
+
+    // 3. Reset or create zero AI report for this date
+    const zeroReport: AiDailyReport = {
+      id: `adr-${targetDate}`,
+      report_date: targetDate,
+      gross_income: 0,
+      net_income: 0,
+      what_went_well: [
+        'جاهزية النظام والمنصة لاستقبال وتوثيق صفقات وعمليات اليوم الجديد.',
+        'لا توجد أي متأخرات أو تعثرات مالية مسجلة على العقود والوحدات.',
+        'اكتمال التوثيق الإلكتروني ومطابقة السجلات العقارية بنسبة 100%.'
+      ],
+      what_went_bad: [
+        'لم يتم تسجيل أي معاملات مالية أو صفقات جديدة لهذا اليوم حتى الآن (الرصيد: 0 ر.س).',
+        'فرصة لتنشيط حركة التأجير وتحويل طلبات العملاء إلى عقود منجزة.',
+        'متابعة تسويق الوحدات الشاغرة لسرعة تحقيق أولى إيرادات اليوم.'
+      ],
+      ai_recommendations: [
+        'التواصل المباشر مع العملاء المهتمين لإبرام عقود الإيجار والوساطة اليوم.',
+        'متابعة العقود المعلقة وإتمام التوثيق عبر منصة إيجار لتحصيل العمولات فوراً.',
+        'تسجيل أي مقبوضات أو مصروفات فور حدوثها لتحديث لوحة الأداء المالي.'
+      ],
+      income_increment_strategy:
+        'التركيز الفوري اليوم على إغلاق صفقات الإيجار والوساطة الجديدة لتوليد أولى التدفقات النقدية والأرباح للمكتب.',
+      created_at: new Date().toISOString(),
+    };
+    const updatedReports = [
+      zeroReport,
+      ...aiReports.filter((r) => r.report_date !== targetDate),
+    ];
+    setAiReports(updatedReports);
+    syncLocal(STORAGE_KEYS.AI_REPORTS, updatedReports);
   };
 
   // ------------------------------------
@@ -1233,6 +1292,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addTransaction,
         updateTransaction,
         deleteTransaction,
+        rezeroFinancialDate,
 
         addGeneralService,
         updateGeneralService,

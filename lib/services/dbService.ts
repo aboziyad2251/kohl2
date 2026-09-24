@@ -63,9 +63,9 @@ const STORAGE_KEYS = {
   CONTRACTS: 'kohl_contracts_v1',
   BROKERAGE: 'kohl_brokerage_agreements_v1',
   AUDIT_LOGS: 'kohl_audit_logs_v1',
-  TRANSACTIONS: 'kohl_financial_transactions_v1',
-  SUMMARIES: 'kohl_daily_summaries_v1',
-  AI_REPORTS: 'kohl_ai_reports_v1',
+  TRANSACTIONS: 'kohl_financial_transactions_v2',
+  SUMMARIES: 'kohl_daily_summaries_v2',
+  AI_REPORTS: 'kohl_ai_reports_v2',
   GENERAL_SERVICES: 'kohl_general_services_v1',
   CUSTOMER_ORDERS: 'kohl_customer_orders_v1',
   MANAGED_PROPERTIES: 'kohl_managed_properties_v1',
@@ -158,6 +158,12 @@ function mergeEntities<T extends { id: string }>(
 // ----------------------------------------------------
 
 export async function dbFetchAllData() {
+  if (typeof window !== 'undefined') {
+    // Clear legacy v1 financial mock keys if present
+    localStorage.removeItem('kohl_financial_transactions_v1');
+    localStorage.removeItem('kohl_daily_summaries_v1');
+    localStorage.removeItem('kohl_ai_reports_v1');
+  }
   const localLessors = getLocalData<Lessor[]>(STORAGE_KEYS.LESSORS, INITIAL_LESSORS);
   const localTenants = getLocalData<Tenant[]>(STORAGE_KEYS.TENANTS, INITIAL_TENANTS);
   const localReps = getLocalData<Representative[]>(STORAGE_KEYS.REPRESENTATIVES, INITIAL_REPRESENTATIVES);
@@ -307,8 +313,52 @@ export async function dbFetchAllData() {
   const rawBrokerage = mergeEntities(localBrokerage, sbBrokerage, deletedSet);
   const rawLogs = mergeEntities(localLogs, sbLogs, deletedSet);
   const rawTx = mergeEntities(localTx, sbTx, deletedSet);
-  const dailySummaries = mergeEntities(localSummaries, sbSummaries, deletedSet);
-  const aiReports = mergeEntities(localReports, sbReports, deletedSet);
+  const rawDailySummaries = mergeEntities(localSummaries, sbSummaries, deletedSet);
+  const rawAiReports = mergeEntities(localReports, sbReports, deletedSet);
+
+  // Sanitize any stale dummy numbers for today (50,000 / 44,825)
+  const todayStr = new Date().toISOString().split('T')[0];
+  const dailySummaries = rawDailySummaries.map((s) => {
+    if (s.summary_date === todayStr && (s.total_gross_income === 50000 || s.total_net_income === 44825)) {
+      return {
+        ...s,
+        total_gross_income: 0,
+        total_expenses: 0,
+        total_net_income: 0,
+        new_contracts_count: 0,
+        active_brokerage_deals_count: 0,
+        occupancy_rate: 0,
+      };
+    }
+    return s;
+  });
+
+  const aiReports = rawAiReports.map((r) => {
+    if (r.report_date === todayStr && (r.gross_income === 50000 || r.net_income === 44825)) {
+      return {
+        ...r,
+        gross_income: 0,
+        net_income: 0,
+        what_went_well: [
+          'جاهزية النظام والمنصة لاستقبال وتوثيق صفقات وعمليات اليوم الجديد.',
+          'لا توجد أي متأخرات أو تعثرات مالية مسجلة على العقود والوحدات.',
+          'اكتمال التوثيق الإلكتروني ومطابقة السجلات العقارية بنسبة 100%.'
+        ],
+        what_went_bad: [
+          'لم يتم تسجيل أي معاملات مالية أو صفقات جديدة لهذا اليوم حتى الآن (الرصيد: 0 ر.س).',
+          'فرصة لتنشيط حركة التأجير وتحويل طلبات العملاء إلى عقود منجزة.',
+          'متابعة تسويق الوحدات الشاغرة لسرعة تحقيق أولى إيرادات اليوم.'
+        ],
+        ai_recommendations: [
+          'التواصل المباشر مع العملاء المهتمين لإبرام عقود الإيجار والوساطة اليوم.',
+          'متابعة العقود المعلقة وإتمام التوثيق عبر منصة إيجار لتحصيل العمولات فوراً.',
+          'تسجيل أي مقبوضات أو مصروفات فور حدوثها لتحديث لوحة الأداء المالي.'
+        ],
+        income_increment_strategy: 'التركيز الفوري اليوم على إغلاق صفقات الإيجار والوساطة الجديدة لتوليد أولى التدفقات النقدية والأرباح للمكتب.',
+      };
+    }
+    return r;
+  });
   const generalServices = mergeEntities(localServices, sbServices, deletedSet);
   const customerOrders = mergeEntities(localCustomerOrders, sbCustomerOrders, deletedSet);
   const managedProperties = mergeEntities(localManagedProps, sbManagedProps, deletedSet);

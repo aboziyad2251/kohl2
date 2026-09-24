@@ -15,17 +15,19 @@ import {
   Building,
   ArrowRight,
   ShieldCheck,
+  RotateCcw,
 } from 'lucide-react';
 import { useData } from '@/context/DataContext';
 import { AiDailyReport } from '@/lib/types';
 
 export default function DailyReportsPage() {
-  const { aiReports, transactions, dailySummaries, properties, ePoas } = useData();
+  const { aiReports, transactions, dailySummaries, properties, ePoas, rezeroFinancialDate } = useData();
 
   const todayStr = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
   const [reports, setReports] = useState<AiDailyReport[]>(aiReports);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [rezeroSuccess, setRezeroSuccess] = useState(false);
 
   // Sync reports if context updates
   React.useEffect(() => {
@@ -53,39 +55,55 @@ export default function DailyReportsPage() {
     ? earningsGross
     : summaryForDate
     ? summaryForDate.total_gross_income
-    : 50000;
+    : 0;
 
   const effectiveNet = selectedDateTransactions.length > 0
     ? earningsNet
     : summaryForDate
     ? summaryForDate.total_net_income
-    : 44825;
+    : 0;
 
-  // Find active report for selected date, or fallback
+  const effectiveDeals = summaryForDate?.new_contracts_count ?? selectedDateTransactions.filter(t => t.contract_id || t.transaction_type === 'RENTAL_PAYMENT' || t.transaction_type === 'BROKERAGE_COMMISSION').length;
+
+  const effectiveOccupancy = summaryForDate?.occupancy_rate ?? 0;
+
+  // Find active report for selected date, or fallback with clean zero state
   const rawActiveReport =
-    reports.find((r) => r.report_date === selectedDate) ||
-    reports[0] || {
-      id: 'adr-demo',
+    reports.find((r) => r.report_date === selectedDate) || {
+      id: `adr-${selectedDate}`,
       report_date: selectedDate,
       gross_income: effectiveGross,
       net_income: effectiveNet,
-      what_went_well: [
+      what_went_well: effectiveGross > 0 ? [
         'إغلاق اتفاقيتي وساطة تجارية وتحصيل العمولات المباشرة.',
         'تحصيل الدفعة الإيجارية السكنية بانتظام عبر المكتب.',
         'توثيق العقود والوساطات المنفذة اليوم عبر منصة إيجار بانتظام.'
+      ] : [
+        'جاهزية النظام والمنصة لاستقبال وتوثيق صفقات وعمليات اليوم الجديد.',
+        'لا توجد أي متأخرات أو تعثرات مالية مسجلة على العقود والوحدات.',
+        'اكتمال التوثيق الإلكتروني ومطابقة السجلات العقارية بنسبة 100%.'
       ],
-      what_went_bad: [
+      what_went_bad: effectiveGross > 0 ? [
         'وجود وحدات سكنية شاغرة متوقفة لأكثر من 10 أيام دون تأجير.',
         'تأخر توثيق وكالة إلكترونية واحدة للمالك مما يعطل إبرام عقد جديد.',
         'ارتفاع تكاليف الصيانة التشغيلية في بعض المباني.'
+      ] : [
+        'لم يتم تسجيل أي معاملات مالية أو صفقات جديدة لهذا اليوم حتى الآن (الرصيد: 0 ر.س).',
+        'فرصة لتنشيط حركة التأجير وتحويل طلبات العملاء إلى عقود منجزة.',
+        'متابعة تسويق الوحدات الشاغرة لسرعة تحقيق أولى إيرادات اليوم.'
       ],
-      ai_recommendations: [
+      ai_recommendations: effectiveGross > 0 ? [
         'إطلاق تقديم خصم تشجيعي بنسبة 5% لسرعة شغل الوحدات السكنية الشاغرة خلال 48 ساعة.',
         'متابعة كتابة العدل لإصدار الوكالة الإلكترونية المعلقة لإغلاق العقد العقاري الجديد غداً.',
         'إعادة تفاوض عقود الصيانة السنوية للحصول على خصم كميات وتقليل المصاريف التشغيلية.'
+      ] : [
+        'التواصل المباشر مع العملاء المهتمين لإبرام عقود الإيجار والوساطة اليوم.',
+        'متابعة العقود المعلقة وإتمام التوثيق عبر منصة إيجار لتحصيل العمولات فوراً.',
+        'تسجيل أي مقبوضات أو مصروفات فور حدوثها لتحديث لوحة الأداء المالي.'
       ],
-      income_increment_strategy:
-        'التركيز الفوري غداً على استكمال توثيق العقود المعلقة وإبرام الاتفاقيات الجديدة لزيادة الإيرادات الإجمالية والصافية للمكتب.',
+      income_increment_strategy: effectiveGross > 0
+        ? 'التركيز الفوري غداً على استكمال توثيق العقود المعلقة وإبرام الاتفاقيات الجديدة لزيادة الإيرادات الإجمالية والصافية للمكتب.'
+        : 'التركيز الفوري اليوم على إغلاق صفقات الإيجار والوساطة الجديدة لتوليد أولى التدفقات النقدية والأرباح للمكتب.',
     };
 
   // Enforce 100% Match with Earnings Page Metrics
@@ -94,6 +112,37 @@ export default function DailyReportsPage() {
     report_date: selectedDate,
     gross_income: effectiveGross,
     net_income: effectiveNet,
+  };
+
+  const handleRezero = async () => {
+    if (rezeroFinancialDate) {
+      await rezeroFinancialDate(selectedDate);
+    }
+    const zeroReport: AiDailyReport = {
+      id: `adr-${selectedDate}`,
+      report_date: selectedDate,
+      gross_income: 0,
+      net_income: 0,
+      what_went_well: [
+        'جاهزية النظام والمنصة لاستقبال وتوثيق صفقات وعمليات اليوم الجديد.',
+        'لا توجد أي متأخرات أو تعثرات مالية مسجلة على العقود والوحدات.',
+        'اكتمال التوثيق الإلكتروني ومطابقة السجلات العقارية بنسبة 100%.'
+      ],
+      what_went_bad: [
+        'لم يتم تسجيل أي معاملات مالية أو صفقات جديدة لهذا اليوم حتى الآن (الرصيد: 0 ر.س).',
+        'فرصة لتنشيط حركة التأجير وتحويل طلبات العملاء إلى عقود منجزة.',
+        'متابعة تسويق الوحدات الشاغرة لسرعة تحقيق أولى إيرادات اليوم.'
+      ],
+      ai_recommendations: [
+        'التواصل المباشر مع العملاء المهتمين لإبرام عقود الإيجار والوساطة اليوم.',
+        'متابعة العقود المعلقة وإتمام التوثيق عبر منصة إيجار لتحصيل العمولات فوراً.',
+        'تسجيل أي مقبوضات أو مصروفات فور حدوثها لتحديث لوحة الأداء المالي.'
+      ],
+      income_increment_strategy: 'التركيز الفوري اليوم على إغلاق صفقات الإيجار والوساطة الجديدة لتوليد أولى التدفقات النقدية والأرباح للمكتب.',
+    };
+    setReports((prev) => [zeroReport, ...prev.filter((r) => r.report_date !== selectedDate)]);
+    setRezeroSuccess(true);
+    setTimeout(() => setRezeroSuccess(false), 3500);
   };
 
   const handleGenerateAiReport = async () => {
@@ -171,6 +220,15 @@ export default function DailyReportsPage() {
           </button>
 
           <button
+            onClick={handleRezero}
+            className="px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold transition flex items-center gap-2 shadow-sm"
+            title="تصفير أرقام وإحصائيات اليوم"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span>تصفير الأرقام</span>
+          </button>
+
+          <button
             onClick={handlePrintPdf}
             className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition flex items-center gap-2"
           >
@@ -179,6 +237,13 @@ export default function DailyReportsPage() {
           </button>
         </div>
       </div>
+
+      {rezeroSuccess && (
+        <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-emerald-400 text-xs font-semibold flex items-center gap-2.5 animate-in fade-in">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+          <span>تم تصفير جميع أرقام وإحصائيات اليوم بنجاح (الدخل: 0 ر.س - الأرباح: 0 ر.س - الصفقات: 0 - الإشغال: 0%)</span>
+        </div>
+      )}
 
       {/* Printable Report Document Container */}
       <div className="space-y-6 print:space-y-4">
@@ -221,12 +286,12 @@ export default function DailyReportsPage() {
 
             <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 print:border-slate-300 print:bg-slate-50">
               <span className="text-[11px] text-slate-400 print:text-slate-600 block">الصفقات الإيجارية المغلقة</span>
-              <span className="text-xl font-extrabold text-purple-400 print:text-purple-700">2 صفقات جديدة</span>
+              <span className="text-xl font-extrabold text-purple-400 print:text-purple-700">{effectiveDeals} صفقات جديدة</span>
             </div>
 
             <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 print:border-slate-300 print:bg-slate-50">
               <span className="text-[11px] text-slate-400 print:text-slate-600 block">نسبة الإشغال الإجمالية</span>
-              <span className="text-xl font-extrabold text-amber-400 print:text-amber-700">87.5%</span>
+              <span className="text-xl font-extrabold text-amber-400 print:text-amber-700">{effectiveOccupancy}%</span>
             </div>
           </div>
         </div>

@@ -49,7 +49,7 @@ export function computeDailySummaryFromTransactions(
     total_net_income: totalNetIncome,
     new_contracts_count: existingSummary?.new_contracts_count ?? dayTx.filter(t => t.contract_id).length,
     active_brokerage_deals_count: existingSummary?.active_brokerage_deals_count ?? dayTx.filter(t => t.brokerage_agreement_id).length,
-    occupancy_rate: existingSummary?.occupancy_rate ?? 87.5,
+    occupancy_rate: existingSummary?.occupancy_rate ?? 0,
     created_at: existingSummary?.created_at || new Date().toISOString(),
   };
 }

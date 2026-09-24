@@ -297,7 +297,7 @@ const todayStr = new Date().toISOString().split('T')[0];
 export const INITIAL_FINANCIAL_TRANSACTIONS: FinancialTransaction[] = [
   {
     id: 'ft-001',
-    transaction_date: todayStr,
+    transaction_date: '2026-08-10',
     transaction_type: 'BROKERAGE_COMMISSION',
     flow_type: 'INCOME',
     gross_amount: 15000,
@@ -307,11 +307,11 @@ export const INITIAL_FINANCIAL_TRANSACTIONS: FinancialTransaction[] = [
     contract_id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
     brokerage_agreement_id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
     notes: 'عمولة وساطة تأجير مكتب تجاري برج الملقا',
-    created_at: `${todayStr}T09:30:00Z`,
+    created_at: '2026-08-10T09:30:00Z',
   },
   {
     id: 'ft-002',
-    transaction_date: todayStr,
+    transaction_date: '2026-08-10',
     transaction_type: 'RENTAL_PAYMENT',
     flow_type: 'INCOME',
     gross_amount: 32500,
@@ -320,11 +320,11 @@ export const INITIAL_FINANCIAL_TRANSACTIONS: FinancialTransaction[] = [
     property_id: '88888888-8888-8888-8888-888888888888',
     contract_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     notes: 'تحصيل الدفعة الإيجارية النصف سنوية - مجمع العليا السكني',
-    created_at: `${todayStr}T11:15:00Z`,
+    created_at: '2026-08-10T11:15:00Z',
   },
   {
     id: 'ft-003',
-    transaction_date: todayStr,
+    transaction_date: '2026-08-10',
     transaction_type: 'OPERATING_EXPENSE',
     flow_type: 'EXPENSE',
     gross_amount: 4500,
@@ -332,11 +332,11 @@ export const INITIAL_FINANCIAL_TRANSACTIONS: FinancialTransaction[] = [
     net_amount: 5175,
     property_id: '77777777-7777-7777-7777-777777777777',
     notes: 'صيانة وتحديث المصاعد الدورية - برج الملقا التجاري',
-    created_at: `${todayStr}T14:00:00Z`,
+    created_at: '2026-08-10T14:00:00Z',
   },
   {
     id: 'ft-004',
-    transaction_date: todayStr,
+    transaction_date: '2026-08-10',
     transaction_type: 'DOCUMENT_FEE',
     flow_type: 'INCOME',
     gross_amount: 2500,
@@ -345,7 +345,7 @@ export const INITIAL_FINANCIAL_TRANSACTIONS: FinancialTransaction[] = [
     property_id: '88888888-8888-8888-8888-888888888888',
     contract_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     notes: 'رسوم توثيق وتجديد العقد عبر منصة إيجار',
-    created_at: `${todayStr}T15:45:00Z`,
+    created_at: '2026-08-10T15:45:00Z',
   },
   {
     id: 'ft-005',
@@ -365,12 +365,12 @@ export const INITIAL_DAILY_FINANCIAL_SUMMARIES: DailyFinancialSummary[] = [
   {
     id: 'dfs-001',
     summary_date: todayStr,
-    total_gross_income: 50000,
-    total_expenses: 5175,
-    total_net_income: 44825,
-    new_contracts_count: 2,
-    active_brokerage_deals_count: 3,
-    occupancy_rate: 87.5,
+    total_gross_income: 0,
+    total_expenses: 0,
+    total_net_income: 0,
+    new_contracts_count: 0,
+    active_brokerage_deals_count: 0,
+    occupancy_rate: 0,
     created_at: `${todayStr}T18:00:00Z`,
   },
   {
@@ -401,24 +401,24 @@ export const INITIAL_AI_DAILY_REPORTS: AiDailyReport[] = [
   {
     id: 'adr-001',
     report_date: todayStr,
-    gross_income: 50000,
-    net_income: 44825,
+    gross_income: 0,
+    net_income: 0,
     what_went_well: [
-      'إغلاق اتفاقيتي وساطة تجارية في برج الملقا وتحصيل عمولة فورية بنسبة 100%.',
-      'تحصيل الدفعة الإيجارية النصف سنوية لمجمع العليا السكني بدون أي تأخيرات.',
-      'توثيق جميع العقود المنفذة اليوم عبر منصة إيجار بانتظام.'
+      'جاهزية النظام والمنصة لاستقبال وتوثيق صفقات وعمليات اليوم الجديد.',
+      'لا توجد أي متأخرات أو تعثرات مالية مسجلة على العقود والوحدات.',
+      'اكتمال التوثيق الإلكتروني ومطابقة السجلات العقارية بنسبة 100%.'
     ],
     what_went_bad: [
-      'وجود 3 وحدات سكنية شاغرة في مجمع العليا متوقفة لأكثر من 15 يوماً دون تأجير.',
-      'تأخر توثيق وكالة إلكترونية (E-POA) واحدة للمالك مما يعطل توقيع العقد التجاري الجديد.',
-      'ارتفاع تكاليف الصيانة الطارئة للمصاعد في برج الملقا التجاري.'
+      'لم يتم تسجيل أي معاملات مالية أو صفقات جديدة لهذا اليوم حتى الآن (الرصيد: 0 ر.س).',
+      'فرصة لتنشيط حركة التأجير وتحويل طلبات العملاء إلى عقود منجزة.',
+      'متابعة تسويق الوحدات الشاغرة لسرعة تحقيق أولى إيرادات اليوم.'
     ],
     ai_recommendations: [
-      'إطلاق تقديم خصم تشجيعي بنسبة 5% على عمولة التأجير السريع للوحدات السكنية الشاغرة بمجمع العليا لسرعة شغلها خلال 48 ساعة.',
-      'متابعة كتابة العدل لإصدار الوكالة الإلكترونية المعلقة لإغلاق عقد البرج التجاري بقيمة 120,000 ريال غداً.',
-      'إعادة تفاوض عقود الصيانة السنوية للمصاعد للحصول على خصم كميات وتقليل المصاريف التشغيلية.'
+      'التواصل المباشر مع العملاء المهتمين لإبرام عقود الإيجار والوساطة اليوم.',
+      'متابعة العقود المعلقة وإتمام التوثيق عبر منصة إيجار لتحصيل العمولات فوراً.',
+      'تسجيل أي مقبوضات أو مصروفات فور حدوثها لتحديث لوحة الأداء المالي.'
     ],
-    income_increment_strategy: 'التركيز الفوري غداً على إنهاء إجراءات الوكالة الإلكترونية المعلقة وإبرام العقد التجاري الجديد لتحقيق زيادة إيرادات فورية بقيمة 120,000 ريال سعودي.',
+    income_increment_strategy: 'التركيز الفوري اليوم على إغلاق صفقات الإيجار والوساطة الجديدة لتوليد أولى التدفقات النقدية والأرباح للمكتب.',
     created_at: `${todayStr}T18:05:00Z`,
   },
 ];
