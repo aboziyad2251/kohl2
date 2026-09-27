@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { customerOrderSchema, CustomerOrderInput } from '../../lib/validations';
 import { useData } from '../../context/DataContext';
 import { CustomerOrder } from '../../lib/types';
+import { generateEntityId } from '../../lib/services/dbService';
 import {
   X,
   Plus,
@@ -60,7 +61,7 @@ export default function NewCustomerOrderModal({ isOpen, onClose }: NewCustomerOr
     setIsSubmitting(true);
     try {
       const newOrder: CustomerOrder = {
-        id: `ord-${Date.now()}`,
+        id: generateEntityId(),
         order_number: `ORD-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
         client_name: data.client_name,
         client_phone: data.client_phone,

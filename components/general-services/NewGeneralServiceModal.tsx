@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Briefcase, CheckCircle2 } from 'lucide-react';
 import { GeneralService, ServiceCategory, ServiceStatus } from '@/lib/types';
+import { generateEntityId } from '@/lib/services/dbService';
 
 const optionalNumber = z.preprocess(
   (val) => (val === '' || val === null || val === undefined || Number.isNaN(val) ? 0 : Number(val)),
@@ -81,7 +82,7 @@ export default function NewGeneralServiceModal({
       const profit = data.office_profit !== undefined ? Number(data.office_profit) : fee - cost;
 
       const newService: GeneralService = {
-        id: `srv-${Date.now()}`,
+        id: generateEntityId(),
         service_number: `GS-2026-${Math.floor(100 + Math.random() * 900)}`,
         client_name: data.client_name,
         client_phone: data.client_phone || undefined,

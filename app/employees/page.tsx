@@ -41,6 +41,7 @@ import {
 import SalarySlipPrintModal from '@/components/employees/SalarySlipPrintModal';
 import TaskDelegatorModal from '@/components/employees/TaskDelegatorModal';
 import UniversalImportModal from '@/components/common/UniversalImportModal';
+import { generateEntityId } from '@/lib/services/dbService';
 
 type ActiveTab = 'timesheet' | 'directory' | 'payroll' | 'leaves' | 'delegation';
 
@@ -147,7 +148,7 @@ export default function EmployeesPage() {
     e.preventDefault();
     const codeNum = Math.floor(100 + Math.random() * 900);
     const newEmp: Employee = {
-      id: `emp-${Date.now()}`,
+      id: generateEntityId(),
       employee_number: `EMP-${codeNum}`,
       name: empName,
       national_id_or_iqama: empNationalId,
@@ -179,7 +180,7 @@ export default function EmployeesPage() {
     const payNum = `PAY-${payMonth}-${Math.floor(100 + Math.random() * 900)}`;
 
     const newPay: PayrollPayment = {
-      id: `pay-${Date.now()}`,
+      id: generateEntityId(),
       payment_number: payNum,
       employee_id: targetEmp.id,
       employee_name: targetEmp.name,
@@ -207,7 +208,7 @@ export default function EmployeesPage() {
     if (!targetEmp) return;
 
     const newLv: LeaveRequest = {
-      id: `lv-${Date.now()}`,
+      id: generateEntityId(),
       employee_id: targetEmp.id,
       employee_name: targetEmp.name,
       leave_type: leaveType,
@@ -229,7 +230,7 @@ export default function EmployeesPage() {
     for (const row of rows) {
       const codeNum = Math.floor(100 + Math.random() * 900);
       const newEmp: Employee = {
-        id: `emp-${Date.now()}-${Math.random()}`,
+        id: generateEntityId(),
         employee_number: row['الرقم الوظيفي'] || `EMP-${codeNum}`,
         name: row['الاسم'] || row['اسم الموظف'] || 'موظف جديد',
         national_id_or_iqama: String(row['الهوية الوطنية'] || row['الهوية'] || '1000000000'),

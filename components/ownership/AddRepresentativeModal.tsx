@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { UserCheck, X } from 'lucide-react';
 import { Representative } from '@/lib/types';
+import { generateEntityId } from '@/lib/services/dbService';
 
 interface AddRepresentativeModalProps {
   isOpen: boolean;
@@ -24,7 +25,7 @@ export default function AddRepresentativeModal({ isOpen, onClose, onSubmit }: Ad
     if (!name || !nationalId || !phone) return;
 
     const newRep: Representative = {
-      id: `rep-${Date.now()}`,
+      id: generateEntityId(),
       name,
       national_id: nationalId,
       phone,

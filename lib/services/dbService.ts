@@ -134,23 +134,79 @@ export function getDeletedIdsSet(): Set<string> {
 // ----------------------------------------------------
 // ENTITY MERGING UTILITY (PRESERVES LOCAL CREATIONS & EDITS)
 // ----------------------------------------------------
+export function isUuid(id?: string): boolean {
+  if (!id) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
+export function generateEntityId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 function mergeEntities<T extends { id: string }>(
   localList: T[],
   remoteList: T[] | null,
-  deletedSet: Set<string>
+  deletedSet: Set<string>,
+  defaultSeedList?: T[]
 ): T[] {
-  // If remote fetch from Supabase succeeded (remoteList is an array, even if empty)
-  if (remoteList !== null && Array.isArray(remoteList)) {
-    // Supabase PostgreSQL database (office_db on Adminer 8088) is the direct single source of truth
-    return remoteList.filter((item) => item && item.id);
+  const result: T[] = [];
+  const seenIds = new Set<string>();
+  const localMap = new Map<string, T>();
+
+  // If localList was wiped or empty, fall back to default seed list (excluding deleted)
+  let effectiveLocalList = localList;
+  if (
+    (!effectiveLocalList || effectiveLocalList.length === 0) &&
+    defaultSeedList &&
+    defaultSeedList.length > 0
+  ) {
+    effectiveLocalList = defaultSeedList.filter((item) => item && item.id && !deletedSet.has(item.id));
   }
 
-  // Fallback to localList if Supabase is offline or query failed
-  if (localList && Array.isArray(localList)) {
-    return localList.filter((item) => item && item.id && !deletedSet.has(item.id));
+  // Populate local map with all valid, non-deleted local items
+  if (Array.isArray(effectiveLocalList)) {
+    for (const item of effectiveLocalList) {
+      if (item && item.id && !deletedSet.has(item.id)) {
+        localMap.set(item.id, item);
+      }
+    }
   }
 
-  return [];
+  // 1. Process remote items if any exist
+  if (Array.isArray(remoteList) && remoteList.length > 0) {
+    for (const remoteItem of remoteList) {
+      if (remoteItem && remoteItem.id && !deletedSet.has(remoteItem.id)) {
+        const localItem = localMap.get(remoteItem.id);
+        const remoteTime = (remoteItem as any).updated_at ? new Date((remoteItem as any).updated_at).getTime() : 0;
+        const localTime = localItem && (localItem as any).updated_at ? new Date((localItem as any).updated_at).getTime() : 0;
+
+        // If local item has a more recent update, preserve local changes
+        if (localItem && localTime > remoteTime) {
+          result.push(localItem);
+        } else {
+          result.push(remoteItem);
+        }
+        seenIds.add(remoteItem.id);
+      }
+    }
+  }
+
+  // 2. Guarantee that ALL locally created/stored items are preserved (offline-first & local persistence)
+  localMap.forEach((localItem, id) => {
+    if (!seenIds.has(id)) {
+      result.push(localItem);
+      seenIds.add(id);
+    }
+  });
+
+  return result;
 }
 
 // ----------------------------------------------------
@@ -302,19 +358,19 @@ export async function dbFetchAllData() {
     console.warn('Supabase fetch failed, relying on localStorage persistence:', err);
   }
 
-  // Merge local & remote data cleanly
-  const lessors = mergeEntities(localLessors, sbLessors, deletedSet);
-  const tenants = mergeEntities(localTenants, sbTenants, deletedSet);
-  const representatives = mergeEntities(localReps, sbReps, deletedSet);
-  const documents = mergeEntities(localDocs, sbDocs, deletedSet);
-  const rawProps = mergeEntities(localProps, sbProps, deletedSet);
-  const ePoas = mergeEntities(localEPoas, sbEPoas, deletedSet);
-  const rawContracts = mergeEntities(localContracts, sbContracts, deletedSet);
-  const rawBrokerage = mergeEntities(localBrokerage, sbBrokerage, deletedSet);
-  const rawLogs = mergeEntities(localLogs, sbLogs, deletedSet);
-  const rawTx = mergeEntities(localTx, sbTx, deletedSet);
-  const rawDailySummaries = mergeEntities(localSummaries, sbSummaries, deletedSet);
-  const rawAiReports = mergeEntities(localReports, sbReports, deletedSet);
+  // Merge local & remote data cleanly (offline-first, preserving all local additions & recovery from seeds)
+  const lessors = mergeEntities(localLessors, sbLessors, deletedSet, INITIAL_LESSORS);
+  const tenants = mergeEntities(localTenants, sbTenants, deletedSet, INITIAL_TENANTS);
+  const representatives = mergeEntities(localReps, sbReps, deletedSet, INITIAL_REPRESENTATIVES);
+  const documents = mergeEntities(localDocs, sbDocs, deletedSet, INITIAL_OWNERSHIP_DOCUMENTS);
+  const rawProps = mergeEntities(localProps, sbProps, deletedSet, INITIAL_PROPERTIES);
+  const ePoas = mergeEntities(localEPoas, sbEPoas, deletedSet, INITIAL_E_POAS);
+  const rawContracts = mergeEntities(localContracts, sbContracts, deletedSet, INITIAL_CONTRACTS);
+  const rawBrokerage = mergeEntities(localBrokerage, sbBrokerage, deletedSet, INITIAL_BROKERAGE_AGREEMENTS);
+  const rawLogs = mergeEntities(localLogs, sbLogs, deletedSet, INITIAL_AUDIT_LOGS);
+  const rawTx = mergeEntities(localTx, sbTx, deletedSet, INITIAL_FINANCIAL_TRANSACTIONS);
+  const rawDailySummaries = mergeEntities(localSummaries, sbSummaries, deletedSet, INITIAL_DAILY_FINANCIAL_SUMMARIES);
+  const rawAiReports = mergeEntities(localReports, sbReports, deletedSet, INITIAL_AI_DAILY_REPORTS);
 
   // Sanitize any stale dummy numbers for today (50,000 / 44,825)
   const todayStr = new Date().toISOString().split('T')[0];
@@ -359,19 +415,19 @@ export async function dbFetchAllData() {
     }
     return r;
   });
-  const generalServices = mergeEntities(localServices, sbServices, deletedSet);
-  const customerOrders = mergeEntities(localCustomerOrders, sbCustomerOrders, deletedSet);
-  const managedProperties = mergeEntities(localManagedProps, sbManagedProps, deletedSet);
-  const maintenanceTasks = mergeEntities(localMaintenanceTasks, sbMaintenanceTasks, deletedSet);
-  const archivedDocuments = mergeEntities(localArchivedDocs, sbArchivedDocs, deletedSet);
-  const employees = mergeEntities(localEmployees, sbEmployees, deletedSet);
-  const timesheetEntries = mergeEntities(localTimesheet, sbTimesheet, deletedSet);
-  const payrollPayments = mergeEntities(localPayroll, sbPayroll, deletedSet);
-  const leaveRequests = mergeEntities(localLeaves, sbLeaves, deletedSet);
-  const taskDelegations = mergeEntities(localTaskDelegations, sbTaskDelegations, deletedSet);
-  const crmLeads = mergeEntities(localCrmLeads, sbCrmLeads, deletedSet);
-  const crmDeals = mergeEntities(localCrmDeals, sbCrmDeals, deletedSet);
-  const crmActivities = mergeEntities(localCrmActivities, sbCrmActivities, deletedSet);
+  const generalServices = mergeEntities(localServices, sbServices, deletedSet, INITIAL_GENERAL_SERVICES);
+  const customerOrders = mergeEntities(localCustomerOrders, sbCustomerOrders, deletedSet, INITIAL_CUSTOMER_ORDERS);
+  const managedProperties = mergeEntities(localManagedProps, sbManagedProps, deletedSet, INITIAL_MANAGED_PROPERTIES);
+  const maintenanceTasks = mergeEntities(localMaintenanceTasks, sbMaintenanceTasks, deletedSet, INITIAL_MAINTENANCE_TASKS);
+  const archivedDocuments = mergeEntities(localArchivedDocs, sbArchivedDocs, deletedSet, INITIAL_ARCHIVED_DOCUMENTS);
+  const employees = mergeEntities(localEmployees, sbEmployees, deletedSet, INITIAL_EMPLOYEES);
+  const timesheetEntries = mergeEntities(localTimesheet, sbTimesheet, deletedSet, INITIAL_TIMESHEET_ENTRIES);
+  const payrollPayments = mergeEntities(localPayroll, sbPayroll, deletedSet, INITIAL_PAYROLL_PAYMENTS);
+  const leaveRequests = mergeEntities(localLeaves, sbLeaves, deletedSet, INITIAL_LEAVE_REQUESTS);
+  const taskDelegations = mergeEntities(localTaskDelegations, sbTaskDelegations, deletedSet, INITIAL_TASK_DELEGATIONS);
+  const crmLeads = mergeEntities(localCrmLeads, sbCrmLeads, deletedSet, INITIAL_CRM_LEADS);
+  const crmDeals = mergeEntities(localCrmDeals, sbCrmDeals, deletedSet, INITIAL_CRM_DEALS);
+  const crmActivities = mergeEntities(localCrmActivities, sbCrmActivities, deletedSet, INITIAL_CRM_ACTIVITIES);
 
   // Sync back merged data into localStorage
   setLocalData(STORAGE_KEYS.LESSORS, lessors);
@@ -470,6 +526,7 @@ export async function dbFetchAllData() {
 // -------------------
 export async function dbInsertLessor(lessor: Lessor) {
   try {
+    if (!isUuid(lessor.id)) return;
     await supabase.from('lessors').insert([
       {
         id: lessor.id,
@@ -487,7 +544,7 @@ export async function dbInsertLessor(lessor: Lessor) {
 export async function dbDeleteLessor(id: string) {
   markIdAsDeleted(id);
   try {
-    await supabase.from('lessors').delete().eq('id', id);
+    if (isUuid(id)) await supabase.from('lessors').delete().eq('id', id);
   } catch (e) {
     console.warn('Supabase dbDeleteLessor error:', e);
   }
@@ -498,6 +555,7 @@ export async function dbDeleteLessor(id: string) {
 // -------------------
 export async function dbInsertRepresentative(rep: Representative) {
   try {
+    if (!isUuid(rep.id)) return;
     await supabase.from('representatives').insert([
       {
         id: rep.id,
@@ -517,7 +575,7 @@ export async function dbInsertRepresentative(rep: Representative) {
 export async function dbDeleteRepresentative(id: string) {
   markIdAsDeleted(id);
   try {
-    await supabase.from('representatives').delete().eq('id', id);
+    if (isUuid(id)) await supabase.from('representatives').delete().eq('id', id);
   } catch (e) {
     console.warn('Supabase dbDeleteRepresentative error:', e);
   }
@@ -528,13 +586,14 @@ export async function dbDeleteRepresentative(id: string) {
 // -------------------
 export async function dbInsertOwnershipDocument(doc: OwnershipDocument) {
   try {
+    if (!isUuid(doc.id)) return;
     await supabase.from('ownership_documents').insert([
       {
         id: doc.id,
         document_number: doc.document_number,
         issue_date: doc.issue_date,
         file_url: doc.file_url,
-        lessor_id: doc.lessor_id,
+        lessor_id: isUuid(doc.lessor_id) ? doc.lessor_id : null,
       },
     ]);
   } catch (e) {
@@ -556,6 +615,7 @@ export async function dbDeleteOwnershipDocument(id: string) {
 // -------------------
 export async function dbInsertProperty(prop: Property) {
   try {
+    if (!isUuid(prop.id)) return;
     await supabase.from('properties').insert([
       {
         id: prop.id,
@@ -564,9 +624,9 @@ export async function dbInsertProperty(prop: Property) {
         address: prop.address,
         city: prop.city,
         units_count: prop.units_count,
-        ownership_document_id: prop.ownership_document_id,
-        lessor_id: prop.lessor_id,
-        current_representative_id: prop.current_representative_id,
+        ownership_document_id: isUuid(prop.ownership_document_id) ? prop.ownership_document_id : null,
+        lessor_id: isUuid(prop.lessor_id) ? prop.lessor_id : null,
+        current_representative_id: isUuid(prop.current_representative_id) ? prop.current_representative_id : null,
       },
     ]);
   } catch (e) {
@@ -640,13 +700,14 @@ export async function dbDeleteEPoa(id: string) {
 // -------------------
 export async function dbInsertContract(contract: Contract) {
   try {
+    if (!isUuid(contract.id)) return;
     await supabase.from('contracts').insert([
       {
         id: contract.id,
         contract_number: contract.contract_number,
         type: contract.type,
-        property_id: contract.property_id,
-        lessor_id: contract.lessor_id,
+        property_id: isUuid(contract.property_id) ? contract.property_id : null,
+        lessor_id: isUuid(contract.lessor_id) ? contract.lessor_id : null,
         tenant_name: contract.tenant_name,
         tenant_national_id: contract.tenant_national_id,
         rent_amount: contract.rent_amount,
@@ -657,7 +718,7 @@ export async function dbInsertContract(contract: Contract) {
         payment_schedule: contract.payment_schedule,
         start_date: contract.start_date,
         end_date: contract.end_date,
-        status: contract.status,
+        status: (contract.status || 'active').toLowerCase(),
         business_activity: contract.business_activity,
         vat_number: contract.vat_number,
         primary_lessor_consent: contract.primary_lessor_consent,

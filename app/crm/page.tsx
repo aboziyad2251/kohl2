@@ -40,6 +40,7 @@ import {
 } from '@/lib/types';
 import CrmDealPrintModal from '@/components/crm/CrmDealPrintModal';
 import UniversalImportModal from '@/components/common/UniversalImportModal';
+import { generateEntityId } from '@/lib/services/dbService';
 
 const STAGES: { key: CrmPipelineStage; label: string; color: string; bg: string; border: string }[] = [
   { key: 'NEW', label: 'عميل جديد', color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/30' },
@@ -154,7 +155,7 @@ export default function CrmPage() {
     e.preventDefault();
     const codeNum = Math.floor(100 + Math.random() * 900);
     const newLead: CrmLead = {
-      id: `lead-${Date.now()}`,
+      id: generateEntityId(),
       lead_code: `LED-2026-${codeNum}`,
       name: leadName,
       phone: leadPhone,
@@ -191,7 +192,7 @@ export default function CrmPage() {
     const codeNum = Math.floor(100 + Math.random() * 900);
 
     const newDeal: CrmDeal = {
-      id: `deal-${Date.now()}`,
+      id: generateEntityId(),
       deal_code: `DLR-2026-${codeNum}`,
       title: dealTitle || `صفقة ${lead?.name || 'عميل'} - ${prop?.title || 'عقار'}`,
       lead_id: lead?.id || '',
@@ -219,7 +220,7 @@ export default function CrmPage() {
   const handleCreateActivity = async (e: React.FormEvent) => {
     e.preventDefault();
     const newAct: CrmActivity = {
-      id: `act-${Date.now()}`,
+      id: generateEntityId(),
       lead_or_client_name: actClientName,
       activity_type: actType,
       title: actTitle,
@@ -240,7 +241,7 @@ export default function CrmPage() {
     for (const row of rows) {
       const codeNum = Math.floor(100 + Math.random() * 900);
       const newLead: CrmLead = {
-        id: `lead-${Date.now()}-${Math.random()}`,
+        id: generateEntityId(),
         lead_code: row['كود العميل'] || `LED-2026-${codeNum}`,
         name: row['اسم العميل'] || row['الاسم'] || 'عميل مهتم',
         phone: String(row['رقم الجوال'] || row['الجوال'] || '0500000000'),

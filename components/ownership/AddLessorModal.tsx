@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { UserPlus, X } from 'lucide-react';
 import { Lessor } from '@/lib/types';
+import { generateEntityId } from '@/lib/services/dbService';
 
 interface AddLessorModalProps {
   isOpen: boolean;
@@ -23,7 +24,7 @@ export default function AddLessorModal({ isOpen, onClose, onSubmit }: AddLessorM
     if (!name || !nationalIdOrCr || !phone) return;
 
     const newLessor: Lessor = {
-      id: `les-${Date.now()}`,
+      id: generateEntityId(),
       name,
       national_id_or_cr: nationalIdOrCr,
       phone,

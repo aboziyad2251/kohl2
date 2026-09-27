@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { X, FileText, Building2, User, Plus, CheckCircle2 } from 'lucide-react';
 import { ownershipDocumentPropertySchema, OwnershipDocumentPropertyInput } from '@/lib/validations';
 import { Lessor, Representative, Property, OwnershipDocument } from '@/lib/types';
+import { generateEntityId } from '@/lib/services/dbService';
 
 interface AddDocumentPropertyModalProps {
   isOpen: boolean;
@@ -46,7 +47,7 @@ export default function AddDocumentPropertyModal({
       const rep = representatives.find((r) => r.id === data.current_representative_id);
 
       const newDoc: OwnershipDocument = {
-        id: `deed-${Date.now()}`,
+        id: generateEntityId(),
         document_number: data.document_number,
         issue_date: data.issue_date,
         lessor_id: data.lessor_id,
@@ -56,7 +57,7 @@ export default function AddDocumentPropertyModal({
       };
 
       const newProp: Property = {
-        id: `prop-${Date.now()}`,
+        id: generateEntityId(),
         title: data.property_title,
         property_type: data.property_type,
         address: data.address,

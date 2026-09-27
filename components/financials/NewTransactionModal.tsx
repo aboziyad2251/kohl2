@@ -11,6 +11,7 @@ import {
   BrokerageAgreement,
 } from '@/lib/types';
 import { calculateTransactionNet } from '@/lib/services/financials';
+import { generateEntityId } from '@/lib/services/dbService';
 
 interface NewTransactionModalProps {
   isOpen: boolean;
@@ -63,7 +64,7 @@ export default function NewTransactionModal({
     const selectedBrokerage = brokerageAgreements.find((b) => b.id === brokerageId);
 
     const newTx: FinancialTransaction = {
-      id: `ft-${Date.now()}`,
+      id: generateEntityId(),
       transaction_date: transactionDate,
       transaction_type: transactionType,
       flow_type: flowType,

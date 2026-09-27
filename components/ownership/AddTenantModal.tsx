@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, UserCheck, Plus, CheckCircle2 } from 'lucide-react';
 import { Tenant } from '@/lib/types';
+import { generateEntityId } from '@/lib/services/dbService';
 
 const tenantSchema = z.object({
   name: z.string().min(3, 'اسم المستأجر يجب أن يتكون من 3 حروف على الأقل'),
@@ -48,7 +49,7 @@ export default function AddTenantModal({
     setIsSubmitting(true);
     try {
       const newTenant: Tenant = {
-        id: `tnt-${Date.now()}`,
+        id: generateEntityId(),
         name: data.name,
         national_id: data.national_id,
         phone: data.phone,

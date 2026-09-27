@@ -794,15 +794,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addCustomerOrder = async (order: CustomerOrder): Promise<boolean> => {
-    const success = await dbInsertCustomerOrder(order);
-    if (success) {
-      setCustomerOrders((prev) => {
-        const updated = [order, ...prev];
-        syncLocal(STORAGE_KEYS.CUSTOMER_ORDERS, updated);
-        return updated;
-      });
-    }
-    return success;
+    const updated = [order, ...customerOrders];
+    setCustomerOrders(updated);
+    syncLocal(STORAGE_KEYS.CUSTOMER_ORDERS, updated);
+    await dbInsertCustomerOrder(order);
+    return true;
   };
 
   const updateCustomerOrder = async (order: CustomerOrder) => {

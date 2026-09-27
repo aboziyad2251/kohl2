@@ -22,6 +22,7 @@ import {
   subleaseContractSchema,
 } from '@/lib/validations';
 import { ContractType, Property, Contract, Tenant } from '@/lib/types';
+import { generateEntityId } from '@/lib/services/dbService';
 import AddTenantModal from '@/components/ownership/AddTenantModal';
 import { UserPlus } from 'lucide-react';
 
@@ -105,7 +106,7 @@ export default function ContractWizard({
         contractType === 'COMMERCIAL' ? 'CNT-COM' : contractType === 'SUBLEASE' ? 'CNT-SUB' : 'CNT-RES';
 
       const newContract: Contract = {
-        id: `cnt-${Date.now()}`,
+        id: generateEntityId(),
         contract_number: `${prefix}-2026-${Math.floor(1000 + Math.random() * 9000)}`,
         type: contractType,
         property_id: data.property_id,

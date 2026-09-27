@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { X, FileCheck, CheckCircle2, Percent } from 'lucide-react';
 import { brokerageAgreementSchema, BrokerageAgreementInput } from '@/lib/validations';
 import { Property, BrokerageAgreement } from '@/lib/types';
+import { generateEntityId } from '@/lib/services/dbService';
 
 interface NewBrokerageAgreementModalProps {
   isOpen: boolean;
@@ -42,7 +43,7 @@ export default function NewBrokerageAgreementModal({
       const prop = properties.find((p) => p.id === data.property_id);
 
       const newAgreement: BrokerageAgreement = {
-        id: `brk-${Date.now()}`,
+        id: generateEntityId(),
         agreement_number: `EJAR-BRK-2026-${Math.floor(100 + Math.random() * 900)}`,
         property_id: data.property_id,
         lessor_id: prop?.lessor_id || '',
