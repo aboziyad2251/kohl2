@@ -160,13 +160,10 @@ function mergeEntities<T extends { id: string }>(
   const seenIds = new Set<string>();
   const localMap = new Map<string, T>();
 
-  // If localList was wiped or empty, fall back to default seed list (excluding deleted)
+  // Only fall back to seeds on initial offline cold boot (remoteList is null AND localList is empty)
   let effectiveLocalList = localList;
-  if (
-    (!effectiveLocalList || effectiveLocalList.length === 0) &&
-    defaultSeedList &&
-    defaultSeedList.length > 0
-  ) {
+  const isColdOfflineBoot = remoteList === null && (!effectiveLocalList || effectiveLocalList.length === 0);
+  if (isColdOfflineBoot && defaultSeedList && defaultSeedList.length > 0) {
     effectiveLocalList = defaultSeedList.filter((item) => item && item.id && !deletedSet.has(item.id));
   }
 

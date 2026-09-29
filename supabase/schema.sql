@@ -372,58 +372,78 @@ EXCEPTION
 END $$;
 
 -- ==============================================================================
--- SEED INITIAL MOCK DATA
+-- SEED INITIAL MOCK DATA (IDEMPOTENT: APPLIED ONLY IF TABLES ARE EMPTY)
 -- ==============================================================================
 
--- Lessors
-INSERT INTO lessors (id, name, national_id_or_cr, phone, email) VALUES
-('11111111-1111-1111-1111-111111111111', 'الشيخ محمد بن عبد الله العتيبي', '1010293847', '+966501234567', 'alotaibi@realestate.sa'),
-('22222222-2222-2222-2222-222222222222', 'مجموعة الرياض القابضة للعقارات', '7001928374', '+966114567890', 'info@riyadhholding.sa')
-ON CONFLICT (national_id_or_cr) DO NOTHING;
+DO $$
+BEGIN
+    -- Lessors (seed only if empty)
+    IF NOT EXISTS (SELECT 1 FROM lessors LIMIT 1) THEN
+        INSERT INTO lessors (id, name, national_id_or_cr, phone, email) VALUES
+        ('11111111-1111-1111-1111-111111111111', 'الشيخ محمد بن عبد الله العتيبي', '1010293847', '+966501234567', 'alotaibi@realestate.sa'),
+        ('22222222-2222-2222-2222-222222222222', 'مجموعة الرياض القابضة للعقارات', '7001928374', '+966114567890', 'info@riyadhholding.sa')
+        ON CONFLICT (national_id_or_cr) DO NOTHING;
+    END IF;
 
--- Representatives
-INSERT INTO representatives (id, name, national_id, phone, email, e_poa_number, status) VALUES
-('33333333-3333-3333-3333-333333333333', 'م. طارق الغامدي', '1088776655', '+966559876543', 'tariq@rep-office.sa', 'POA-998822', 'ACTIVE'),
-('44444444-4444-4444-4444-444444444444', 'سلطان الحربي', '1077665544', '+966543210987', 'sultan@lawfirm.sa', 'POA-774411', 'ACTIVE')
-ON CONFLICT (national_id) DO NOTHING;
+    -- Representatives (seed only if empty)
+    IF NOT EXISTS (SELECT 1 FROM representatives LIMIT 1) THEN
+        INSERT INTO representatives (id, name, national_id, phone, email, e_poa_number, status) VALUES
+        ('33333333-3333-3333-3333-333333333333', 'م. طارق الغامدي', '1088776655', '+966559876543', 'tariq@rep-office.sa', 'POA-998822', 'ACTIVE'),
+        ('44444444-4444-4444-4444-444444444444', 'سلطان الحربي', '1077665544', '+966543210987', 'sultan@lawfirm.sa', 'POA-774411', 'ACTIVE')
+        ON CONFLICT (national_id) DO NOTHING;
+    END IF;
 
--- Ownership Documents
-INSERT INTO ownership_documents (id, document_number, issue_date, file_url, lessor_id) VALUES
-('55555555-5555-5555-5555-555555555555', 'DEED-98231-2024', '2024-01-15', '/docs/deed_98231.pdf', '11111111-1111-1111-1111-111111111111'),
-('66666666-6666-6666-6666-666666666666', 'DEED-44109-2023', '2023-06-20', '/docs/deed_44109.pdf', '22222222-2222-2222-2222-222222222222')
-ON CONFLICT (document_number) DO NOTHING;
+    -- Ownership Documents (seed only if empty)
+    IF NOT EXISTS (SELECT 1 FROM ownership_documents LIMIT 1) THEN
+        INSERT INTO ownership_documents (id, document_number, issue_date, file_url, lessor_id) VALUES
+        ('55555555-5555-5555-5555-555555555555', 'DEED-98231-2024', '2024-01-15', '/docs/deed_98231.pdf', '11111111-1111-1111-1111-111111111111'),
+        ('66666666-6666-6666-6666-666666666666', 'DEED-44109-2023', '2023-06-20', '/docs/deed_44109.pdf', '22222222-2222-2222-2222-222222222222')
+        ON CONFLICT (document_number) DO NOTHING;
+    END IF;
 
--- Properties
-INSERT INTO properties (id, property_name, deed_number, property_type, address, city, units_count, ownership_document_id, lessor_id, current_representative_id) VALUES
-('77777777-7777-7777-7777-777777777777', 'برج الملقا التجاري', 'DEED-98231-2024', 'Commercial', 'طريق الملك فهد، حي الملقا', 'الرياض', 24, '55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333'),
-('88888888-8888-8888-8888-888888888888', 'مجمع العليا السكني', 'DEED-44109-2023', 'Residential', 'شارع العليا العام', 'الرياض', 16, '66666666-6666-6666-6666-666666666666', '22222222-2222-2222-2222-222222222222', '44444444-4444-4444-4444-444444444444')
-ON CONFLICT DO NOTHING;
+    -- Properties (seed only if empty)
+    IF NOT EXISTS (SELECT 1 FROM properties LIMIT 1) THEN
+        INSERT INTO properties (id, property_name, deed_number, property_type, address, city, units_count, ownership_document_id, lessor_id, current_representative_id) VALUES
+        ('77777777-7777-7777-7777-777777777777', 'برج الملقا التجاري', 'DEED-98231-2024', 'Commercial', 'طريق الملك فهد، حي الملقا', 'الرياض', 24, '55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333'),
+        ('88888888-8888-8888-8888-888888888888', 'مجمع العليا السكني', 'DEED-44109-2023', 'Residential', 'شارع العليا العام', 'الرياض', 16, '66666666-6666-6666-6666-666666666666', '22222222-2222-2222-2222-222222222222', '44444444-4444-4444-4444-444444444444')
+        ON CONFLICT DO NOTHING;
+    END IF;
 
--- Contracts
-INSERT INTO contracts (id, contract_number, type, property_id, property_name, lessor_name, tenant_name, tenant_national_id, rent_amount, office_commission, payment_schedule, start_date, end_date, status, business_activity, vat_number) VALUES
-('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'CNT-RES-2024-001', 'RESIDENTIAL', '88888888-8888-8888-8888-888888888888', 'مجمع العليا السكني', 'مجموعة الرياض القابضة للعقارات', 'فهد الزهراني', '1099887766', 65000.00, 1625.00, 'Semi-Annual', '2024-03-01', '2025-02-28', 'active', NULL, NULL),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'CNT-COM-2024-089', 'COMMERCIAL', '77777777-7777-7777-7777-777777777777', 'برج الملقا التجاري', 'الشيخ محمد بن عبد الله العتيبي', 'شركة الحلول التقنية المتقدمة', '7009876543', 240000.00, 6000.00, 'Quarterly', '2024-01-01', '2027-12-31', 'active', 'استشارات نظم المعلومات', '310192837400003')
-ON CONFLICT (contract_number) DO NOTHING;
+    -- Contracts (seed only if empty)
+    IF NOT EXISTS (SELECT 1 FROM contracts LIMIT 1) THEN
+        INSERT INTO contracts (id, contract_number, type, property_id, property_name, lessor_name, tenant_name, tenant_national_id, rent_amount, office_commission, payment_schedule, start_date, end_date, status, business_activity, vat_number) VALUES
+        ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'CNT-RES-2024-001', 'RESIDENTIAL', '88888888-8888-8888-8888-888888888888', 'مجمع العليا السكني', 'مجموعة الرياض القابضة للعقارات', 'فهد الزهراني', '1099887766', 65000.00, 1625.00, 'Semi-Annual', '2024-03-01', '2025-02-28', 'active', NULL, NULL),
+        ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'CNT-COM-2024-089', 'COMMERCIAL', '77777777-7777-7777-7777-777777777777', 'برج الملقا التجاري', 'الشيخ محمد بن عبد الله العتيبي', 'شركة الحلول التقنية المتقدمة', '7009876543', 240000.00, 6000.00, 'Quarterly', '2024-01-01', '2027-12-31', 'active', 'استشارات نظم المعلومات', '310192837400003')
+        ON CONFLICT (contract_number) DO NOTHING;
+    END IF;
 
--- Customer Orders (16 seed orders)
-INSERT INTO customer_orders (id, order_number, customer_name, customer_phone, order_type, category, building_type, desired_area, budget_min, budget_max, status, notes) VALUES
-('10101010-1010-1010-1010-101010107680', 'ORD-2026-768', 'راشد حارس', '0581697484', 'شراء', 'RESIDENTIAL', 'شقة فاخرة', 'السلامة', 20000.00, 30000.00, 'new', 'طلب شقة عائلية بحي السلامة'),
-('10101010-1010-1010-1010-101010105700', 'ORD-2026-570', 'حارس باكستاني 2', '0597210697', 'شراء', 'RESIDENTIAL', 'فيلا', 'السلامة', 40000.00, 45000.00, 'new', 'فيلا صغيرة دورين'),
-('10101010-1010-1010-1010-101010105160', 'ORD-2026-516', 'صاحبها سعودي', '0595690347', 'شراء', 'RESIDENTIAL', 'فيلا مودرن', 'السلامة', 60000.00, 60000.00, 'new', 'طلب خاص فيلا مودرن بالسلامة'),
-('10101010-1010-1010-1010-101010102850', 'ORD-2026-285', 'حارس باكستاني', '0536105122', 'إيجار', 'RESIDENTIAL', 'شقة فاخرة', 'النادي', 22200.00, 22200.00, 'new', 'شقة عائلية قريبة من الخدمات'),
-('10101010-1010-1010-1010-101010100790', 'ORD-2026-079', 'سعودي', '0505676735', 'إيجار', 'COMMERCIAL', 'مكتب تجاري', 'النادي', 35000.00, 35000.00, 'new', 'مكتب مساحة 120م'),
-('10101010-1010-1010-1010-101010103760', 'ORD-2026-376', 'حارس مصري', '0507204930', 'إيجار', 'RESIDENTIAL', 'دور أرضي', 'النادي', 30000.00, 30000.00, 'new', 'دور أرضي مدخل خاص')
-ON CONFLICT (order_number) DO NOTHING;
+    -- Customer Orders (seed only if empty)
+    IF NOT EXISTS (SELECT 1 FROM customer_orders LIMIT 1) THEN
+        INSERT INTO customer_orders (id, order_number, customer_name, customer_phone, order_type, category, building_type, desired_area, budget_min, budget_max, status, notes) VALUES
+        ('10101010-1010-1010-1010-101010107680', 'ORD-2026-768', 'راشد حارس', '0581697484', 'شراء', 'RESIDENTIAL', 'شقة فاخرة', 'السلامة', 20000.00, 30000.00, 'new', 'طلب شقة عائلية بحي السلامة'),
+        ('10101010-1010-1010-1010-101010105700', 'ORD-2026-570', 'حارس باكستاني 2', '0597210697', 'شراء', 'RESIDENTIAL', 'فيلا', 'السلامة', 40000.00, 45000.00, 'new', 'فيلا صغيرة دورين'),
+        ('10101010-1010-1010-1010-101010105160', 'ORD-2026-516', 'صاحبها سعودي', '0595690347', 'شراء', 'RESIDENTIAL', 'فيلا مودرن', 'السلامة', 60000.00, 60000.00, 'new', 'طلب خاص فيلا مودرن بالسلامة'),
+        ('10101010-1010-1010-1010-101010102850', 'ORD-2026-285', 'حارس باكستاني', '0536105122', 'إيجار', 'RESIDENTIAL', 'شقة فاخرة', 'النادي', 22200.00, 22200.00, 'new', 'شقة عائلية قريبة من الخدمات'),
+        ('10101010-1010-1010-1010-101010100790', 'ORD-2026-079', 'سعودي', '0505676735', 'إيجار', 'COMMERCIAL', 'مكتب تجاري', 'النادي', 35000.00, 35000.00, 'new', 'مكتب مساحة 120م'),
+        ('10101010-1010-1010-1010-101010103760', 'ORD-2026-376', 'حارس مصري', '0507204930', 'إيجار', 'RESIDENTIAL', 'دور أرضي', 'النادي', 30000.00, 30000.00, 'new', 'دور أرضي مدخل خاص')
+        ON CONFLICT (order_number) DO NOTHING;
+    END IF;
 
--- Financial Transactions
-INSERT INTO financial_transactions (id, transaction_date, transaction_type, category, amount, net_profit, payment_method, description) VALUES
-('ft-00100000-0000-0000-0000-000000000001', CURRENT_DATE, 'income', 'عمولة وساطة عقارية', 15000.00, 15000.00, 'تحويل بنكي', 'عمولة وساطة تأجير مكتب تجاري برج الملقا'),
-('ft-00200000-0000-0000-0000-000000000002', CURRENT_DATE, 'income', 'أتعاب إدارة أملاك', 8500.00, 8500.00, 'تحويل بنكي', 'تحصيل أتعاب إدارة مجمع العليا السكني'),
-('ft-00300000-0000-0000-0000-000000000003', CURRENT_DATE, 'expense', 'مصروفات تشغيلية وتسويق', 3200.00, -3200.00, 'مدى', 'حملة تسويق وإعلانات للمنصات العقارية')
-ON CONFLICT DO NOTHING;
+    -- Financial Transactions (seed only if empty)
+    IF NOT EXISTS (SELECT 1 FROM financial_transactions LIMIT 1) THEN
+        INSERT INTO financial_transactions (id, transaction_date, transaction_type, category, amount, net_profit, payment_method, description) VALUES
+        ('ft-00100000-0000-0000-0000-000000000001', CURRENT_DATE, 'income', 'عمولة وساطة عقارية', 15000.00, 15000.00, 'تحويل بنكي', 'عمولة وساطة تأجير مكتب تجاري برج الملقا'),
+        ('ft-00200000-0000-0000-0000-000000000002', CURRENT_DATE, 'income', 'أتعاب إدارة أملاك', 8500.00, 8500.00, 'تحويل بنكي', 'تحصيل أتعاب إدارة مجمع العليا السكني'),
+        ('ft-00300000-0000-0000-0000-000000000003', CURRENT_DATE, 'expense', 'مصروفات تشغيلية وتسويق', 3200.00, -3200.00, 'مدى', 'حملة تسويق وإعلانات للمنصات العقارية')
+        ON CONFLICT DO NOTHING;
+    END IF;
 
--- General Services
-INSERT INTO general_services (id, service_number, service_name, client_name, client_phone, category, cost_price, selling_price, profit_amount, status, notes) VALUES
-('gs-00100000-0000-0000-0000-000000000001', 'SRV-2026-001', 'توثيق عقد إيجار سكني موحد', 'سلطان القحطاني', '0501122334', 'EJAR', 125.00, 250.00, 125.00, 'Completed', 'تم توثيق العقد بنجاح عبر منصة إيجار'),
-('gs-00200000-0000-0000-0000-000000000002', 'SRV-2026-002', 'إصدار رخصة تجارية فورية', 'مؤسسة الأفق للتجارة', '0559988776', 'BALADY', 500.00, 950.00, 450.00, 'In_Progress', 'بانتظار موافقة الدفاع المدني')
-ON CONFLICT (service_number) DO NOTHING;
+    -- General Services (seed only if empty)
+    IF NOT EXISTS (SELECT 1 FROM general_services LIMIT 1) THEN
+        INSERT INTO general_services (id, service_number, service_name, client_name, client_phone, category, cost_price, selling_price, profit_amount, status, notes) VALUES
+        ('gs-00100000-0000-0000-0000-000000000001', 'SRV-2026-001', 'توثيق عقد إيجار سكني موحد', 'سلطان القحطاني', '0501122334', 'EJAR', 125.00, 250.00, 125.00, 'Completed', 'تم توثيق العقد بنجاح عبر منصة إيجار'),
+        ('gs-00200000-0000-0000-0000-000000000002', 'SRV-2026-002', 'إصدار رخصة تجارية فورية', 'مؤسسة الأفق للتجارة', '0559988776', 'BALADY', 500.00, 950.00, 450.00, 'In_Progress', 'بانتظار موافقة الدفاع المدني')
+        ON CONFLICT (service_number) DO NOTHING;
+    END IF;
+END $$;
+
