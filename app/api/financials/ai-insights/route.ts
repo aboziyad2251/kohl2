@@ -30,7 +30,8 @@ export async function POST(req: NextRequest) {
       operationalStatus = {},
     } = body;
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    const anthropicApiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY;
+    const geminiApiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
     let aiResult: {
       what_went_well: string[];
@@ -39,25 +40,59 @@ export async function POST(req: NextRequest) {
       income_increment_strategy: string;
     } | null = null;
 
-    if (apiKey) {
-      try {
-        const systemPrompt = `You are a Chief Financial Officer and Senior Real Estate Business Strategist for a Saudi Real Estate Office.
+    const systemPrompt = `You are a Chief Financial Officer and Senior Real Estate Business Strategist for a Saudi Real Estate Office.
 Analyze the daily financial ledger and operational data:
 - Daily Gross Income: ${grossIncome} SAR
 - Daily Net Income: ${netIncome} SAR
 - Transactions Log: ${JSON.stringify(transactions)}
 - Vacant Units & Pending Agreements: ${JSON.stringify(operationalStatus)}
 
-Provide a structured assessment matching this JSON schema:
+Respond with ONLY valid JSON (no markdown formatting, no explanation, no backticks) matching this exact schema:
 {
-  "what_went_well": ["point 1", "point 2"],
-  "what_went_bad": ["point 1", "point 2"],
-  "ai_recommendations": ["recommendation 1", "recommendation 2"],
-  "income_increment_strategy": "2-sentence summary of single highest-impact action"
+  "what_went_well": ["point 1 in Arabic", "point 2 in Arabic"],
+  "what_went_bad": ["point 1 in Arabic", "point 2 in Arabic"],
+  "ai_recommendations": ["recommendation 1 in Arabic", "recommendation 2 in Arabic"],
+  "income_increment_strategy": "2-sentence summary in Arabic of single highest-impact action"
 }`;
 
+    // 1. Try Claude AI (Anthropic) if API key exists
+    if (anthropicApiKey) {
+      try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': anthropicApiKey,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-20241022',
+            max_tokens: 1024,
+            messages: [{ role: 'user', content: systemPrompt }],
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const rawText = data?.content?.[0]?.text;
+          if (rawText) {
+            const cleanJson = rawText.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+            aiResult = JSON.parse(cleanJson);
+          }
+        } else {
+          const errText = await res.text();
+          console.warn('Claude API request returned non-OK status:', res.status, errText);
+        }
+      } catch (err) {
+        console.warn('Claude API call error:', err);
+      }
+    }
+
+    // 2. Fallback to Gemini if Claude not configured or failed
+    if (!aiResult && geminiApiKey) {
+      try {
         const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -74,7 +109,8 @@ Provide a structured assessment matching this JSON schema:
           const data = await res.json();
           const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
           if (rawText) {
-            aiResult = JSON.parse(rawText.trim());
+            const cleanJson = rawText.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+            aiResult = JSON.parse(cleanJson);
           }
         }
       } catch (err) {
