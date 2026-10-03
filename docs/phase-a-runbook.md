@@ -41,7 +41,7 @@ Do not restore the insecure anonymous policies as a routine rollback. If cutover
 
 ## Current deployment state
 
-Phase A was accepted for deployment. Source changes and migration are prepared locally. No production migration, production user invitation, application deployment, Git commit or push has been performed. The live application remains on its previous revision.
+Phase A was accepted for deployment. Source changes and migration are prepared locally. The implementation and office handoff have been committed and pushed to GitHub. No production migration, production user invitation or application deployment has been performed. The live application remains on its previous revision.
 
 Production preparation on 3 October 2026:
 
