@@ -1,3 +1,5 @@
+> **Deployment completed on 3 October 2026.** See `RESUME-FROM-OFFICE.md` for the current live checkpoint, tested image, backups, account verification, and remaining SMTP/Google limitations. The preparation status below is historical.
+
 # External portals: Phase A handover
 
 Phase A implements real Supabase authentication, external account administration, private relationship records, role enforcement, invitations, password recovery, tenant expiry controls and administrative audit history. Tenant maintenance, owner statements/PDFs and broker commission dashboards remain Phases B, C and D.
