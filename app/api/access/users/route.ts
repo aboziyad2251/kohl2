@@ -17,7 +17,8 @@ export async function POST(req: NextRequest) {
         const parsed = saveUserSchema.safeParse(await req.json());
         if (!parsed.success)
             throw new PortalError(400, parsed.error.issues.map(i => i.message).join('; '));
-        const input = parsed.data;
+        // Passwords are Auth-only; never include them in private profiles or audit payloads.
+        const { password, ...input } = parsed.data;
         const requestId = crypto.randomUUID();
         const admin = adminClient();
         const googleAccount = process.env.GOOGLE_LOGIN_ENABLED === 'true';
@@ -25,8 +26,8 @@ export async function POST(req: NextRequest) {
         if (!target) {
             // generateLink creates the unconfirmed Auth identity without sending mail.
             // Its token stays on the server and is discarded; DB links precede delivery.
-            const { data, error } = googleAccount
-                ? await admin.auth.admin.createUser({email:input.email,email_confirm:true})
+            const { data, error } = password || googleAccount
+                ? await admin.auth.admin.createUser({email:input.email,email_confirm:true, ...(password ? { password } : {})})
                 : await admin.auth.admin.generateLink({ type: 'invite', email: input.email,
                     options: { redirectTo: invitationRedirect() } });
             if (error || !data.user)
@@ -47,10 +48,19 @@ export async function POST(req: NextRequest) {
             if (!existing || existing.email.toLowerCase() !== input.email.toLowerCase())
                 throw new PortalError(400, 'Use the account email already on record');
         }
-        await administrative(user.id, 'SAVE', { ...input, user_id: target }, requestId);
+        try {
+            await administrative(user.id, 'SAVE', { ...input, user_id: target }, requestId);
+        } catch (error) {
+            if (!input.user_id && (password || googleAccount))
+                await admin.auth.admin.deleteUser(target);
+            throw error;
+        }
         if (input.user_id)
             return json({ user_id: target, saved: true });
         await administrative(user.id, 'STATUS', { user_id: target, is_active: true }, requestId);
+        if (password) return json({ user_id: target, saved: true, invitation_sent: false,
+            message: 'Account created. The user can sign in with the password you set. Share it privately.',
+            whatsapp: `مرحباً ${input.full_name}، تم إنشاء حسابك لدى كحل العقارية. سجل الدخول بالبريد ${input.email} وكلمة المرور التي تصلك بشكل خاص. ${process.env.APP_ORIGIN}/login` });
         if (googleAccount) return json({user_id:target,saved:true,invitation_sent:false,
             message:'Account approved. The user can sign in with Google using this email.',
             whatsapp:`مرحباً ${input.full_name}، تم اعتماد حسابك لدى كحل العقارية. سجل الدخول باستخدام Google بالبريد ${input.email}. ${process.env.APP_ORIGIN}/login`});

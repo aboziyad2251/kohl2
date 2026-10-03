@@ -2,6 +2,7 @@ import { z } from 'zod';
 const uuid = z.string().uuid();
 export const saveUserSchema = z.object({
     user_id: uuid.optional(), email: z.string().email().max(254),
+    password: z.string().min(12, 'Password must contain at least 12 characters').max(128).optional(),
     full_name: z.string().trim().min(2).max(150), mobile: z.string().regex(/^05\d{8}$/),
     national_id_or_iqama: z.string().regex(/^\d{10}$/).optional().or(z.literal('')),
     role: z.enum(['BROKER', 'OWNER', 'TENANT']),
@@ -14,6 +15,8 @@ export const saveUserSchema = z.object({
     }).optional(),
 }).superRefine((input, ctx) => {
     const fail = (path: string, message: string) => ctx.addIssue({ code: z.ZodIssueCode.custom, path: [path], message });
+    if (input.user_id && input.password !== undefined)
+        fail('password', 'Passwords cannot be changed through account editing');
     if (input.role === 'OWNER' && !input.owners.length)
         fail('owners', 'Property required');
     if (new Set(input.owners.map(x => x.property_id)).size !== input.owners.length)
