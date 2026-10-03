@@ -1,4 +1,5 @@
 'use client';
+import { portalRequest } from '@/lib/portal/client';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -148,7 +149,7 @@ export default function DailyReportsPage() {
   const handleGenerateAiReport = async () => {
     setIsGenerating(true);
     try {
-      const res = await fetch('/api/financials/ai-insights', {
+      const data = await portalRequest<{ success: boolean; report: AiDailyReport }>('/api/financials/ai-insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -160,7 +161,6 @@ export default function DailyReportsPage() {
         }),
       });
 
-      const data = await res.json();
       if (data.success && data.report) {
         const newReport: AiDailyReport = {
           ...data.report,

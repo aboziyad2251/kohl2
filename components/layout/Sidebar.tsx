@@ -35,6 +35,7 @@ interface NavItem {
 }
 
 const allNavItems: NavItem[] = [
+  { name: 'المستخدمون والصلاحيات', href: '/users-access', icon: ShieldCheck, badge: null, moduleKey: 'users-access' },
   {
     name: 'لوحة التحكم القيادية',
     href: '/dashboard',

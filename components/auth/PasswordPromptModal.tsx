@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Lock, Eye, EyeOff, Shield, AlertCircle, X, Check, KeyRound } from 'lucide-react';
 import { AppUser, UserRole } from '@/lib/types';
-import { useAuth, KNOWN_PASSWORDS } from '@/context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 
 interface PasswordPromptModalProps {
   targetUser: AppUser | null;
@@ -12,7 +12,7 @@ interface PasswordPromptModalProps {
   onSuccess?: () => void;
 }
 
-const ROLE_BADGE_STYLES: Record<UserRole, { bg: string; text: string; border: string }> = {
+const ROLE_BADGE_STYLES: Partial<Record<UserRole, { bg: string; text: string; border: string }>> = {
   CEO: { bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30' },
   ADMIN: { bg: 'bg-rose-500/15', text: 'text-rose-400', border: 'border-rose-500/30' },
   HR: { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30' },
@@ -47,9 +47,9 @@ export default function PasswordPromptModal({
 
   if (!isOpen || !targetUser) return null;
 
-  const badgeStyle = ROLE_BADGE_STYLES[targetUser.role] || ROLE_BADGE_STYLES.EMPLOYEE;
+  const badgeStyle = ROLE_BADGE_STYLES[targetUser.role] || ROLE_BADGE_STYLES.EMPLOYEE!;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -60,7 +60,7 @@ export default function PasswordPromptModal({
       return;
     }
 
-    const result = switchUserWithPassword(targetUser, password);
+    const result = await switchUserWithPassword(targetUser, password);
 
     if (result.success) {
       setIsSuccess(true);

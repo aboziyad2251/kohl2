@@ -326,7 +326,7 @@ export interface ArchivedDocument {
 // ----------------------------------------------------
 // RBAC & USER SESSION TYPES (الأدوار والصلاحيات والمستخدمين)
 // ----------------------------------------------------
-export type UserRole = 'ADMIN' | 'CEO' | 'HR' | 'EMPLOYEE';
+export type UserRole = 'ADMIN' | 'CEO' | 'HR' | 'EMPLOYEE' | 'BROKER' | 'OWNER' | 'TENANT';
 
 export interface AppUser {
   id: string;

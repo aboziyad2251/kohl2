@@ -72,3 +72,9 @@ body {
   color: #cbd5e1;
   border: 1px solid rgba(148, 163, 184, 0.3);
 }
+.portal-surface { background:#EAF3EC; color:#1F4D28; }
+.portal-card { background:white; border:1px solid #BFD9C6; border-radius:1rem; padding:1.5rem; }
+.portal-input { display:block; width:100%; margin-top:.4rem; padding:.7rem; background:white; color:#1F4D28; border:1px solid #BFD9C6; border-radius:.5rem; }
+.portal-input:focus { outline:2px solid #2F6D3A; outline-offset:2px; }
+.portal-button { background:#2F6D3A; color:white; padding:.7rem 1rem; border-radius:.5rem; }
+.portal-button:disabled { opacity:.5; cursor:wait; }

@@ -30,7 +30,7 @@ interface HeaderProps {
   subtitle?: string;
 }
 
-const ROLE_BADGE_STYLES: Record<UserRole, { bg: string; text: string; border: string }> = {
+const ROLE_BADGE_STYLES: Partial<Record<UserRole, { bg: string; text: string; border: string }>> = {
   CEO: { bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30' },
   ADMIN: { bg: 'bg-rose-500/15', text: 'text-rose-400', border: 'border-rose-500/30' },
   HR: { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30' },
@@ -98,7 +98,7 @@ export default function Header({
   };
 
   const currentTitle = title || routeTitles[pathname] || 'نظام إدارة المكتب العقاري';
-  const badgeStyle = ROLE_BADGE_STYLES[role] || ROLE_BADGE_STYLES.EMPLOYEE;
+  const badgeStyle = ROLE_BADGE_STYLES[role] || ROLE_BADGE_STYLES.EMPLOYEE!;
 
   return (
     <>
@@ -183,7 +183,7 @@ export default function Header({
             <button
               onClick={() => setIsSwitcherOpen(!isSwitcherOpen)}
               className="flex items-center gap-1.5 sm:gap-2.5 px-2 sm:px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-right transition shadow-sm"
-              title="تبديل حساب المستخدم ومستوى الصلاحيات"
+              title="الحساب الحالي"
             >
               <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
                 {currentUser.avatar_initials}
@@ -213,10 +213,10 @@ export default function Header({
                   <div>
                     <p className="text-xs font-bold text-white flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5 text-sky-400" />
-                      <span>تبديل مستوى الصلاحية والمستخدم</span>
+                      <span>الحساب الحالي</span>
                     </p>
                     <p className="text-[11px] text-slate-400 mt-0.5">
-                      اختر حساباً لتجربة الصلاحيات (Admin, CEO, HR, Employee)
+                      سجّل الخروج للدخول بحساب آخر
                     </p>
                   </div>
                 </div>
@@ -224,7 +224,7 @@ export default function Header({
                 <div className="py-1 space-y-1 max-h-80 overflow-y-auto">
                   {allUsers.map((user) => {
                     const isSelected = user.id === currentUser.id;
-                    const uBadge = ROLE_BADGE_STYLES[user.role] || ROLE_BADGE_STYLES.EMPLOYEE;
+                    const uBadge = ROLE_BADGE_STYLES[user.role] || ROLE_BADGE_STYLES.EMPLOYEE!;
                     return (
                       <button
                         key={user.id}

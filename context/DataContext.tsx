@@ -280,32 +280,32 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
-  const [lessors, setLessors] = useState<Lessor[]>(INITIAL_LESSORS);
-  const [tenants, setTenants] = useState<Tenant[]>(INITIAL_TENANTS);
-  const [representatives, setRepresentatives] = useState<Representative[]>(INITIAL_REPRESENTATIVES);
-  const [documents, setDocuments] = useState<OwnershipDocument[]>(INITIAL_OWNERSHIP_DOCUMENTS);
-  const [properties, setProperties] = useState<Property[]>(INITIAL_PROPERTIES);
-  const [ePoas, setEPoas] = useState<EPoa[]>(INITIAL_E_POAS);
-  const [contracts, setContracts] = useState<Contract[]>(INITIAL_CONTRACTS);
-  const [brokerageAgreements, setBrokerageAgreements] = useState<BrokerageAgreement[]>(INITIAL_BROKERAGE_AGREEMENTS);
-  const [auditLogs, setAuditLogs] = useState<OwnershipAuditLog[]>(INITIAL_AUDIT_LOGS);
-  const [transactions, setTransactions] = useState<FinancialTransaction[]>(INITIAL_FINANCIAL_TRANSACTIONS);
-  const [dailySummaries, setDailySummaries] = useState<DailyFinancialSummary[]>(INITIAL_DAILY_FINANCIAL_SUMMARIES);
-  const [aiReports, setAiReports] = useState<AiDailyReport[]>(INITIAL_AI_DAILY_REPORTS);
-  const [generalServices, setGeneralServices] = useState<GeneralService[]>(INITIAL_GENERAL_SERVICES);
-  const [customerOrders, setCustomerOrders] = useState<CustomerOrder[]>(INITIAL_CUSTOMER_ORDERS);
-  const [managedProperties, setManagedProperties] = useState<ManagedPropertyContract[]>(INITIAL_MANAGED_PROPERTIES);
-  const [maintenanceTasks, setMaintenanceTasks] = useState<PropertyMaintenanceTask[]>(INITIAL_MAINTENANCE_TASKS);
-  const [archivedDocuments, setArchivedDocuments] = useState<ArchivedDocument[]>(INITIAL_ARCHIVED_DOCUMENTS);
+  const [lessors, setLessors] = useState<Lessor[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [representatives, setRepresentatives] = useState<Representative[]>([]);
+  const [documents, setDocuments] = useState<OwnershipDocument[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [ePoas, setEPoas] = useState<EPoa[]>([]);
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [brokerageAgreements, setBrokerageAgreements] = useState<BrokerageAgreement[]>([]);
+  const [auditLogs, setAuditLogs] = useState<OwnershipAuditLog[]>([]);
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
+  const [dailySummaries, setDailySummaries] = useState<DailyFinancialSummary[]>([]);
+  const [aiReports, setAiReports] = useState<AiDailyReport[]>([]);
+  const [generalServices, setGeneralServices] = useState<GeneralService[]>([]);
+  const [customerOrders, setCustomerOrders] = useState<CustomerOrder[]>([]);
+  const [managedProperties, setManagedProperties] = useState<ManagedPropertyContract[]>([]);
+  const [maintenanceTasks, setMaintenanceTasks] = useState<PropertyMaintenanceTask[]>([]);
+  const [archivedDocuments, setArchivedDocuments] = useState<ArchivedDocument[]>([]);
 
-  const [employees, setEmployees] = useState<Employee[]>(INITIAL_EMPLOYEES);
-  const [timesheetEntries, setTimesheetEntries] = useState<TimesheetEntry[]>(INITIAL_TIMESHEET_ENTRIES);
-  const [payrollPayments, setPayrollPayments] = useState<PayrollPayment[]>(INITIAL_PAYROLL_PAYMENTS);
-  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(INITIAL_LEAVE_REQUESTS);
-  const [taskDelegations, setTaskDelegations] = useState<TaskDelegation[]>(INITIAL_TASK_DELEGATIONS);
-  const [crmLeads, setCrmLeads] = useState<CrmLead[]>(INITIAL_CRM_LEADS);
-  const [crmDeals, setCrmDeals] = useState<CrmDeal[]>(INITIAL_CRM_DEALS);
-  const [crmActivities, setCrmActivities] = useState<CrmActivity[]>(INITIAL_CRM_ACTIVITIES);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [timesheetEntries, setTimesheetEntries] = useState<TimesheetEntry[]>([]);
+  const [payrollPayments, setPayrollPayments] = useState<PayrollPayment[]>([]);
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+  const [taskDelegations, setTaskDelegations] = useState<TaskDelegation[]>([]);
+  const [crmLeads, setCrmLeads] = useState<CrmLead[]>([]);
+  const [crmDeals, setCrmDeals] = useState<CrmDeal[]>([]);
+  const [crmActivities, setCrmActivities] = useState<CrmActivity[]>([]);
 
   useEffect(() => {
     async function initData() {
@@ -338,7 +338,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.crmActivities) setCrmActivities(data.crmActivities);
       setIsLoading(false);
     }
-    initData();
+    void initData().catch(() => setIsLoading(false));
   }, []);
 
   // Save changes helper

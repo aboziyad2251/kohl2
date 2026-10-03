@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireIdentity, apiError } from '@/lib/portal/server';
 
 interface Transaction {
   flow_type: 'INCOME' | 'EXPENSE';
@@ -20,6 +21,7 @@ interface RequestPayload {
 }
 
 export async function POST(req: NextRequest) {
+  try { await requireIdentity(req, true); } catch (error) { return apiError(error); }
   try {
     const body: RequestPayload = await req.json();
     const {

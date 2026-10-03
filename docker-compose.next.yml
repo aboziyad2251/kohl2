@@ -3,6 +3,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.next
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
     container_name: kohl_crm_app
     restart: unless-stopped
     ports:
@@ -12,6 +15,10 @@ services:
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       - INTERNAL_SEARCH_API_KEY=${INTERNAL_SEARCH_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - SUPABASE_SERVER_URL=${SUPABASE_SERVER_URL:-}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-}
+      - APP_ORIGIN=${APP_ORIGIN:-https://app.kohlestate-ksa.online}
+      - GOOGLE_LOGIN_ENABLED=${GOOGLE_LOGIN_ENABLED:-false}
     networks:
       - default
       - supabase_default

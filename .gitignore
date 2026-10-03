@@ -36,3 +36,9 @@ yarn-error.log*
 
 # database backups (kept locally only)
 /backups
+portal-bootstrap*.json
+supabase/.temp/
+.portal-stage/
+docs/portal-live-catalog.txt
+google-oauth*.json
+client_secret*.json

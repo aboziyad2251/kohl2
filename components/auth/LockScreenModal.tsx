@@ -5,7 +5,7 @@ import { Lock, Eye, EyeOff, Building, KeyRound, AlertCircle, Check, Users, Shiel
 import { useAuth } from '@/context/AuthContext';
 import { AppUser, UserRole } from '@/lib/types';
 
-const ROLE_BADGE_STYLES: Record<UserRole, { bg: string; text: string; border: string }> = {
+const ROLE_BADGE_STYLES: Partial<Record<UserRole, { bg: string; text: string; border: string }>> = {
   CEO: { bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30' },
   ADMIN: { bg: 'bg-rose-500/15', text: 'text-rose-400', border: 'border-rose-500/30' },
   HR: { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30' },
@@ -28,9 +28,9 @@ export default function LockScreenModal() {
 
   if (!isLocked) return null;
 
-  const targetBadge = ROLE_BADGE_STYLES[selectedUser.role] || ROLE_BADGE_STYLES.EMPLOYEE;
+  const targetBadge = ROLE_BADGE_STYLES[selectedUser.role] || ROLE_BADGE_STYLES.EMPLOYEE!;
 
-  const handleUnlock = (e: React.FormEvent) => {
+  const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -39,7 +39,7 @@ export default function LockScreenModal() {
       return;
     }
 
-    const res = unlockSession(selectedUser.id, password);
+    const res = await unlockSession(selectedUser.id, password);
     if (res.success) {
       setIsSuccess(true);
       setTimeout(() => {
@@ -108,7 +108,7 @@ export default function LockScreenModal() {
           {isSwitchingAccount && (
             <div className="mt-3 pt-3 border-t border-slate-700 space-y-1 max-h-48 overflow-y-auto">
               {allUsers.map((u) => {
-                const uBadge = ROLE_BADGE_STYLES[u.role] || ROLE_BADGE_STYLES.EMPLOYEE;
+                const uBadge = ROLE_BADGE_STYLES[u.role] || ROLE_BADGE_STYLES.EMPLOYEE!;
                 const isCurrent = u.id === selectedUser.id;
                 return (
                   <button

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseClient';
+import { adminClient } from '@/lib/portal/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
         const query = rawQuery.trim();
 
         // 3. Query Database via Supabase
-        const { data, error } = await supabase
+        const { data, error } = await adminClient()
             .from('properties')
             .select('*')
             .or(`property_name.ilike.%${query}%,address.ilike.%${query}%,city.ilike.%${query}%,district.ilike.%${query}%,deed_number.ilike.%${query}%`)

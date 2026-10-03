@@ -5,7 +5,7 @@ import { KeyRound, Eye, EyeOff, ShieldCheck, AlertCircle, X, Check, Lock } from 
 import { useAuth } from '@/context/AuthContext';
 import { UserRole } from '@/lib/types';
 
-const ROLE_BADGE_STYLES: Record<UserRole, { bg: string; text: string; border: string }> = {
+const ROLE_BADGE_STYLES: Partial<Record<UserRole, { bg: string; text: string; border: string }>> = {
   CEO: { bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30' },
   ADMIN: { bg: 'bg-rose-500/15', text: 'text-rose-400', border: 'border-rose-500/30' },
   HR: { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30' },
@@ -45,9 +45,9 @@ export default function ChangePasswordModal() {
 
   if (!isChangePasswordOpen) return null;
 
-  const badgeStyle = ROLE_BADGE_STYLES[currentUser.role] || ROLE_BADGE_STYLES.EMPLOYEE;
+  const badgeStyle = ROLE_BADGE_STYLES[currentUser.role] || ROLE_BADGE_STYLES.EMPLOYEE!;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -63,8 +63,8 @@ export default function ChangePasswordModal() {
       return;
     }
 
-    if (newPassword.length < 4) {
-      setErrorMsg('يجب ألا تقل كلمة المرور الجديدة عن 4 خانات');
+    if (newPassword.length < 12) {
+      setErrorMsg('يجب ألا تقل كلمة المرور الجديدة عن 12 خانة');
       triggerShake();
       return;
     }
@@ -75,7 +75,7 @@ export default function ChangePasswordModal() {
       return;
     }
 
-    const res = changePassword(currentPassword, newPassword);
+    const res = await changePassword(currentPassword, newPassword);
 
     if (res.success) {
       setIsSuccess(true);

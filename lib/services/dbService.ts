@@ -82,8 +82,13 @@ const STORAGE_KEYS = {
   DELETED_IDS: 'kohl_deleted_ids_v1',
 };
 
+// Only a database-verified executive may use the existing offline ERP cache.
+// External roles never mount DataProvider and are denied by this entry point too.
+let executiveCacheAllowed = false;
+
 // LocalStorage Helpers
 export function getLocalData<T>(key: string, defaultData: T): T {
+  if (!executiveCacheAllowed) return defaultData;
   if (typeof window === 'undefined') return defaultData;
   try {
     const item = localStorage.getItem(key);
@@ -95,6 +100,7 @@ export function getLocalData<T>(key: string, defaultData: T): T {
 }
 
 export function setLocalData<T>(key: string, data: T): void {
+  if (!executiveCacheAllowed) return;
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(key, JSON.stringify(data));
@@ -210,7 +216,51 @@ function mergeEntities<T extends { id: string }>(
 // DATABASE CRUD OPERATIONS (SUPABASE + LOCAL STORAGE)
 // ----------------------------------------------------
 
+async function fetchAuthorizedDatabaseData() {
+  // Database/RLS is the sole authority. Never merge other sessions' browser caches
+  // or demo records into an authenticated user's result, even on network errors.
+  const entries = await Promise.all([
+    supabase.from('lessors').select('*').then(({data}) => ['lessors', data || []] as const),
+    supabase.from('tenants').select('*').then(({data}) => ['tenants', data || []] as const),
+    supabase.from('representatives').select('*').then(({data}) => ['representatives', data || []] as const),
+    supabase.from('ownership_documents').select('*').then(({data}) => ['documents', data || []] as const),
+    supabase.from('properties').select('*').then(({data}) => ['properties', data || []] as const),
+    supabase.from('e_poas').select('*').then(({data}) => ['ePoas', data || []] as const),
+    supabase.from('contracts').select('*').then(({data}) => ['contracts', data || []] as const),
+    supabase.from('brokerage_agreements').select('*').then(({data}) => ['brokerageAgreements', data || []] as const),
+    supabase.from('ownership_audit_logs').select('*').then(({data}) => ['auditLogs', data || []] as const),
+    supabase.from('financial_transactions').select('*').then(({data}) => ['transactions', data || []] as const),
+    supabase.from('daily_financial_summaries').select('*').then(({data}) => ['dailySummaries', data || []] as const),
+    supabase.from('ai_daily_reports').select('*').then(({data}) => ['aiReports', data || []] as const),
+    supabase.from('general_services').select('*').then(({data}) => ['generalServices', data || []] as const),
+    supabase.from('customer_orders').select('*').then(({data}) => ['customerOrders', data || []] as const),
+    supabase.from('managed_properties').select('*').then(({data}) => ['managedProperties', data || []] as const),
+    supabase.from('property_maintenance_tasks').select('*').then(({data}) => ['maintenanceTasks', data || []] as const),
+    supabase.from('archived_documents').select('*').then(({data}) => ['archivedDocuments', data || []] as const),
+    supabase.from('employees').select('*').then(({data}) => ['employees', data || []] as const),
+    supabase.from('timesheet_entries').select('*').then(({data}) => ['timesheetEntries', data || []] as const),
+    supabase.from('payroll_payments').select('*').then(({data}) => ['payrollPayments', data || []] as const),
+    supabase.from('leave_requests').select('*').then(({data}) => ['leaveRequests', data || []] as const),
+    supabase.from('task_delegations').select('*').then(({data}) => ['taskDelegations', data || []] as const),
+    supabase.from('crm_leads').select('*').then(({data}) => ['crmLeads', data || []] as const),
+    supabase.from('crm_deals').select('*').then(({data}) => ['crmDeals', data || []] as const),
+    supabase.from('crm_activities').select('*').then(({data}) => ['crmActivities', data || []] as const),
+  ]);
+  const result: any = Object.fromEntries(entries);
+  result.properties = result.properties.map((row: any) => ({...row, title: row.title || row.property_name}));
+  return result;
+}
+
+
 export async function dbFetchAllData() {
+  executiveCacheAllowed = false;
+  const { data: profile, error } = await supabase.rpc('portal_me');
+  if (error || !profile || !['ADMIN', 'CEO', 'HR', 'EMPLOYEE'].includes(profile.account.role)) {
+    throw new Error('Authenticated internal account required');
+  }
+  executiveCacheAllowed = ['ADMIN', 'CEO'].includes(profile.account.role);
+  if (!executiveCacheAllowed) return fetchAuthorizedDatabaseData();
+
   if (typeof window !== 'undefined') {
     // Clear legacy v1 financial mock keys if present
     localStorage.removeItem('kohl_financial_transactions_v1');
@@ -303,7 +353,7 @@ export async function dbFetchAllData() {
       supabase.from('tenants').select('*'),
       supabase.from('representatives').select('*'),
       supabase.from('ownership_documents').select('*'),
-      supabase.from('properties').select('*'),
+      supabase.from('properties').select('*, title:property_name'),
       supabase.from('e_poas').select('*'),
       supabase.from('contracts').select('*'),
       supabase.from('brokerage_agreements').select('*'),
