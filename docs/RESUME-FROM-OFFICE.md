@@ -1,5 +1,11 @@
 # Live deployment checkpoint — 3 October 2026
 
+**Paused at the user's request after successful deployment. Resume only when the user says "plz sync" at home.** Fetch `origin/codex/phase-a-production-cutover` (not just `origin/main`), preserve local work, and read this latest section before the historical notes below. The release and handoff are pushed on that branch; production runs app commit `1883b16`.
+
+Remaining at pause: user acceptance in the actual browser; optional broader live read checks; cleanup of this run's loopback-only `kohl-cutover-preview-app`, `kohl-cutover-preview-auth`, `kohl-cutover-preview-rest` and `/home/debian/backups/kohl-cutover-20261003T144142Z/preview.py` process. The last combined extra-read/cleanup command was not executed because automatic approval review encountered a usage limit. Earlier public HTTPS, executive login, role, record-count, key-rejection and service-health checks all completed successfully. Keep the verified backup databases/files. Do not confuse these test services with production or older preview services.
+
+The office login file is `C:\Users\moham\Downloads\Kohl-executive-login-private.txt` and is restricted to that Windows user; it is not in Git. At home, retrieve credentials securely from the existing private VPS account file if needed. Preserve the unrelated local `scripts/update_msix_claude.py`; it was intentionally excluded from the deployment branch.
+
 Phase A is deployed at https://app.kohlestate-ksa.online. Both approved executive password logins were verified against the live HTTPS application. Google login remains disabled; SMTP delivery is still unconfigured.
 
 - Tested/deployed application source: `1883b16`, branch `codex/phase-a-production-cutover` (pushed to GitHub).
