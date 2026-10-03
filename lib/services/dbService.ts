@@ -82,6 +82,11 @@ const STORAGE_KEYS = {
   DELETED_IDS: 'kohl_deleted_ids_v1',
 };
 
+
+const orderStatusToDatabase = (status: string) => ({New:'new', Searching:'in_progress', Fulfilled:'completed', Cancelled:'cancelled'}[status] || status);
+const normalizeOrder = (row: CustomerOrder): CustomerOrder => ({...row, status: (({new:'New', in_progress:'Searching', completed:'Fulfilled', cancelled:'Cancelled'} as Record<string, string>)[row.status] || row.status) as CustomerOrder['status']});
+const normalizeContractStatus = (status: string): Contract['status'] => ({draft:'Draft', active:'Active', terminated:'Terminated', expired:'Expired'}[status] || status) as Contract['status'];
+
 // Only a database-verified executive may use the existing offline ERP cache.
 // External roles never mount DataProvider and are denied by this entry point too.
 let executiveCacheAllowed = false;
@@ -224,18 +229,18 @@ async function fetchAuthorizedDatabaseData() {
     supabase.from('tenants').select('*').then(({data}) => ['tenants', data || []] as const),
     supabase.from('representatives').select('*').then(({data}) => ['representatives', data || []] as const),
     supabase.from('ownership_documents').select('*').then(({data}) => ['documents', data || []] as const),
-    supabase.from('properties').select('*').then(({data}) => ['properties', data || []] as const),
+    supabase.from('properties').select('*,title:property_name').then(({data}) => ['properties', data || []] as const),
     supabase.from('e_poas').select('*').then(({data}) => ['ePoas', data || []] as const),
     supabase.from('contracts').select('*').then(({data}) => ['contracts', data || []] as const),
     supabase.from('brokerage_agreements').select('*').then(({data}) => ['brokerageAgreements', data || []] as const),
-    supabase.from('ownership_audit_logs').select('*').then(({data}) => ['auditLogs', data || []] as const),
-    supabase.from('financial_transactions').select('*').then(({data}) => ['transactions', data || []] as const),
+    supabase.from('ownership_audit_logs').select('*,changed_at:created_at').then(({data}) => ['auditLogs', data || []] as const),
+    supabase.from('financial_transactions').select('id,transaction_date,transaction_type:category,flow_type:transaction_type,gross_amount:amount,tax_vat_amount:tax_vat,net_amount:net_profit,notes:description,property_id,contract_id,brokerage_agreement_id,created_at').then(({data}) => ['transactions', data || []] as const),
     supabase.from('daily_financial_summaries').select('*').then(({data}) => ['dailySummaries', data || []] as const),
     supabase.from('ai_daily_reports').select('*').then(({data}) => ['aiReports', data || []] as const),
-    supabase.from('general_services').select('*').then(({data}) => ['generalServices', data || []] as const),
-    supabase.from('customer_orders').select('*').then(({data}) => ['customerOrders', data || []] as const),
-    supabase.from('managed_properties').select('*').then(({data}) => ['managedProperties', data || []] as const),
-    supabase.from('property_maintenance_tasks').select('*').then(({data}) => ['maintenanceTasks', data || []] as const),
+    supabase.from('general_services').select('*,title:service_name,cost_amount:cost_price,fee_amount:selling_price,office_profit:profit_amount').then(({data}) => ['generalServices', data || []] as const),
+    supabase.from('customer_orders').select('*,client_name:customer_name,client_phone:customer_phone').then(({data}) => ['customerOrders', data || []] as const),
+    supabase.from('managed_property_contracts').select('*').then(({data}) => ['managedProperties', data || []] as const),
+    supabase.from('property_maintenance_tasks').select('*,unit_name:unit_number,maintenance_type:task_type,notes:description').then(({data}) => ['maintenanceTasks', data || []] as const),
     supabase.from('archived_documents').select('*').then(({data}) => ['archivedDocuments', data || []] as const),
     supabase.from('employees').select('*').then(({data}) => ['employees', data || []] as const),
     supabase.from('timesheet_entries').select('*').then(({data}) => ['timesheetEntries', data || []] as const),
@@ -248,329 +253,32 @@ async function fetchAuthorizedDatabaseData() {
   ]);
   const result: any = Object.fromEntries(entries);
   result.properties = result.properties.map((row: any) => ({...row, title: row.title || row.property_name}));
+  result.properties = result.properties.map((row: any) => ({...row,
+    lessor: result.lessors.find((item: any) => item.id === row.lessor_id),
+    ownership_document: result.documents.find((item: any) => item.id === row.ownership_document_id),
+    current_representative: result.representatives.find((item: any) => item.id === row.current_representative_id)}));
+  for (const key of ['contracts', 'brokerageAgreements', 'transactions', 'auditLogs']) {
+    result[key] = result[key].map((row: any) => ({...row,
+      property: result.properties.find((item: any) => item.id === row.property_id),
+      lessor: result.lessors.find((item: any) => item.id === row.lessor_id)}));
+  }
+  result.contracts = result.contracts.map((row: any) => ({...row, status: normalizeContractStatus(row.status)}));
+  result.customerOrders = result.customerOrders.map(normalizeOrder);
   return result;
 }
 
 
 export async function dbFetchAllData() {
+  // The legacy cache was backed up and reconciled during cutover. Loading it
+  // again would resurrect sample rows and override verified database records.
   executiveCacheAllowed = false;
   const { data: profile, error } = await supabase.rpc('portal_me');
   if (error || !profile || !['ADMIN', 'CEO', 'HR', 'EMPLOYEE'].includes(profile.account.role)) {
     throw new Error('Authenticated internal account required');
   }
-  executiveCacheAllowed = ['ADMIN', 'CEO'].includes(profile.account.role);
-  if (!executiveCacheAllowed) return fetchAuthorizedDatabaseData();
-
-  if (typeof window !== 'undefined') {
-    // Clear legacy v1 financial mock keys if present
-    localStorage.removeItem('kohl_financial_transactions_v1');
-    localStorage.removeItem('kohl_daily_summaries_v1');
-    localStorage.removeItem('kohl_ai_reports_v1');
-  }
-  const localLessors = getLocalData<Lessor[]>(STORAGE_KEYS.LESSORS, INITIAL_LESSORS);
-  const localTenants = getLocalData<Tenant[]>(STORAGE_KEYS.TENANTS, INITIAL_TENANTS);
-  const localReps = getLocalData<Representative[]>(STORAGE_KEYS.REPRESENTATIVES, INITIAL_REPRESENTATIVES);
-  const localDocs = getLocalData<OwnershipDocument[]>(STORAGE_KEYS.DOCUMENTS, INITIAL_OWNERSHIP_DOCUMENTS);
-  const localProps = getLocalData<Property[]>(STORAGE_KEYS.PROPERTIES, INITIAL_PROPERTIES);
-  const localEPoas = getLocalData<EPoa[]>(STORAGE_KEYS.E_POAS, INITIAL_E_POAS);
-  const localContracts = getLocalData<Contract[]>(STORAGE_KEYS.CONTRACTS, INITIAL_CONTRACTS);
-  const localBrokerage = getLocalData<BrokerageAgreement[]>(STORAGE_KEYS.BROKERAGE, INITIAL_BROKERAGE_AGREEMENTS);
-  const localLogs = getLocalData<OwnershipAuditLog[]>(STORAGE_KEYS.AUDIT_LOGS, INITIAL_AUDIT_LOGS);
-  const localTx = getLocalData<FinancialTransaction[]>(STORAGE_KEYS.TRANSACTIONS, INITIAL_FINANCIAL_TRANSACTIONS);
-  const localSummaries = getLocalData<DailyFinancialSummary[]>(STORAGE_KEYS.SUMMARIES, INITIAL_DAILY_FINANCIAL_SUMMARIES);
-  const localReports = getLocalData<AiDailyReport[]>(STORAGE_KEYS.AI_REPORTS, INITIAL_AI_DAILY_REPORTS);
-  const localServices = getLocalData<GeneralService[]>(STORAGE_KEYS.GENERAL_SERVICES, INITIAL_GENERAL_SERVICES);
-  const localCustomerOrders = getLocalData<CustomerOrder[]>(STORAGE_KEYS.CUSTOMER_ORDERS, INITIAL_CUSTOMER_ORDERS);
-  const localManagedProps = getLocalData<ManagedPropertyContract[]>(STORAGE_KEYS.MANAGED_PROPERTIES, INITIAL_MANAGED_PROPERTIES);
-  const localMaintenanceTasks = getLocalData<PropertyMaintenanceTask[]>(STORAGE_KEYS.MAINTENANCE_TASKS, INITIAL_MAINTENANCE_TASKS);
-  const localArchivedDocs = getLocalData<ArchivedDocument[]>(STORAGE_KEYS.ARCHIVED_DOCUMENTS, INITIAL_ARCHIVED_DOCUMENTS);
-  const localEmployees = getLocalData<Employee[]>(STORAGE_KEYS.EMPLOYEES, INITIAL_EMPLOYEES);
-  const localTimesheet = getLocalData<TimesheetEntry[]>(STORAGE_KEYS.TIMESHEET, INITIAL_TIMESHEET_ENTRIES);
-  const localPayroll = getLocalData<PayrollPayment[]>(STORAGE_KEYS.PAYROLL, INITIAL_PAYROLL_PAYMENTS);
-  const localLeaves = getLocalData<LeaveRequest[]>(STORAGE_KEYS.LEAVES, INITIAL_LEAVE_REQUESTS);
-  const localTaskDelegations = getLocalData<TaskDelegation[]>(STORAGE_KEYS.TASK_DELEGATIONS, INITIAL_TASK_DELEGATIONS);
-  const localCrmLeads = getLocalData<CrmLead[]>(STORAGE_KEYS.CRM_LEADS, INITIAL_CRM_LEADS);
-  const localCrmDeals = getLocalData<CrmDeal[]>(STORAGE_KEYS.CRM_DEALS, INITIAL_CRM_DEALS);
-  const localCrmActivities = getLocalData<CrmActivity[]>(STORAGE_KEYS.CRM_ACTIVITIES, INITIAL_CRM_ACTIVITIES);
-
-  const deletedSet = getDeletedIdsSet();
-
-  let sbLessors: Lessor[] | null = null;
-  let sbTenants: Tenant[] | null = null;
-  let sbReps: Representative[] | null = null;
-  let sbDocs: OwnershipDocument[] | null = null;
-  let sbProps: Property[] | null = null;
-  let sbEPoas: EPoa[] | null = null;
-  let sbContracts: Contract[] | null = null;
-  let sbBrokerage: BrokerageAgreement[] | null = null;
-  let sbLogs: OwnershipAuditLog[] | null = null;
-  let sbTx: FinancialTransaction[] | null = null;
-  let sbSummaries: DailyFinancialSummary[] | null = null;
-  let sbReports: AiDailyReport[] | null = null;
-  let sbServices: GeneralService[] | null = null;
-  let sbCustomerOrders: CustomerOrder[] | null = null;
-  let sbManagedProps: ManagedPropertyContract[] | null = null;
-  let sbMaintenanceTasks: PropertyMaintenanceTask[] | null = null;
-  let sbArchivedDocs: ArchivedDocument[] | null = null;
-  let sbEmployees: Employee[] | null = null;
-  let sbTimesheet: TimesheetEntry[] | null = null;
-  let sbPayroll: PayrollPayment[] | null = null;
-  let sbLeaves: LeaveRequest[] | null = null;
-  let sbTaskDelegations: TaskDelegation[] | null = null;
-  let sbCrmLeads: CrmLead[] | null = null;
-  let sbCrmDeals: CrmDeal[] | null = null;
-  let sbCrmActivities: CrmActivity[] | null = null;
-
-  try {
-    const [
-      resLessors,
-      resTenants,
-      resReps,
-      resDocs,
-      resProps,
-      resEPoas,
-      resContracts,
-      resBrokerage,
-      resLogs,
-      resTx,
-      resSummaries,
-      resReports,
-      resServices,
-      resCustomerOrders,
-      resManagedProps,
-      resMaintenanceTasks,
-      resArchivedDocs,
-      resEmployees,
-      resTimesheet,
-      resPayroll,
-      resLeaves,
-      resTasks,
-      resLeads,
-      resDeals,
-      resActivities,
-    ] = await Promise.allSettled([
-      supabase.from('lessors').select('*'),
-      supabase.from('tenants').select('*'),
-      supabase.from('representatives').select('*'),
-      supabase.from('ownership_documents').select('*'),
-      supabase.from('properties').select('*, title:property_name'),
-      supabase.from('e_poas').select('*'),
-      supabase.from('contracts').select('*'),
-      supabase.from('brokerage_agreements').select('*'),
-      supabase.from('ownership_audit_logs').select('*'),
-      supabase.from('financial_transactions').select('*'),
-      supabase.from('daily_financial_summaries').select('*'),
-      supabase.from('ai_daily_reports').select('*'),
-      supabase.from('general_services').select('*'),
-      supabase.from('customer_orders').select('*'),
-      supabase.from('managed_property_contracts').select('*'),
-      supabase.from('property_maintenance_tasks').select('*'),
-      supabase.from('archived_documents').select('*'),
-      supabase.from('employees').select('*'),
-      supabase.from('timesheet_entries').select('*'),
-      supabase.from('payroll_payments').select('*'),
-      supabase.from('leave_requests').select('*'),
-      supabase.from('task_delegations').select('*'),
-      supabase.from('crm_leads').select('*'),
-      supabase.from('crm_deals').select('*'),
-      supabase.from('crm_activities').select('*'),
-    ]);
-
-    if (resLessors.status === 'fulfilled' && resLessors.value.data) sbLessors = resLessors.value.data as Lessor[];
-    if (resTenants.status === 'fulfilled' && resTenants.value.data) sbTenants = resTenants.value.data as Tenant[];
-    if (resReps.status === 'fulfilled' && resReps.value.data) sbReps = resReps.value.data as Representative[];
-    if (resDocs.status === 'fulfilled' && resDocs.value.data) sbDocs = resDocs.value.data as OwnershipDocument[];
-    if (resProps.status === 'fulfilled' && resProps.value.data) sbProps = resProps.value.data as Property[];
-    if (resEPoas.status === 'fulfilled' && resEPoas.value.data) sbEPoas = resEPoas.value.data as EPoa[];
-    if (resContracts.status === 'fulfilled' && resContracts.value.data) sbContracts = resContracts.value.data as Contract[];
-    if (resBrokerage.status === 'fulfilled' && resBrokerage.value.data) sbBrokerage = resBrokerage.value.data as BrokerageAgreement[];
-    if (resLogs.status === 'fulfilled' && resLogs.value.data) sbLogs = resLogs.value.data as OwnershipAuditLog[];
-    if (resTx.status === 'fulfilled' && resTx.value.data) sbTx = resTx.value.data as FinancialTransaction[];
-    if (resSummaries.status === 'fulfilled' && resSummaries.value.data) sbSummaries = resSummaries.value.data as DailyFinancialSummary[];
-    if (resReports.status === 'fulfilled' && resReports.value.data) sbReports = resReports.value.data as AiDailyReport[];
-    if (resServices.status === 'fulfilled' && resServices.value.data) sbServices = resServices.value.data as GeneralService[];
-    if (resCustomerOrders.status === 'fulfilled' && resCustomerOrders.value.data) sbCustomerOrders = resCustomerOrders.value.data as CustomerOrder[];
-    if (resManagedProps.status === 'fulfilled' && resManagedProps.value.data) sbManagedProps = resManagedProps.value.data as ManagedPropertyContract[];
-    if (resMaintenanceTasks.status === 'fulfilled' && resMaintenanceTasks.value.data) sbMaintenanceTasks = resMaintenanceTasks.value.data as PropertyMaintenanceTask[];
-    if (resArchivedDocs.status === 'fulfilled' && resArchivedDocs.value.data) sbArchivedDocs = resArchivedDocs.value.data as ArchivedDocument[];
-    if (resEmployees.status === 'fulfilled' && resEmployees.value.data) sbEmployees = resEmployees.value.data as Employee[];
-    if (resTimesheet.status === 'fulfilled' && resTimesheet.value.data) sbTimesheet = resTimesheet.value.data as TimesheetEntry[];
-    if (resPayroll.status === 'fulfilled' && resPayroll.value.data) sbPayroll = resPayroll.value.data as PayrollPayment[];
-    if (resLeaves.status === 'fulfilled' && resLeaves.value.data) sbLeaves = resLeaves.value.data as LeaveRequest[];
-    if (resTasks.status === 'fulfilled' && resTasks.value.data) sbTaskDelegations = resTasks.value.data as TaskDelegation[];
-    if (resLeads.status === 'fulfilled' && resLeads.value.data) sbCrmLeads = resLeads.value.data as CrmLead[];
-    if (resDeals.status === 'fulfilled' && resDeals.value.data) sbCrmDeals = resDeals.value.data as CrmDeal[];
-    if (resActivities.status === 'fulfilled' && resActivities.value.data) sbCrmActivities = resActivities.value.data as CrmActivity[];
-  } catch (err) {
-    console.warn('Supabase fetch failed, relying on localStorage persistence:', err);
-  }
-
-  // Merge local & remote data cleanly (offline-first, preserving all local additions & recovery from seeds)
-  const lessors = mergeEntities(localLessors, sbLessors, deletedSet, INITIAL_LESSORS);
-  const tenants = mergeEntities(localTenants, sbTenants, deletedSet, INITIAL_TENANTS);
-  const representatives = mergeEntities(localReps, sbReps, deletedSet, INITIAL_REPRESENTATIVES);
-  const documents = mergeEntities(localDocs, sbDocs, deletedSet, INITIAL_OWNERSHIP_DOCUMENTS);
-  const rawProps = mergeEntities(localProps, sbProps, deletedSet, INITIAL_PROPERTIES);
-  const ePoas = mergeEntities(localEPoas, sbEPoas, deletedSet, INITIAL_E_POAS);
-  const rawContracts = mergeEntities(localContracts, sbContracts, deletedSet, INITIAL_CONTRACTS);
-  const rawBrokerage = mergeEntities(localBrokerage, sbBrokerage, deletedSet, INITIAL_BROKERAGE_AGREEMENTS);
-  const rawLogs = mergeEntities(localLogs, sbLogs, deletedSet, INITIAL_AUDIT_LOGS);
-  const rawTx = mergeEntities(localTx, sbTx, deletedSet, INITIAL_FINANCIAL_TRANSACTIONS);
-  const rawDailySummaries = mergeEntities(localSummaries, sbSummaries, deletedSet, INITIAL_DAILY_FINANCIAL_SUMMARIES);
-  const rawAiReports = mergeEntities(localReports, sbReports, deletedSet, INITIAL_AI_DAILY_REPORTS);
-
-  // Sanitize any stale dummy numbers for today (50,000 / 44,825)
-  const todayStr = new Date().toISOString().split('T')[0];
-  const dailySummaries = rawDailySummaries.map((s) => {
-    if (s.summary_date === todayStr && (s.total_gross_income === 50000 || s.total_net_income === 44825)) {
-      return {
-        ...s,
-        total_gross_income: 0,
-        total_expenses: 0,
-        total_net_income: 0,
-        new_contracts_count: 0,
-        active_brokerage_deals_count: 0,
-        occupancy_rate: 0,
-      };
-    }
-    return s;
-  });
-
-  const aiReports = rawAiReports.map((r) => {
-    if (r.report_date === todayStr && (r.gross_income === 50000 || r.net_income === 44825)) {
-      return {
-        ...r,
-        gross_income: 0,
-        net_income: 0,
-        what_went_well: [
-          'جاهزية النظام والمنصة لاستقبال وتوثيق صفقات وعمليات اليوم الجديد.',
-          'لا توجد أي متأخرات أو تعثرات مالية مسجلة على العقود والوحدات.',
-          'اكتمال التوثيق الإلكتروني ومطابقة السجلات العقارية بنسبة 100%.'
-        ],
-        what_went_bad: [
-          'لم يتم تسجيل أي معاملات مالية أو صفقات جديدة لهذا اليوم حتى الآن (الرصيد: 0 ر.س).',
-          'فرصة لتنشيط حركة التأجير وتحويل طلبات العملاء إلى عقود منجزة.',
-          'متابعة تسويق الوحدات الشاغرة لسرعة تحقيق أولى إيرادات اليوم.'
-        ],
-        ai_recommendations: [
-          'التواصل المباشر مع العملاء المهتمين لإبرام عقود الإيجار والوساطة اليوم.',
-          'متابعة العقود المعلقة وإتمام التوثيق عبر منصة إيجار لتحصيل العمولات فوراً.',
-          'تسجيل أي مقبوضات أو مصروفات فور حدوثها لتحديث لوحة الأداء المالي.'
-        ],
-        income_increment_strategy: 'التركيز الفوري اليوم على إغلاق صفقات الإيجار والوساطة الجديدة لتوليد أولى التدفقات النقدية والأرباح للمكتب.',
-      };
-    }
-    return r;
-  });
-  const generalServices = mergeEntities(localServices, sbServices, deletedSet, INITIAL_GENERAL_SERVICES);
-  const customerOrders = mergeEntities(localCustomerOrders, sbCustomerOrders, deletedSet, INITIAL_CUSTOMER_ORDERS);
-  const managedProperties = mergeEntities(localManagedProps, sbManagedProps, deletedSet, INITIAL_MANAGED_PROPERTIES);
-  const maintenanceTasks = mergeEntities(localMaintenanceTasks, sbMaintenanceTasks, deletedSet, INITIAL_MAINTENANCE_TASKS);
-  const archivedDocuments = mergeEntities(localArchivedDocs, sbArchivedDocs, deletedSet, INITIAL_ARCHIVED_DOCUMENTS);
-  const employees = mergeEntities(localEmployees, sbEmployees, deletedSet, INITIAL_EMPLOYEES);
-  const timesheetEntries = mergeEntities(localTimesheet, sbTimesheet, deletedSet, INITIAL_TIMESHEET_ENTRIES);
-  const payrollPayments = mergeEntities(localPayroll, sbPayroll, deletedSet, INITIAL_PAYROLL_PAYMENTS);
-  const leaveRequests = mergeEntities(localLeaves, sbLeaves, deletedSet, INITIAL_LEAVE_REQUESTS);
-  const taskDelegations = mergeEntities(localTaskDelegations, sbTaskDelegations, deletedSet, INITIAL_TASK_DELEGATIONS);
-  const crmLeads = mergeEntities(localCrmLeads, sbCrmLeads, deletedSet, INITIAL_CRM_LEADS);
-  const crmDeals = mergeEntities(localCrmDeals, sbCrmDeals, deletedSet, INITIAL_CRM_DEALS);
-  const crmActivities = mergeEntities(localCrmActivities, sbCrmActivities, deletedSet, INITIAL_CRM_ACTIVITIES);
-
-  // Sync back merged data into localStorage
-  setLocalData(STORAGE_KEYS.LESSORS, lessors);
-  setLocalData(STORAGE_KEYS.TENANTS, tenants);
-  setLocalData(STORAGE_KEYS.REPRESENTATIVES, representatives);
-  setLocalData(STORAGE_KEYS.DOCUMENTS, documents);
-  setLocalData(STORAGE_KEYS.PROPERTIES, rawProps);
-  setLocalData(STORAGE_KEYS.E_POAS, ePoas);
-  setLocalData(STORAGE_KEYS.CONTRACTS, rawContracts);
-  setLocalData(STORAGE_KEYS.BROKERAGE, rawBrokerage);
-  setLocalData(STORAGE_KEYS.AUDIT_LOGS, rawLogs);
-  setLocalData(STORAGE_KEYS.TRANSACTIONS, rawTx);
-  setLocalData(STORAGE_KEYS.SUMMARIES, dailySummaries);
-  setLocalData(STORAGE_KEYS.AI_REPORTS, aiReports);
-  setLocalData(STORAGE_KEYS.GENERAL_SERVICES, generalServices);
-  setLocalData(STORAGE_KEYS.CUSTOMER_ORDERS, customerOrders);
-  setLocalData(STORAGE_KEYS.MANAGED_PROPERTIES, managedProperties);
-  setLocalData(STORAGE_KEYS.MAINTENANCE_TASKS, maintenanceTasks);
-  setLocalData(STORAGE_KEYS.ARCHIVED_DOCUMENTS, archivedDocuments);
-  setLocalData(STORAGE_KEYS.EMPLOYEES, employees);
-  setLocalData(STORAGE_KEYS.TIMESHEET, timesheetEntries);
-  setLocalData(STORAGE_KEYS.PAYROLL, payrollPayments);
-  setLocalData(STORAGE_KEYS.LEAVES, leaveRequests);
-  setLocalData(STORAGE_KEYS.TASK_DELEGATIONS, taskDelegations);
-  setLocalData(STORAGE_KEYS.CRM_LEADS, crmLeads);
-  setLocalData(STORAGE_KEYS.CRM_DEALS, crmDeals);
-  setLocalData(STORAGE_KEYS.CRM_ACTIVITIES, crmActivities);
-
-  // Attach relations
-  const properties: Property[] = rawProps.map((p) => ({
-    ...p,
-    lessor: lessors.find((l) => l.id === p.lessor_id) || p.lessor,
-    current_representative: representatives.find((r) => r.id === p.current_representative_id) || p.current_representative,
-    ownership_document: documents.find((d) => d.id === p.ownership_document_id) || p.ownership_document,
-  }));
-
-  const contracts: Contract[] = rawContracts.map((c) => ({
-    ...c,
-    property: properties.find((p) => p.id === c.property_id) || c.property,
-    lessor: lessors.find((l) => l.id === c.lessor_id) || c.lessor,
-  }));
-
-  const brokerageAgreements: BrokerageAgreement[] = rawBrokerage.map((b) => ({
-    ...b,
-    property: properties.find((p) => p.id === b.property_id) || b.property,
-    lessor: lessors.find((l) => l.id === b.lessor_id) || b.lessor,
-  }));
-
-  const auditLogs: OwnershipAuditLog[] = rawLogs.map((l) => ({
-    ...l,
-    property: properties.find((p) => p.id === l.property_id) || l.property,
-    previous_lessor: lessors.find((les) => les.id === l.previous_lessor_id) || l.previous_lessor,
-    new_lessor: lessors.find((les) => les.id === l.new_lessor_id) || l.new_lessor,
-    previous_representative: representatives.find((r) => r.id === l.previous_representative_id) || l.previous_representative,
-    new_representative: representatives.find((r) => r.id === l.new_representative_id) || l.new_representative,
-  }));
-
-  const transactions: FinancialTransaction[] = rawTx.map((t) => ({
-    ...t,
-    property: properties.find((p) => p.id === t.property_id) || t.property,
-    contract: contracts.find((c) => c.id === t.contract_id) || t.contract,
-    brokerage_agreement: brokerageAgreements.find((b) => b.id === t.brokerage_agreement_id) || t.brokerage_agreement,
-  }));
-
-  return {
-    lessors,
-    tenants,
-    representatives,
-    documents,
-    properties,
-    ePoas,
-    contracts,
-    brokerageAgreements,
-    auditLogs,
-    transactions,
-    dailySummaries,
-    aiReports,
-    generalServices,
-    customerOrders,
-    managedProperties,
-    maintenanceTasks,
-    archivedDocuments,
-    employees,
-    timesheetEntries,
-    payrollPayments,
-    leaveRequests,
-    taskDelegations,
-    crmLeads,
-    crmDeals,
-    crmActivities,
-  };
+  return fetchAuthorizedDatabaseData();
 }
 
-// -------------------
-// LESSORS CRUD
-// -------------------
 export async function dbInsertLessor(lessor: Lessor) {
   try {
     if (!isUuid(lessor.id)) return;
@@ -666,7 +374,7 @@ export async function dbInsertProperty(prop: Property) {
     await supabase.from('properties').insert([
       {
         id: prop.id,
-        title: prop.title,
+        property_name: prop.title,
         property_type: prop.property_type,
         address: prop.address,
         city: prop.city,
@@ -686,7 +394,7 @@ export async function dbUpdateProperty(prop: Property) {
     await supabase
       .from('properties')
       .update({
-        title: prop.title,
+        property_name: prop.title,
         property_type: prop.property_type,
         address: prop.address,
         city: prop.city,
@@ -827,15 +535,15 @@ export async function dbInsertFinancialTransaction(tx: FinancialTransaction) {
       {
         id: tx.id,
         transaction_date: tx.transaction_date,
-        transaction_type: tx.transaction_type,
-        flow_type: tx.flow_type,
-        gross_amount: tx.gross_amount,
-        tax_vat_amount: tx.tax_vat_amount,
-        net_amount: tx.net_amount,
+        category: tx.transaction_type,
+        transaction_type: tx.flow_type,
+        amount: tx.gross_amount,
+        tax_vat: tx.tax_vat_amount,
+        net_profit: tx.net_amount,
         property_id: tx.property_id,
         contract_id: tx.contract_id,
         brokerage_agreement_id: tx.brokerage_agreement_id,
-        notes: tx.notes,
+        description: tx.notes || '',
       },
     ]);
   } catch (e) {
@@ -886,7 +594,7 @@ export async function dbInsertTenant(tenant: Tenant) {
         national_id: tenant.national_id,
         phone: tenant.phone,
         email: tenant.email,
-        type: tenant.type,
+        type: tenant.type === 'Company' ? 'Corporate' : tenant.type,
       },
     ]);
   } catch (e) {
@@ -926,7 +634,7 @@ export async function dbUpdateTenant(tenant: Tenant) {
       national_id: tenant.national_id,
       phone: tenant.phone,
       email: tenant.email,
-      type: tenant.type,
+      type: tenant.type === 'Company' ? 'Corporate' : tenant.type,
     }).eq('id', tenant.id);
   } catch (e) {
     console.warn('Supabase dbUpdateTenant error:', e);
@@ -993,7 +701,7 @@ export async function dbUpdateContract(contract: Contract) {
       payment_schedule: contract.payment_schedule,
       start_date: contract.start_date,
       end_date: contract.end_date,
-      status: contract.status,
+      status: (contract.status || 'active').toLowerCase(),
       business_activity: contract.business_activity,
       vat_number: contract.vat_number,
     }).eq('id', contract.id);
@@ -1022,15 +730,15 @@ export async function dbUpdateFinancialTransaction(tx: FinancialTransaction) {
   try {
     await supabase.from('financial_transactions').update({
       transaction_date: tx.transaction_date,
-      transaction_type: tx.transaction_type,
-      flow_type: tx.flow_type,
-      gross_amount: tx.gross_amount,
-      tax_vat_amount: tx.tax_vat_amount,
-      net_amount: tx.net_amount,
+      category: tx.transaction_type,
+      transaction_type: tx.flow_type,
+      amount: tx.gross_amount,
+      tax_vat: tx.tax_vat_amount,
+      net_profit: tx.net_amount,
       property_id: tx.property_id,
       contract_id: tx.contract_id,
       brokerage_agreement_id: tx.brokerage_agreement_id,
-      notes: tx.notes,
+      description: tx.notes || '',
     }).eq('id', tx.id);
   } catch (e) {
     console.warn('Supabase dbUpdateFinancialTransaction error:', e);
@@ -1039,7 +747,7 @@ export async function dbUpdateFinancialTransaction(tx: FinancialTransaction) {
 
 export async function dbFetchGeneralServices(): Promise<GeneralService[]> {
   try {
-    const { data, error } = await supabase.from('general_services').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('general_services').select('*,title:service_name,cost_amount:cost_price,fee_amount:selling_price,office_profit:profit_amount').order('created_at', { ascending: false });
     if (error || !data) return INITIAL_GENERAL_SERVICES;
     return data as GeneralService[];
   } catch (e) {
@@ -1056,10 +764,10 @@ export async function dbInsertGeneralService(service: GeneralService) {
       client_phone: service.client_phone,
       client_national_id: service.client_national_id,
       category: service.category,
-      title: service.title,
-      cost_amount: service.cost_amount,
-      fee_amount: service.fee_amount,
-      office_profit: service.office_profit,
+      service_name: service.title,
+      cost_price: service.cost_amount,
+      selling_price: service.fee_amount,
+      profit_amount: service.office_profit,
       status: service.status,
       notes: service.notes,
     }]);
@@ -1076,10 +784,10 @@ export async function dbUpdateGeneralService(service: GeneralService) {
       client_phone: service.client_phone,
       client_national_id: service.client_national_id,
       category: service.category,
-      title: service.title,
-      cost_amount: service.cost_amount,
-      fee_amount: service.fee_amount,
-      office_profit: service.office_profit,
+      service_name: service.title,
+      cost_price: service.cost_amount,
+      selling_price: service.fee_amount,
+      profit_amount: service.office_profit,
       status: service.status,
       notes: service.notes,
     }).eq('id', service.id);
@@ -1105,14 +813,14 @@ export async function dbInsertCustomerOrder(order: CustomerOrder): Promise<boole
     const { error } = await supabase.from('customer_orders').insert([{
       id: order.id,
       order_number: order.order_number,
-      client_name: order.client_name,
-      client_phone: order.client_phone,
+      customer_name: order.client_name,
+      customer_phone: order.client_phone,
       category: order.category,
       building_type: order.building_type,
       desired_area: order.desired_area,
       budget_min: order.budget_min,
       budget_max: order.budget_max,
-      status: order.status,
+      status: orderStatusToDatabase(order.status),
       notes: order.notes,
     }]);
     if (error) {
@@ -1130,14 +838,14 @@ export async function dbUpdateCustomerOrder(order: CustomerOrder) {
   try {
     await supabase.from('customer_orders').update({
       order_number: order.order_number,
-      client_name: order.client_name,
-      client_phone: order.client_phone,
+      customer_name: order.client_name,
+      customer_phone: order.client_phone,
       category: order.category,
       building_type: order.building_type,
       desired_area: order.desired_area,
       budget_min: order.budget_min,
       budget_max: order.budget_max,
-      status: order.status,
+      status: orderStatusToDatabase(order.status),
       notes: order.notes,
     }).eq('id', order.id);
   } catch (e) {
@@ -1226,13 +934,13 @@ export async function dbInsertMaintenanceTask(task: PropertyMaintenanceTask) {
       task_number: task.task_number,
       managed_property_id: task.managed_property_id,
       property_name: task.property_name,
-      unit_name: task.unit_name,
-      maintenance_type: task.maintenance_type,
+      unit_number: task.unit_name,
+      task_type: task.maintenance_type,
       cost_amount: task.cost_amount,
       contractor_name: task.contractor_name,
       contractor_phone: task.contractor_phone,
       status: task.status,
-      notes: task.notes,
+      description: task.notes || '',
     }]);
   } catch (e) {
     console.warn('Supabase dbInsertMaintenanceTask error:', e);
@@ -1245,13 +953,13 @@ export async function dbUpdateMaintenanceTask(task: PropertyMaintenanceTask) {
       task_number: task.task_number,
       managed_property_id: task.managed_property_id,
       property_name: task.property_name,
-      unit_name: task.unit_name,
-      maintenance_type: task.maintenance_type,
+      unit_number: task.unit_name,
+      task_type: task.maintenance_type,
       cost_amount: task.cost_amount,
       contractor_name: task.contractor_name,
       contractor_phone: task.contractor_phone,
       status: task.status,
-      notes: task.notes,
+      description: task.notes || '',
     }).eq('id', task.id);
   } catch (e) {
     console.warn('Supabase dbUpdateMaintenanceTask error:', e);
