@@ -1,4 +1,21 @@
-# Live deployment checkpoint — 3 October 2026
+# Current checkpoint — 4 October 2026
+
+The user confirmed the reset Admin login works and requested that the work be pushed and saved for future updates. Resume from `origin/codex/external-account-passwords`; source commit `1ec710c` contains password-based Broker/Owner/Tenant account creation. This checkpoint supersedes the historical deployment and pause notes below. Read `docs/password-account-release.md` for release details.
+
+- Live image verified running: `kohl-passwords:20261004`, image ID `sha256:28af0a89d81c6839e96bf92e80da9217012e66daa2da4a180035f5b4c7c8ca11`.
+- Active private Admin/CEO profiles can create external accounts with passwords. Actual isolated tests passed for all three external roles, login, restricted access, immediate deactivation and password privacy.
+- The user explicitly authorized the Admin password reset. Live Admin password login, private role and user-management access passed; the user then confirmed browser login works. Credentials were delivered in a Windows-user-only file outside the repository and the private VPS operator file was updated. Never commit or display them.
+- The CEO identity/profile and database management permission were verified. The CEO password was not reset; successful CEO password login has not been reverified for this release.
+- Email/password provider is enabled; public signup remains disabled. Google and SMTP remain unconfigured.
+- Current image override and source/configuration backup: `/home/debian/backups/kohl-passwords-20261003T215333Z/app-image-override.json`. Preserve rotated keys and use the current override for later deployments.
+- Live checkout `/home/debian/projects/kohl-crm-app` still has Git HEAD `1883b16` plus deployed edits to `app/api/access/users/route.ts`, `app/users-access/page.tsx` and `lib/portal/validation.ts`. These edits are saved in GitHub commit `1ec710c`. Preserve and compare them before reconciling the VPS checkout; do not reset them away or infer the running source solely from HEAD.
+- Fake password-test accounts and `kohl-password-preview` were removed. Other existing preview services, preserved original preview containers and verified backup databases remain; inspect them before any cleanup.
+
+On the next update, inspect and preserve local changes, fetch GitHub, read this checkpoint and verify live state. Remaining acceptance: a real external account created by an executive and its assigned-record view, plus CEO browser login/creation. Tenant maintenance, owner statements/PDFs and broker dashboards remain future phases; start only when requested. This save request does not authorize starting a new phase.
+
+---
+
+# Historical deployment checkpoint — 3 October 2026
 
 **Paused at the user's request after successful deployment. Resume only when the user says "plz sync" at home.** Fetch `origin/codex/phase-a-production-cutover` (not just `origin/main`), preserve local work, and read this latest section before the historical notes below. The release and handoff are pushed on that branch; production runs app commit `1883b16`.
 

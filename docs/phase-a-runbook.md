@@ -2,6 +2,8 @@
 
 # External portals: Phase A handover
 
+Latest status, 4 October 2026: Phase A and password-based external account creation are deployed. The user confirmed the reset Admin browser login works. Resume from `origin/codex/external-account-passwords` and read the current sections of `RESUME-FROM-OFFICE.md` and `password-account-release.md`; they supersede the historical pre-cutover state below. Preserve the current image override and the three deployed VPS source edits. CEO browser login and real external-account acceptance remain to be confirmed.
+
 Phase A implements real Supabase authentication, external account administration, private relationship records, role enforcement, invitations, password recovery, tenant expiry controls and administrative audit history. Tenant maintenance, owner statements/PDFs and broker commission dashboards remain Phases B, C and D.
 
 ## Validation on 3 October 2026
