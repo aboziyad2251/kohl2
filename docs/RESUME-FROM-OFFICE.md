@@ -1,6 +1,6 @@
 # Current checkpoint — 5 October 2026
 
-Role portals are prepared on `codex/role-portals`, with isolated API/browser/PDF checks passed. They are **not deployed**: automatic approval review requires explicit production deployment approval. Read `docs/role-portal-release.md` before continuing; preserve the employee image/override below until the guarded portal deployment succeeds. The user chose full-property owner earnings rather than ownership-percentage allocation.
+Role portals are deployed after explicit user approval. Resume from `origin/codex/role-portals` and read `docs/role-portal-release.md`. Running image: `kohl-portals:20261005`, digest `sha256:679c7fe740115abbdb00ce0a20addc90960c5f720aa4885632504bab4326211a`. Current private backup/override: `/home/debian/backups/kohl-portals-20261005T180024Z/app-image-override.json`. Full backup restore, active executive dashboards and API denial checks passed. Passwords, Auth settings and keys were preserved. The user chose full-property owner earnings. The live checkout retains its old Git HEAD with deployed source edits; preserve them before reconciliation and never run `deploy.sh` blindly. Employee checkpoint details below are historical; use the portal image override for future restarts.
 
 Employee email/password login creation is deployed. Resume from `origin/codex/external-account-passwords` and read `docs/employee-account-release.md` along with the prior release/runbook. This checkpoint supersedes the older notes below.
 
