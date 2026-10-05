@@ -10,6 +10,7 @@ import ExecutiveControls from './ExecutiveControls';
 import BrokerPanel from './BrokerPanel';
 import Badge from './StatusBadge';
 import Chart from './PortalChart';
+import AuditPanel from './AuditPanel';
 export default function PortalDashboard({executive=false}:{executive?:boolean}){
  const auth=useAuth(),[en,setEn]=useState(false),[data,setData]=useState<Data|null>(null),[message,setMessage]=useState(''),[tab,setTab]=useState('overview'),[busy,setBusy]=useState(false);
  const [frequency,setFrequency]=useState<'monthly'|'quarterly'|'yearly'>('monthly'),[date,setDate]=useState(new Date().toISOString().slice(0,10));
@@ -38,6 +39,6 @@ export default function PortalDashboard({executive=false}:{executive?:boolean}){
   {data&&tab==='maintenance'&&<MaintenancePanel data={data} en={en} executive={executive} userId={auth.currentUser.id} historyOnly={!!auth.profile?.account.history_only} busy={busy} save={save} photo={photo} attachment={attachment} money={money}/>}
   {data&&executive&&tab==='assignments'&&<ExecutiveControls data={data} en={en} save={save} money={money}/>}
   {data&&tab==='broker'&&<BrokerPanel data={data} en={en} executive={executive} save={save} money={money}/>}
-  {data&&executive&&tab==='audit'&&data.audit.map(event=><details className="portal-card" key={event.id}><summary>{event.action} · {event.resource} · {new Date(event.created_at).toLocaleString(en?'en-SA':'ar-SA')}</summary><p>{t('بواسطة','By')}: {data.customers.find(c=>c.id===event.actor_user_id)?.name||(event.actor_user_id===auth.currentUser.id?auth.currentUser.name:t('حساب الإدارة','Executive account'))}</p><div className="grid sm:grid-cols-2 gap-4 mt-3"><section><h3>{t('قبل','Before')}</h3><pre className="text-xs whitespace-pre-wrap break-all">{JSON.stringify(event.before_value,null,2)}</pre></section><section><h3>{t('بعد','After')}</h3><pre className="text-xs whitespace-pre-wrap break-all">{JSON.stringify(event.after_value,null,2)}</pre></section></div></details>)}
+  {data&&executive&&tab==='audit'&&<AuditPanel data={data} en={en} currentId={auth.currentUser.id} currentName={auth.currentUser.name}/>}
  </div></div>;
 }

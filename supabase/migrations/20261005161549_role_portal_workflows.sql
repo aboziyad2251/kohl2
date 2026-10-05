@@ -112,8 +112,8 @@ begin
  if current_user in ('postgres','supabase_admin') and who is null then
   who:=nullif(current_setting('portal.actor',true),'')::uuid;
  end if;
- if TG_OP<>'INSERT' then before_row:=to_jsonb(old); end if;
- if TG_OP<>'DELETE' then after_row:=to_jsonb(new); end if;
+ if TG_OP<>'INSERT' then before_row:=to_jsonb(old)-'file_data_url'; end if;
+ if TG_OP<>'DELETE' then after_row:=to_jsonb(new)-'file_data_url'; end if;
  identifier:=coalesce(after_row->>'id',before_row->>'id',after_row->>'user_id',before_row->>'user_id',(after_row->>'broker_user_id')||':'||(after_row->>'contract_id'),(before_row->>'broker_user_id')||':'||(before_row->>'contract_id'),(after_row->>'tenant_user_id')||':'||(after_row->>'contract_id'),(before_row->>'tenant_user_id')||':'||(before_row->>'contract_id'));
  insert into portal_private.portal_audit(actor_user_id,resource,resource_id,action,before_value,after_value)
  values(who,TG_TABLE_NAME,identifier,TG_OP,before_row,after_row);
@@ -124,8 +124,10 @@ do $$ declare t text; begin
  foreach t in array array['accounts','owner_property_links','tenant_lease_links','broker_office_agreements','broker_contract_links','payment_dues','broker_kpis','kpi_events','documents','maintenance_attachments'] loop
   execute format('create trigger portal_change_audit after insert or update or delete on portal_private.%I for each row execute function portal_private.portal_audit_trigger()',t);
  end loop;
- foreach t in array array['properties','contracts','financial_transactions','property_maintenance_tasks'] loop
-  execute format('create trigger portal_change_audit after insert or update or delete on public.%I for each row execute function portal_private.portal_audit_trigger()',t);
+ foreach t in array array['lessors','tenants','representatives','ownership_documents','properties','e_poas','contracts','brokerage_agreements','managed_properties','managed_property_contracts','property_maintenance_tasks','financial_transactions','general_services','customer_orders','ownership_audit_logs','daily_financial_summaries','ai_daily_reports','employees','timesheet_entries','payroll_payments','leave_requests','task_delegations','crm_leads','crm_deals','crm_activities','archived_documents'] loop
+  if to_regclass('public.'||t) is not null then
+   execute format('create trigger portal_change_audit after insert or update or delete on public.%I for each row execute function portal_private.portal_audit_trigger()',t);
+  end if;
  end loop;
 end $$;
 
@@ -208,7 +210,7 @@ begin
     from portal_private.broker_contract_links l join public.contracts c on c.id=l.contract_id join portal_private.broker_office_agreements a on a.id=l.agreement_id where account.role in ('ADMIN','CEO') or (account.role='BROKER' and l.broker_user_id=actor)),'[]'),
    'kpis',coalesce((select jsonb_agg(to_jsonb(k)||jsonb_build_object('custom_actual',coalesce((select sum(e.value) from portal_private.kpi_events e where e.kpi_id=k.id and e.event_date between k.period_start and k.period_end),0))) from portal_private.broker_kpis k where account.role in ('ADMIN','CEO') or (account.role='BROKER' and k.broker_user_id=actor)),'[]'),
    'customers',case when account.role in ('ADMIN','CEO') then coalesce((select jsonb_agg(jsonb_build_object('id',a.user_id,'name',a.full_name,'role',a.role)) from portal_private.accounts a where a.is_active and a.role in ('TENANT','OWNER','BROKER')),'[]') else '[]'::jsonb end,
-   'audit',case when account.role in ('ADMIN','CEO') then coalesce((select jsonb_agg(to_jsonb(a)) from (select * from portal_private.portal_audit order by created_at desc limit 100) a),'[]') else '[]'::jsonb end);
+   'audit',case when account.role in ('ADMIN','CEO') then coalesce((select jsonb_agg(to_jsonb(a)||jsonb_build_object('actor_name',(select ac.full_name from portal_private.accounts ac where ac.user_id=a.actor_user_id))) from (select * from portal_private.portal_audit order by created_at desc limit 100) a),'[]') else '[]'::jsonb end);
  end if;
  if operation='MAINTENANCE_CREATE' then
   if account.role not in ('TENANT','OWNER','ADMIN','CEO') then raise insufficient_privilege; end if;

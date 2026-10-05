@@ -82,6 +82,10 @@ begin
  perform public.portal_workflow(ids[1],'COMMISSION_SAVE',jsonb_build_object('broker_user_id',ids[7],'contract_id',leases[1],'type','FIXED','value',700,'basis',null,'payout_status','approved','closed_at',now()));
  response:=public.portal_workflow(ids[7],'DASHBOARD');
  perform pg_temp.assert_true((response->'commissions'->0->>'amount')::numeric=700,'Fixed commission calculated');
+ select agreement_id into aid from portal_private.broker_contract_links where broker_user_id=ids[7] and contract_id=leases[1];
+ perform public.portal_admin(ids[1],'SAVE',jsonb_build_object('user_id',ids[7],'role','BROKER','full_name','Fake broker','mobile','0500000000','owners','[]'::jsonb,'leases','[]'::jsonb,'broker_contracts',jsonb_build_array(leases[1]),'agreement_id',aid),gen_random_uuid());
+ response:=public.portal_workflow(ids[7],'DASHBOARD');
+ perform pg_temp.assert_true((response->'commissions'->0->>'amount')::numeric=700 and response->'commissions'->0->>'status'='approved','Assignment edits preserve commission and payout metadata');
  perform public.portal_workflow(ids[1],'COMMISSION_SAVE',jsonb_build_object('broker_user_id',ids[7],'contract_id',leases[1],'type','PERCENTAGE','value',5,'basis','DEAL_VALUE','payout_status','approved','closed_at',now()));
  response:=public.portal_workflow(ids[7],'DASHBOARD');
  perform pg_temp.assert_true(abs((response->'commissions'->0->>'amount')::numeric-600)<2,'Percentage commission calculated');

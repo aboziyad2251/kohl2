@@ -1,5 +1,7 @@
 # Current checkpoint — 5 October 2026
 
+Role portals are prepared on `codex/role-portals`, with isolated API/browser/PDF checks passed. They are **not deployed**: automatic approval review requires explicit production deployment approval. Read `docs/role-portal-release.md` before continuing; preserve the employee image/override below until the guarded portal deployment succeeds. The user chose full-property owner earnings rather than ownership-percentage allocation.
+
 Employee email/password login creation is deployed. Resume from `origin/codex/external-account-passwords` and read `docs/employee-account-release.md` along with the prior release/runbook. This checkpoint supersedes the older notes below.
 
 - Admin and CEO can create employee logins in Users & Access by selecting an active HR employee record and setting an email/password. Add new staff on Employees first. Private EMPLOYEE mappings enforce own-record access and deny user administration.

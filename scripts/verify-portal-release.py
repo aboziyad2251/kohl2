@@ -45,6 +45,7 @@ def wait(url):
    urllib.request.urlopen(url,timeout=2); return
   except Exception: time.sleep(1)
  raise AssertionError('Isolated service did not become ready')
+socketserver.ThreadingTCPServer.allow_reuse_address=True
 class Gateway(http.server.BaseHTTPRequestHandler):
  def log_message(self,*args): pass
  def route(self):
@@ -110,8 +111,10 @@ for role in ['TENANT_A','TENANT_B','OWNER_A','OWNER_B','BROKER_A','BROKER_B']:
  token=sessions[role]['access_token']; status,body=call(APP,'/api/portal/dashboard',token)
  expected=contracts[0 if role.endswith('A') else 1]
  assert status==200 and len(body['contracts'])==1 and body['contracts'][0]['id']==expected
+ assert call(APP,'/api/portal/records/contract/'+expected,token)[0]==200
+ assert call(APP,'/api/portal/records/contract/'+contracts[1 if role.endswith('A') else 0],token)[0]==404
  assert call(APP,'/api/portal/actions',token,{'operation':'KPI_SAVE','broker_user_id':users['BROKER_A'],'name':'Forbidden','metric':'commission','target':100,'period':'monthly','period_start':'2026-10-01','period_end':'2026-10-31'})[0]==403
- print(role+': actual Auth session sees only assigned contract and denies management',flush=True)
+ print(role+': scoped dashboard, direct other-user record HTTP 404 and management denial passed',flush=True)
 status,result=call(APP,'/api/portal/actions',tenant,{'operation':'MAINTENANCE_CREATE','property_id':props[0],'contract_id':contracts[0],'category':'سباكة','description':'تسريب يحتاج زيارة فنية'})
 assert status==200; task=result['id']
 assert call(APP,'/api/portal/actions',sessions['TENANT_B']['access_token'],{'operation':'MAINTENANCE_TRANSITION','task_id':task,'status':'cancelled'})[0]==403
