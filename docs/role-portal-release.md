@@ -1,6 +1,6 @@
 # Role portals — prepared release, 5 October 2026
 
-Source branch: `codex/role-portals`. This release is built and tested but **not deployed**. Automatic approval review rejected the production deployment because the user had not explicitly authorized the live schema/image/source mutation. Obtain explicit approval before executing `scripts/deploy-portal-release.py`. The live employee release and its backup/override remain the current checkpoint in `RESUME-FROM-OFFICE.md`.
+Source branch: local `codex/role-portals`, not yet pushed. This release is built and tested but **not deployed**. Automatic approval review rejected the production deployment because the user had not explicitly authorized the live schema/image/source mutation. It also rejected the GitHub push because the destination/publication authorization was unverified. Obtain explicit approval before pushing this branch or executing `scripts/deploy-portal-release.py`. The live employee release and its backup/override remain the current checkpoint in `RESUME-FROM-OFFICE.md`.
 
 ## Delivered behavior
 
