@@ -1,4 +1,18 @@
-# Current checkpoint — 4 October 2026
+# Current checkpoint — 5 October 2026
+
+Employee email/password login creation is deployed. Resume from `origin/codex/external-account-passwords` and read `docs/employee-account-release.md` along with the prior release/runbook. This checkpoint supersedes the older notes below.
+
+- Admin and CEO can create employee logins in Users & Access by selecting an active HR employee record and setting an email/password. Add new staff on Employees first. Private EMPLOYEE mappings enforce own-record access and deny user administration.
+- User confirmed both executive passwords were changed and work. This release did not reset or use those passwords; saved operator credentials may be stale.
+- Running image: `kohl-employees:20261004`, image ID `sha256:1805b6e392eda15847c31ac938ff72df5130e5f9f4f35e7cfd52f0527a55dab9`. Deployment completed 5 October after real isolated acceptance by fake Admin and CEO accounts, including HR record isolation, deactivation and external-role regression checks.
+- Current private backup/override: `/home/debian/backups/kohl-employees-20261005T160203Z/app-image-override.json`. Preserve it and all earlier verified backups. Rotated keys and Auth settings are unchanged. Google and SMTP remain unconfigured.
+- Live checkout HEAD is still `1883b16` with deployed edits to user API, Users & Access, portal validation/types and the new employee migration. Preserve/compare them before Git reconciliation; never hard-reset or run deploy.sh blindly.
+- Read-only live checks passed for both active executive private profiles and employee-management listings, confirmed Auth identities, public login and unauthenticated administration denial. No real employee account was created during tests.
+- Remaining acceptance: actual Admin/CEO creation of a real employee and its own-record browser view. Existing preview services remain; this release's fake fixtures and preview container were removed. Future phases require a user request.
+
+---
+
+# Historical checkpoint — 4 October 2026
 
 The user confirmed the reset Admin login works and requested that the work be pushed and saved for future updates. Resume from `origin/codex/external-account-passwords`; source commit `1ec710c` contains password-based Broker/Owner/Tenant account creation. This checkpoint supersedes the historical deployment and pause notes below. Read `docs/password-account-release.md` for release details.
 

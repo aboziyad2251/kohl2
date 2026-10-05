@@ -5,7 +5,8 @@ export const saveUserSchema = z.object({
     password: z.string().min(12, 'Password must contain at least 12 characters').max(128).optional(),
     full_name: z.string().trim().min(2).max(150), mobile: z.string().regex(/^05\d{8}$/),
     national_id_or_iqama: z.string().regex(/^\d{10}$/).optional().or(z.literal('')),
-    role: z.enum(['BROKER', 'OWNER', 'TENANT']),
+    role: z.enum(['BROKER', 'OWNER', 'TENANT', 'EMPLOYEE']),
+    employee_id: uuid.optional(),
     owners: z.array(z.object({ property_id: uuid, ownership_share: z.coerce.number().gt(0).lte(100) })).max(100).default([]),
     leases: z.array(uuid).max(20).default([]), broker_contracts: z.array(uuid).max(200).default([]),
     agreement_id: uuid.optional(),
@@ -17,6 +18,14 @@ export const saveUserSchema = z.object({
     const fail = (path: string, message: string) => ctx.addIssue({ code: z.ZodIssueCode.custom, path: [path], message });
     if (input.user_id && input.password !== undefined)
         fail('password', 'Passwords cannot be changed through account editing');
+    if (input.role === 'EMPLOYEE' && !input.employee_id)
+        fail('employee_id', 'Employee record required');
+    if (input.role === 'EMPLOYEE' && !input.user_id && !input.password)
+        fail('password', 'Set a password for the employee login');
+    if (input.role !== 'EMPLOYEE' && input.employee_id)
+        fail('employee_id', 'Employee links are only valid for employee accounts');
+    if (input.role === 'EMPLOYEE' && (input.owners.length || input.leases.length || input.broker_contracts.length || input.agreement_id || input.agreement))
+        fail('employee_id', 'Employee accounts cannot have external account links');
     if (input.role === 'OWNER' && !input.owners.length)
         fail('owners', 'Property required');
     if (new Set(input.owners.map(x => x.property_id)).size !== input.owners.length)

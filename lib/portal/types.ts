@@ -1,6 +1,7 @@
 import type { UserRole } from '@/lib/types';
 export const externalRoles = ['BROKER', 'OWNER', 'TENANT'] as const;
 export type ExternalRole = typeof externalRoles[number];
+export type ManagedRole = ExternalRole | 'EMPLOYEE';
 export const roleLabels: Record<UserRole, string> = {
     ADMIN: 'المسؤول العام', CEO: 'الرئيس التنفيذي', HR: 'الموارد البشرية', EMPLOYEE: 'موظف',
     BROKER: 'وسيط', OWNER: 'مالك', TENANT: 'مستأجر',
@@ -29,6 +30,7 @@ export interface PortalProfile {
     }[];
 }
 export interface AccessUser {
+    employee_id?: string;
     id: string;
     full_name: string;
     mobile: string;
@@ -59,6 +61,7 @@ export interface AccessUser {
     }[];
 }
 export interface AccessData {
+    employees: { id: string; name: string; employee_number: string; email: string; phone: string; status: string }[];
     users: AccessUser[];
     properties: {
         id: string;

@@ -43,6 +43,7 @@ const route = load('app/api/access/users/route.ts', {
 const password = 'Fake-test-password-2026!';
 const base = { email: 'fake@test.invalid', full_name: 'Fake account', mobile: '0500000000', password };
 const payloads = [
+  { ...base, role: 'EMPLOYEE', employee_id: randomUUID() },
   { ...base, role: 'OWNER', owners: [{ property_id: randomUUID(), ownership_share: 10 }] },
   { ...base, role: 'TENANT', leases: [randomUUID()] },
   { ...base, role: 'BROKER', agreement: { agreement_number: 'TEST', commission_type: 'FIXED', commission_value: 100, percentage_basis: null } },
@@ -64,7 +65,9 @@ const request = payload => ({ json: async () => payload });
     }
   }
   for (const payload of [{ ...payloads[0], password: 'short' },
-    { ...payloads[0], user_id: randomUUID() }, { ...payloads[0], role: 'ADMIN' }]) {
+    { ...payloads[0], user_id: randomUUID() }, { ...payloads[0], role: 'ADMIN' },
+    { ...payloads[0], employee_id: undefined }, { ...payloads[0], password: undefined },
+    { ...payloads[0], leases: [randomUUID()] }, { ...payloads[1], employee_id: randomUUID() }]) {
     calls = [];
     assert.equal((await route.POST(request(payload))).status, 400);
     assert.equal(calls.length, 0);
@@ -75,5 +78,5 @@ const request = payload => ({ json: async () => payload });
   calls = []; denied = false; failSave = true;
   assert.equal((await route.POST(request(payloads[0]))).status, 400);
   assert.equal(calls.at(-1)[0], 'DELETE');
-  console.log('Password creation checks passed: all three roles, Google modes, validation, authorization boundary, password privacy and failed-link cleanup.');
+  console.log('Password creation checks passed: employee and external roles, Google modes, employee links, validation, authorization boundary, password privacy and failed-link cleanup.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
