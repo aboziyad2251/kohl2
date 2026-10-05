@@ -1,0 +1,4 @@
+export const statusNames: Record<string, string> = { pending: 'قيد الانتظار', under_review: 'قيد المراجعة', awaiting_customer_approval: 'بانتظار موافقة العميل', awaiting_manager_approval: 'بانتظار موافقة الإدارة', scheduled: 'تم تحديد الموعد', in_progress: 'جاري التنفيذ', completed: 'مكتمل', closed: 'مغلق', rejected: 'مرفوض', cancelled: 'ملغى', paid: 'مدفوع', approved: 'معتمد', due: 'مستحق', overdue: 'متأخر', achieved: 'محقق', on_track: 'على المسار', below_target: 'أقل من المستهدف' };
+export default function StatusBadge({ status, en }: { status: string; en: boolean }) {
+ return <span className={`inline-block rounded-full px-3 py-1 text-sm ${['paid','completed','closed','achieved','approved'].includes(status) ? 'bg-green-100 text-green-900' : ['rejected','cancelled','overdue','below_target'].includes(status) ? 'bg-red-100 text-red-900' : 'bg-amber-100 text-amber-900'}`}>{en ? status.replaceAll('_',' ') : statusNames[status] || status}</span>;
+}

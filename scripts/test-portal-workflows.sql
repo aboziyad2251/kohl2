@@ -70,8 +70,8 @@ begin
  other_task:=(response->>'id')::uuid;
  perform public.portal_workflow(ids[5],'MAINTENANCE_TRANSITION',jsonb_build_object('task_id',other_task,'status','cancelled'));
  perform pg_temp.assert_invalid(ids[1],'MAINTENANCE_TRANSITION',jsonb_build_object('task_id',other_task,'status','under_review'));
- perform public.portal_workflow(ids[1],'DUE_SAVE',jsonb_build_object('contract_id',leases[1],'kind','rent','description','October rent','due_date',current_date,'period_start',current_date,'period_end',current_date+29,'amount',1000));
- select id into due from portal_private.payment_dues where contract_id=leases[1];
+ perform pg_temp.assert_true((select count(*)>=12 from portal_private.payment_dues where contract_id=leases[1] and generated),'Rent schedule derives from annual rent');
+ select id into due from portal_private.payment_dues where contract_id=leases[1] order by due_date limit 1;
  insert into public.financial_transactions(id,transaction_date,transaction_type,category,amount,net_profit,payment_method,property_id,contract_id,description)
   values(payment,current_date,'INCOME','RENTAL_PAYMENT',1000,1000,'Cash',props[1],leases[1],'Isolated rent receipt');
  perform public.portal_workflow(ids[1],'PAYMENT_LINK',jsonb_build_object('payment_id',payment,'due_id',due));

@@ -35,6 +35,7 @@ interface NavItem {
 }
 
 const allNavItems: NavItem[] = [
+  { name: 'إدارة بوابات العملاء', href: '/portal-management', icon: Building2, badge: null, moduleKey: 'portal-management' },
   { name: 'المستخدمون والصلاحيات', href: '/users-access', icon: ShieldCheck, badge: null, moduleKey: 'users-access' },
   {
     name: 'لوحة التحكم القيادية',

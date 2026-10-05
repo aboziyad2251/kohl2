@@ -32,8 +32,9 @@ create table portal_private.payment_dues (
  id uuid primary key default gen_random_uuid(), contract_id uuid not null references public.contracts(id),
  kind text not null check(kind in ('rent','utility','service')), description text not null,
  due_date date not null, period_start date not null, period_end date not null,
- amount numeric(14,2) not null check(amount>0), check(period_end>=period_start)
+ amount numeric(14,2) not null check(amount>0), generated boolean not null default false, check(period_end>=period_start)
 );
+create unique index on portal_private.payment_dues(contract_id,period_start) where generated;
 alter table public.financial_transactions add column if not exists payment_due_id uuid references portal_private.payment_dues(id);
 create index on portal_private.payment_dues(contract_id,due_date);
 create index on public.financial_transactions(payment_due_id);
@@ -189,17 +190,17 @@ begin
   return jsonb_build_object('role',account.role,'today',(now() at time zone 'Asia/Riyadh')::date,
    'properties',coalesce((select jsonb_agg(jsonb_build_object('id',p.id,'name',coalesce(to_jsonb(p)->>'property_name',to_jsonb(p)->>'title'),'address',p.address,'city',p.city,'units_count',p.units_count))
     from public.properties p where account.role<>'BROKER' and (portal_private.resource_scope(actor,p.id) or exists(select 1 from public.contracts c where c.property_id=p.id and portal_private.resource_scope(actor,p.id,c.id)))),'[]'),
-   'contracts',coalesce((select jsonb_agg(jsonb_build_object('id',c.id,'number',c.contract_number,'property_id',c.property_id,'unit_label',c.unit_label,'unit_details',c.unit_details,'annual_rent',c.rent_amount,'start_date',c.start_date,'end_date',c.end_date,'status',c.status,'payment_schedule',c.payment_schedule,
+   'contracts',coalesce((select jsonb_agg(jsonb_build_object('id',c.id,'number',c.contract_number,'property_id',c.property_id,'unit_label',c.unit_label,'unit_details',c.unit_details,'annual_rent',c.rent_amount,'start_date',c.start_date,'end_date',c.end_date,'status',c.status,'owner_contact_visible',c.owner_contact_visible,'payment_schedule',c.payment_schedule,
     'tenant_name',case when account.role in ('TENANT','ADMIN','CEO') or (account.role='OWNER' and c.owner_contact_visible) then c.tenant_name else null end,
     'tenant_phone',case when account.role in ('ADMIN','CEO') or (account.role='OWNER' and c.owner_contact_visible) then to_jsonb(c)->>'tenant_phone' else null end))
     from public.contracts c where portal_private.resource_scope(actor,c.property_id,c.id)),'[]'),
-   'payments',coalesce((select jsonb_agg(jsonb_build_object('id',t.id,'property_id',coalesce(t.property_id,c.property_id),'contract_id',t.contract_id,'due_id',t.payment_due_id,'date',t.transaction_date,'amount',t.amount,'net_amount',t.net_profit,'method',t.payment_method,'category',t.category,'flow',upper(t.transaction_type),'owner_charge',t.owner_charge,'maintenance_task_id',t.maintenance_task_id,'period_start',t.period_start,'period_end',t.period_end))
+   'payments',coalesce((select jsonb_agg(jsonb_build_object('id',t.id,'property_id',coalesce(t.property_id,c.property_id),'contract_id',t.contract_id,'due_id',t.payment_due_id,'date',t.transaction_date,'amount',t.amount,'net_amount',case upper(t.transaction_type) when 'EXPENSE' then t.amount+coalesce(t.tax_vat,0) else t.net_profit end,'method',t.payment_method,'category',t.category,'flow',upper(t.transaction_type),'owner_charge',t.owner_charge,'maintenance_task_id',t.maintenance_task_id,'period_start',t.period_start,'period_end',t.period_end))
     from public.financial_transactions t left join public.contracts c on c.id=t.contract_id where account.role<>'BROKER' and portal_private.resource_scope(actor,coalesce(t.property_id,c.property_id),c.id)
      and (account.role<>'TENANT' or (upper(t.transaction_type)='INCOME' and (t.category='RENTAL_PAYMENT' or t.payment_due_id is not null)))),'[]'),
    'dues',coalesce((select jsonb_agg(to_jsonb(d)) from portal_private.payment_dues d join public.contracts c on c.id=d.contract_id where account.role<>'BROKER' and portal_private.resource_scope(actor,c.property_id,c.id)),'[]'),
    'ownership',coalesce((select jsonb_agg(to_jsonb(l)) from portal_private.owner_property_links l where l.owner_user_id=actor and account.role='OWNER'),'[]'),
    'maintenance',coalesce((select jsonb_agg(jsonb_build_object('id',m.id,'number',m.task_number,'property_id',m.property_id,'contract_id',m.contract_id,'unit_label',m.unit_number,'category',m.task_type,'description',m.description,'cost',m.cost_amount,'cost_bearer',m.cost_bearer,'cost_customer_id',m.cost_customer_id,'requested_by',m.requested_by,'status',coalesce(m.workflow_status,case lower(m.status) when 'completed' then 'completed' when 'cancelled' then 'cancelled' when 'in_progress' then 'in_progress' else 'pending' end),'created_at',m.created_at,'completed_at',m.completed_at,'preferred_visit_at',m.preferred_visit_at,'scheduled_at',m.scheduled_at,
-    'history',coalesce((select jsonb_agg(jsonb_build_object('from',h.from_status,'to',h.to_status,'actor',h.actor_user_id,'note',h.note,'date',h.created_at) order by h.created_at) from portal_private.maintenance_history h where h.task_id=m.id),'[]'),
+    'history',coalesce((select jsonb_agg(jsonb_build_object('from',h.from_status,'to',h.to_status,'actor',h.actor_user_id,'actor_name',(select a.full_name from portal_private.accounts a where a.user_id=h.actor_user_id),'note',h.note,'date',h.created_at) order by h.created_at) from portal_private.maintenance_history h where h.task_id=m.id),'[]'),
     'attachments',coalesce((select jsonb_agg(jsonb_build_object('id',a.id,'filename',a.filename)) from portal_private.maintenance_attachments a where a.task_id=m.id),'[]')))
     from public.property_maintenance_tasks m where account.role<>'BROKER' and portal_private.resource_scope(actor,m.property_id,m.contract_id)),'[]'),
    'commissions',coalesce((select jsonb_agg(jsonb_build_object('contract_id',l.contract_id,'broker_user_id',l.broker_user_id,'number',c.contract_number,'closed_at',l.closed_at,'status',l.payout_status,'paid_at',l.paid_at,'type',coalesce(l.commission_type,a.commission_type),'rate',coalesce(l.commission_value,a.commission_value),'basis',coalesce(l.percentage_basis,a.percentage_basis),'contract_value',portal_private.contract_value(c.rent_amount,c.start_date,c.end_date),'annual_rent',c.rent_amount,'office_commission',coalesce(c.office_profit,0),
@@ -223,10 +224,11 @@ begin
     case when account.role='OWNER' then 'owner' when account.role='TENANT' then 'tenant' else 'company' end,case when account.role in ('OWNER','TENANT') then actor else null end,nullif(payload->>'preferred_visit_at','')::timestamptz) returning id into target;
   return jsonb_build_object('id',target);
  end if;
- if operation in ('MAINTENANCE_TRANSITION','MAINTENANCE_QUOTE','ATTACH','ATTACHMENT') then
+ if operation in ('MAINTENANCE_TRANSITION','MAINTENANCE_QUOTE','ATTACH','ATTACHMENT','MAINTENANCE_READ') then
   target:=(payload->>'task_id')::uuid;
   select * into task from public.property_maintenance_tasks where id=target for update;
   if not found or account.role not in ('TENANT','OWNER','ADMIN','CEO') or not portal_private.resource_scope(actor,task.property_id,task.contract_id) then raise insufficient_privilege; end if;
+  if operation='MAINTENANCE_READ' then return jsonb_build_object('id',task.id); end if;
   if account.role='TENANT' and operation<>'ATTACHMENT' and not exists(select 1 from public.contracts c where c.id=task.contract_id and lower(c.status) in ('active','ساري') and c.start_date<=(now() at time zone 'Asia/Riyadh')::date and c.end_date>=(now() at time zone 'Asia/Riyadh')::date) then raise insufficient_privilege using message='Lease history is read-only'; end if;
   if operation='ATTACHMENT' then
    select jsonb_build_object('path',a.object_path,'mime_type',a.mime_type,'filename',a.filename) into result from portal_private.maintenance_attachments a where a.task_id=target and a.id=(payload->>'attachment_id')::uuid;
@@ -266,6 +268,7 @@ begin
  if operation='CONTRACT_UNIT' then
   update public.contracts set unit_label=payload->>'unit_label',unit_details=payload->>'unit_details',owner_contact_visible=(payload->>'owner_contact_visible')::boolean where id=(payload->>'contract_id')::uuid;
  elsif operation='DUE_SAVE' then
+  if payload->>'kind'='rent' and nullif(payload->>'id','') is null then raise exception 'Rent dues derive from the contract schedule'; end if;
   insert into portal_private.payment_dues(id,contract_id,kind,description,due_date,period_start,period_end,amount)
   values(coalesce(nullif(payload->>'id','')::uuid,gen_random_uuid()),(payload->>'contract_id')::uuid,payload->>'kind',payload->>'description',(payload->>'due_date')::date,(payload->>'period_start')::date,(payload->>'period_end')::date,(payload->>'amount')::numeric)
   on conflict(id) do update set description=excluded.description,due_date=excluded.due_date,period_start=excluded.period_start,period_end=excluded.period_end,amount=excluded.amount;
@@ -279,6 +282,7 @@ begin
   update public.financial_transactions set owner_charge=(payload->>'owner_charge')::boolean where id=(payload->>'payment_id')::uuid and category<>'RENTAL_PAYMENT';
   if not found then raise exception 'Rental receipts cannot be deductions'; end if;
  elsif operation='COMMISSION_SAVE' then
+  if payload->>'payout_status'<>'pending' and nullif(payload->>'closed_at','') is null then raise exception 'Confirm contract closing before payout approval'; end if;
   update portal_private.broker_contract_links set commission_type=payload->>'type',commission_value=(payload->>'value')::numeric,percentage_basis=payload->>'basis',payout_status=payload->>'payout_status',closed_at=nullif(payload->>'closed_at','')::timestamptz,
    paid_at=case when payload->>'payout_status'='paid' then coalesce(paid_at,now()) else null end where broker_user_id=(payload->>'broker_user_id')::uuid and contract_id=(payload->>'contract_id')::uuid;
   if not found then raise exception 'Assigned broker contract required'; end if;
@@ -300,7 +304,45 @@ do $$ declare definition text; marker text:='if not found then raise insufficien
  definition:=pg_get_functiondef('public.portal_admin(uuid,text,jsonb,uuid)'::regprocedure);
  if position(marker in definition)=0 then raise exception 'Unexpected portal_admin definition'; end if;
  definition:=replace(definition,marker,marker||E'\n perform set_config(''portal.actor'',actor::text,true);');
+ definition:=replace(definition,'delete from portal_private.broker_contract_links where broker_user_id=target;',
+  'delete from portal_private.broker_contract_links where broker_user_id=target and contract_id not in (select (value#>>''{}'')::uuid from jsonb_array_elements(payload->''broker_contracts''));');
+ definition:=replace(definition,'insert into portal_private.broker_contract_links values(target,(item#>>''{}'')::uuid,agreement);',
+  'insert into portal_private.broker_contract_links(broker_user_id,contract_id,agreement_id) values(target,(item#>>''{}'')::uuid,agreement) on conflict(broker_user_id,contract_id) do update set agreement_id=excluded.agreement_id;');
  execute definition;
 end $$;
 notify pgrst,'reload schema';
+create function public.portal_verify_document(code uuid) returns jsonb language sql stable security definer set search_path='' as $$
+ select jsonb_build_object('valid',true,'kind',d.kind,'created_at',d.created_at) from portal_private.documents d where d.verification_code=code
+$$;
+revoke all on function public.portal_verify_document(uuid) from public,anon,authenticated;
+grant execute on function public.portal_verify_document(uuid) to service_role;
+-- Generate rental obligations from annual rent and the contract's schedule.
+-- Linked/paid obligations retain their historical terms when a lease is edited.
+create function portal_private.populate_contract_dues(contract_id uuid) returns void language plpgsql security definer set search_path='' as $$
+declare c public.contracts; months integer; index integer; starts date; next_date date; stops date; amount numeric;
+begin
+ select * into c from public.contracts where id=contract_id;
+ if not found then return; end if;
+ delete from portal_private.payment_dues d where d.contract_id=c.id and d.generated and not exists(select 1 from public.financial_transactions t where t.payment_due_id=d.id);
+ if lower(c.status) not in ('active','ساري','expired','منتهي') or c.rent_amount<=0 then return; end if;
+ months:=case c.payment_schedule when 'Quarterly' then 3 when 'Semi-Annual' then 6 when 'Annual' then 12 else 1 end;
+ for index in 0..(extract(year from age(c.end_date,c.start_date))::integer*12+extract(month from age(c.end_date,c.start_date))::integer)/months+1 loop
+  starts:=(c.start_date+make_interval(months=>index*months))::date;
+  if starts>c.end_date then exit; end if;
+  next_date:=(c.start_date+make_interval(months=>(index+1)*months))::date;
+  stops:=least(c.end_date+1,next_date);
+  amount:=round(c.rent_amount*months/12*(stops-starts)::numeric/(next_date-starts),2);
+  if amount>0 and not exists(select 1 from portal_private.payment_dues d where d.contract_id=c.id and d.generated and d.period_start=starts) then
+   insert into portal_private.payment_dues(contract_id,kind,description,due_date,period_start,period_end,amount,generated)
+    values(c.id,'rent','إيجار '||c.contract_number,starts,starts,stops-1,amount,true);
+  end if;
+ end loop;
+end $$;
+revoke all on function portal_private.populate_contract_dues(uuid) from public,anon,authenticated;
+create function portal_private.contract_dues_trigger() returns trigger language plpgsql security definer set search_path='' as $$ begin
+ perform portal_private.populate_contract_dues(new.id); return new;
+end $$;
+revoke all on function portal_private.contract_dues_trigger() from public,anon,authenticated;
+create trigger portal_contract_dues after insert or update of rent_amount,payment_schedule,start_date,end_date,status on public.contracts for each row execute function portal_private.contract_dues_trigger();
+do $$ declare c uuid; begin for c in select id from public.contracts loop perform portal_private.populate_contract_dues(c); end loop; end $$;
 commit;

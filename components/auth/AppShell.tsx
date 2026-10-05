@@ -12,7 +12,7 @@ export default function AppShell({ children }: {
     children: React.ReactNode;
 }) {
     const auth = useAuth(), path = usePathname(), router = useRouter();
-    const publicRoute = path === '/login' || path.startsWith('/auth/'), portalRoute = path.startsWith('/portal');
+    const publicRoute = path === '/login' || path.startsWith('/auth/') || path.startsWith('/verify/'), portalRoute = path === '/portal' || path.startsWith('/portal/');
     const module = path.startsWith('/financials') ? 'financials' : path.split('/')[1] || 'dashboard';
     const destination = !auth.authenticated ? '/login' : auth.isExternal ? '/portal' : '/dashboard';
     useEffect(() => { if (auth.loading || publicRoute)
