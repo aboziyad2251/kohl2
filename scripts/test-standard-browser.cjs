@@ -1,10 +1,12 @@
 const {prepare,base,chromium}=require('./standard-browser-helper.cjs'),{load}=require('./load-standard-model.cjs'),{fixture}=require('./test-standard-forms.cjs'),assert=require('node:assert/strict');
 const {templates}=load('lib/forms/templates.ts');
-(async()=>{const browser=await chromium.launch({headless:true,executablePath:'C:/Users/moham/AppData/Local/ms-playwright/chromium-1228/chrome-win64/chrome.exe'});
+(async()=>{const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});
 try{for(const role of ['ADMIN','EMPLOYEE']){const {ctx,page,requests,errors,fail}=await prepare(browser,role,role==='ADMIN'?1600:390);
  await page.goto(base+'/bills-forms');await page.getByRole('heading',{name:'الفواتير والسندات والنماذج',exact:true}).waitFor();assert.equal(await page.locator('a[href^="/bills-forms/"]').count(),14);
  for(const t of templates){await page.goto(base+'/bills-forms/'+t.slug);await page.getByRole('heading',{name:t.title,exact:true}).waitFor();const data=fixture(t);
  for(const field of t.fields.filter(f=>!f.computed)){const input=page.locator('label[data-input-key="'+field.key+'"]').locator('input,textarea,select');if(field.options)await input.selectOption(data.values[field.key]);else await input.fill(data.values[field.key]);}
+ for(const field of t.fields.filter(f=>f.boxes&&!f.computed)){const input=page.locator('label[data-input-key="'+field.key+'"]').locator('select');for(let i=0;i<field.options.length;i++){await input.selectOption(field.options[i]);const mark=page.locator('[data-mark="'+field.key+'"]');assert.equal(await mark.count(),field.boxes[i]?1:0,t.code+' '+field.key+' '+i);if(field.boxes[i]){const expected=field.boxes[i];const measured=await mark.evaluate(el=>{const sheet=el.closest('.standard-sheet').getBoundingClientRect(),r=el.getBoundingClientRect();return [(r.x-sheet.x)/sheet.width*595.275591,(r.y-sheet.y)/sheet.height*841.889764,r.width/sheet.width*595.275591,r.height/sheet.height*841.889764];});expected.forEach((n,j)=>assert(Math.abs(n-measured[j])<.25,'Mark geometry '+field.key));}}await input.selectOption(data.values[field.key]);}
+ if(role==='ADMIN'){await page.getByText('تعيين الرقم يدوياً (الإدارة)',{exact:true}).click();await page.getByLabel('رقم المستند اليدوي').fill(t.code+'-2026-999999999');const header=page.locator('[data-field="documentNumber"]');assert.equal(await header.innerText(),t.code+'-2026-999999999');assert.equal(await header.evaluate(el=>el.scrollWidth<=el.clientWidth+2),true,'Long number overflow '+t.code);await page.getByText('تعيين الرقم يدوياً (الإدارة)',{exact:true}).click();}
  assert.equal(await page.locator('.standard-sheet').count(),t.pages);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,t.code+' mobile overflow');
  if(t.code==='KL'){fail();await page.getByRole('button',{name:'حفظ وإصدار الرقم',exact:true}).click();await page.getByRole('alert').filter({hasText:'QA failure'}).waitFor();}
  await page.getByRole('button',{name:'حفظ وإصدار الرقم',exact:true}).click();await page.getByRole('button',{name:'طباعة / حفظ PDF',exact:true}).waitFor();if(t.code==='KL')assert.equal(requests.at(-1).requestId,requests.at(-2).requestId);
@@ -15,5 +17,3 @@ try{for(const role of ['ADMIN','EMPLOYEE']){const {ctx,page,requests,errors,fail
  assert.deepEqual(errors,[]);await ctx.close();console.log(role+': ten independent templates, fields, retry, frozen issuance, print and responsive layout passed (mock API)');}
 const response=await fetch(base+'/api/bills-forms/standard',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});assert.equal(response.status,401);console.log('Real standard API unauthenticated 401 passed');
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
-
-

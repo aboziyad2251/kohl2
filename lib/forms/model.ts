@@ -41,6 +41,7 @@ export function computedValues(form:StandardForm):Record<string,string>{
   return {net:money(net),tax:money(tax),total:money(total),amountWords:words(total).ar};
  }
  if(form.kind==='KC-L')return {rentWords:words(halalas(v.rent)).ar};
+ if(form.kind==='KC-B')return {feeType:Number(v.percentage||0)>0?'نسبة':Number(v.fixedFee||0)>0?'مبلغ مقطوع':''};
  if(form.kind==='KB'){
   const income=sum('receipt','income',4),trust=sum('receipt','trust',4),tax=sum('receipt','tax',4),paid=sum('expense','amount',3),received=income+trust+tax;
   return Object.fromEntries(Object.entries({incomeSum:income,trustSum:trust,taxSum:tax,expenses:paid,received,paid,income,tax,trust:trust-halalas(v.trustPaid),closing:halalas(v.opening)+received-paid}).map(([k,n])=>[k,money(n)]));

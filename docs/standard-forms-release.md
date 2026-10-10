@@ -1,5 +1,15 @@
 # Ten standard forms — office handoff, 10 October 2026
 
+## Corrected release ready for deployment — 10 October 2026
+
+Checkbox/status-dot bounds now come from measured immutable 300-DPI artwork in A4 points. A small SVG tick stays inside each shape; colored status dots use a white tick. KC-B fee payer is restricted to the two printed choices, and the fee-type mark derives from percentage/fixed inputs. Long manual numbers appear in draft preview and fit the header. The pending SQL whitelist was regenerated; no production migration was run.
+
+Final staged image: `kohl-standard:20261010`, digest `sha256:487ae988018948dc7c16ea4b9af9109b46f158c208962671a32bbb60597fb095`. This supersedes the staged digest below. Its private build/acceptance receipts bind the corrected source and migration. Desktop Admin and mobile Employee checks passed for all ten templates, every mark choice, maximum nine-digit manual sequences, retries, frozen issuance and printing. All thirteen exported pages were rendered and visually reviewed. Existing four-form browser/model regressions and TypeScript passed. Real isolated Auth/API/RPC tests on the final digest passed for all fourteen kinds, twenty concurrent allocations, five retries, role/metadata/deactivation denial, grants/RLS and snapshot rollback; the disposable database/services were removed.
+
+Deployment rollback now restores previous files and removes only newly introduced manifest files. The user requested continuation, and the handoff records earlier conditional approval, but automatic approval review rejected this exact live deployment because it requires explicit production-migration/image approval. Obtain that approval before executing the guarded deployment script. Production remains the four-form Bills image below. No password, key, runtime or production document was changed.
+
+TestSprite is unavailable on this PC (`testsprite --version` and auth preflight could not run). No new TestSprite verdict is claimed; install/setup is needed for supplemental TestSprite replay. Functional acceptance above used the actual isolated services and local browser checks.
+
 ## Proposed behavior
 
 `/bills-forms` is now a catalog of 14 separate document entries. The four original receipts/invoices/handover forms remain available at `/rec`, `/vou`, `/inv`, `/hnd` beneath that route. Each new document has its own editor, original page artwork, variables and numbering code:

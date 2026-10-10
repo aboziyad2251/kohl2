@@ -93,7 +93,9 @@ try:
  # No production fixtures or documents were issued by deployment checks.
  # Keep any documents issued by real users during release verification.
 except Exception:
- for name in existing:shutil.copy2(backup/'source'/name,live/name)
+ for name in files:
+  if name in existing:shutil.copy2(backup/'source'/name,live/name)
+  elif (live/name).is_file():(live/name).unlink()
  restart(rollback)
  (backup/'rollback-receipt.json').write_text(json.dumps({'rolled_back':True,'migration_retained':applied}))
  raise RuntimeError('Release checks failed; previous source/image restored; private backup retained') from None

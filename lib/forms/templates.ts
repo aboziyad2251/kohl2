@@ -1,5 +1,6 @@
 // Coordinates are PDF points, measured against the immutable supplied A4 originals.
-export type Field = {key:string; label:string; page:number; x:number; y:number; w:number; h:number; type?:'text'|'area'|'date'|'money'|'count'|'choice'; required?:boolean; options?:string[]; marks?:number[]; marksY?:number[]; size?:number; computed?:boolean; inputOnly?:boolean};
+export type MarkBox = [number,number,number,number];
+export type Field = {key:string; label:string; page:number; x:number; y:number; w:number; h:number; type?:'text'|'area'|'date'|'money'|'count'|'choice'; required?:boolean; options?:string[]; marks?:number[]; marksY?:number[]; boxes?:MarkBox[]; coloredMarks?:boolean; size?:number; computed?:boolean; inputOnly?:boolean};
 export type Template = {code:string; slug:string; title:string; pages:number; fields:Field[]};
 const f=(key:string,label:string,x:number,y:number,w:number,h=17,extra:Partial<Field>={}):Field=>({key,label,page:1,x,y:y-3,w,h,...extra});
 const cell=(key:string,label:string,x:number,y:number,w:number,extra:Partial<Field>={})=>f(key,label,x+3,y-4,w-6,17,{...(w<95?{size:6.5}:{}),...extra});
@@ -54,6 +55,31 @@ export const templates:Template[]=[
  {code:'KS',slug:'content-plan',title:'خطة محتوى المنصات',pages:1,fields:[f('from','الفترة من',318,150,74,17,{type:'date'}),f('to','الفترة إلى',318,180,74,17,{type:'date'}),f('owner','المسؤول',42,164,202,25,{required:true}),cell('campaign','موضوع الأسبوع / الحملة',37,216,402,{required:true}),cell('related','العقار / الخدمة المرتبطة',319,237,120),cell('license','رقم الترخيص الإعلاني',37,237,187),
  ...['مدونة كحل (الموقع)','خرائط قوقل','لينكدإن','X (تويتر)','إنستقرام','فيسبوك','تيك توك','يوتيوب'].map((label,i)=>row('platform.'+i,label,280+i*31,[['type','نوع المحتوى',379,90],['text','النص المختصر / الفكرة',179,200,{type:'area',h:26}],['publish','موعد النشر',104,75,{type:'area',h:26}],['status','الحالة',37,67,{type:'choice',options:['منشور','مجدول','قيد الإعداد','لم ينشر'],size:8}]] )).flat(),area('tags','الوسوم والكلمات المفتاحية المعتمدة',564,36),...signatures(755)]},
 ];
+// Bounds measured from the immutable 300-DPI page artwork, in A4 PDF points.
+// Each entry follows the printed option order; "لا" in reconciliation is blank.
+const measured:Record<string,MarkBox[]>={
+ 'KP.capacity':[[386.05,167.27,8.4,8.4],[345.74,167.27,8.4,8.4],[285.04,167.27,8.4,8.4],[238.49,167.27,8.4,8.4],[194.11,167.27,8.4,8.4]],
+ 'KL.attachments':[[386.05,230.63,8.4,8.4],[336.63,230.63,8.4,8.4]],
+ 'KM.memoType':[[386.05,209.51,8.4,8.4],[349.82,209.51,8.4,8.4],[268.73,209.51,8.64,8.4],[209.22,209.51,8.4,8.4]],
+ 'KM.importance':[[388.69,232.31,6.72,6.72],[351.5,232.55,6.72,6.48],[305.92,232.31,6.72,6.72]],
+ 'KM.update':[[274.24,608.86,8.4,8.64],[177.55,608.86,8.4,8.64]],
+ 'KM.decision':[[386.05,635.26,8.4,8.4],[343.35,635.26,8.64,8.4],[263.21,635.26,8.4,8.4],[219.3,635.26,8.4,8.4]],
+ 'KQ.paymentTerms':[[386.05,552.94,8.4,8.4],[309.03,552.94,8.4,8.4]],
+ 'KQ.method':[[386.05,574.06,8.4,8.4],[330.39,574.06,8.4,8.4],[292.72,574.06,8.4,8.4],[241.61,574.06,8.4,8.4]],
+ 'KR.quickStatus':[[372.14,151.19,6.72,6.72],[342.15,151.19,6.48,6.72],[304.72,151.19,6.72,6.72]],
+ 'KA.level':[[386.05,167.27,8.4,8.4],[325.11,167.27,8.64,8.4],[240.65,167.27,8.4,8.4],[194.83,167.27,8.4,8.4]],
+ 'KC-B.capacity':[[480.83,336.23,8.64,8.4],[439.32,336.23,8.64,8.4],[377.42,336.23,8.64,8.4],[299.2,336.23,8.4,8.4]],
+ 'KC-B.brokerageType':[[502.66,431.5,8.4,8.4],[468.59,431.5,8.4,8.4],[428.28,431.5,8.4,8.4],[386.77,431.5,8.4,8.4]],
+ 'KC-B.exclusive':[[547.53,579.58,8.4,8.4],[239.21,579.58,8.4,8.4]],
+};
+[[296.15,309.11],[326.87,339.83],[357.35,370.55],[388.07,401.27]].forEach((ys,i)=>{measured[`KQ.item.${i}.nature`]=ys.map(y=>[266.33,y,8.4,8.4]);});
+[547.53,394.21,264.41,124.77].forEach((x,i)=>{measured[`KB.matched.${i}`]=[[x,582.7,8.4,8.64]];});
+for(const template of templates)for(const field of template.fields){
+ const boxes=measured[template.code+'.'+field.key];
+ if(boxes){field.boxes=boxes;delete field.marks;delete field.marksY;field.coloredMarks=template.code==='KR'||field.key==='importance';}
+ if(template.code==='KC-B'&&field.key==='borneBy')Object.assign(field,{type:'choice',options:['البائع / المؤجر','المشتري / المستأجر'],boxes:[[129.56,48.96,8.64,8.64],[71.5,48.96,8.4,8.64]],y:48.96,h:8.64});
+}
+templates.find(t=>t.code==='KC-B')!.fields.push({key:'feeType',label:'نوع الأتعاب',page:2,x:325.11,y:48.96,w:231,h:8.64,type:'choice',options:['نسبة','مبلغ مقطوع'],boxes:[[547.53,48.96,8.4,8.64],[325.11,48.96,8.4,8.64]],computed:true});
 export function fieldLimit(field:Field){if(field.options)return Math.max(...field.options.map(s=>s.length));if(field.type==='date')return 10;if(field.type==='money')return 12;if(field.type==='count')return 7;return Math.max(6,Math.floor(field.w/(field.size||9)*1.8)*Math.max(1,Math.floor(field.h/((field.size||9)*1.25))));}
 export const getTemplate=(slug:string)=>templates.find(t=>t.slug===slug);
 

@@ -9,5 +9,7 @@ for(const [code,key,value] of [['KQ','item.0.amount','-1'],['KQ','item.0.amount'
 const fs=require('node:fs'),pendingSQL=fs.readFileSync('supabase/migrations/20261009235815_standard_forms.sql','utf8');
 const dbSpecs=JSON.parse(pendingSQL.match(/defs jsonb := '([^\n]*)'::jsonb;/)[1].replaceAll("''","'"));
 for(const t of templates){assert.deepEqual(Object.keys(dbSpecs[t.code]),t.fields.filter(f=>!f.computed).map(f=>f.key));for(const f of t.fields.filter(f=>!f.computed)){assert.equal(dbSpecs[t.code][f.key].max,fieldLimit(f));assert.equal(dbSpecs[t.code][f.key].required,!!f.required);}}
+const broker=fixture(templates.find(t=>t.code==='KC-B'));assert.equal(computedValues(broker).feeType,'نسبة');broker.values.percentage='';broker.values.fixedFee='100';assert.equal(computedValues(broker).feeType,'مبلغ مقطوع');broker.values.borneBy='أي شخص';assert(!standardSchema.safeParse(broker).success);
+for(const t of templates)for(const f of t.fields.filter(f=>f.boxes)){for(const [x,y,w,h] of f.boxes)assert(x>=0&&y>=0&&x+w<=595.28&&y+h<=841.89);assert(f.options&&f.boxes.length<=f.options.length);}
 console.log('Ten template schemas, immutable field whitelist, dates, overrides, geometry, VAT, reconciliation and rent schedule passed');
 module.exports={fixture};
