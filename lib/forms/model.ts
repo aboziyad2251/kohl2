@@ -29,6 +29,7 @@ export const standardSchema=z.object({kind:z.string(),date:z.string().regex(/^\d
   if(sum!==halalas(v.rent))fail('مجموع دفعات الإيجار يجب أن يساوي الأجرة الإجمالية');
  }
  if(input.kind==='KC-B'&&Number(v.percentage||0)>100)fail('النسبة يجب ألا تتجاوز 100%');
+ if(input.kind==='KC-M'&&Number(v.brokerShare||0)>100)fail('حصة المسوّق يجب ألا تتجاوز 100%');
  if(input.kind==='KC-B'&&Number(v.percentage||0)>0&&Number(v.fixedFee||0)>0)fail('اختر نسبة أتعاب أو مبلغاً مقطوعاً');
  if(input.kind==='KB'&&halalas(v.trustPaid)>[0,1,2].reduce((s,i)=>s+halalas(v['expense.'+i+'.amount']),0))fail('الأمانات المسددة لا تتجاوز المصروفات');
 });
@@ -36,6 +37,11 @@ export type StandardForm=z.infer<typeof standardSchema>;
 export function halalas(s?:string){return /^\d{1,8}(\.\d{1,2})?$/.test(s||'')?totals(s!,false).net:0;}
 export function computedValues(form:StandardForm):Record<string,string>{
  const v=form.values;const sum=(prefix:string,key:string,count:number)=>Array.from({length:count},(_,i)=>halalas(v[`${prefix}.${i}.${key}`])).reduce((a,b)=>a+b,0);
+ if(form.kind==='KC-M'){
+  const date=new Date(form.date+'T12:00:00Z'),start=Date.parse(v.start||''),end=Date.parse(v.end||'');
+  const validShare=/^\d{1,3}(\.\d{1,2})?$/.test(v.brokerShare||'')&&Number(v.brokerShare)<=100;
+  return {agreementDate:form.date,agreementHijri:!isNaN(date.getTime())?new Intl.DateTimeFormat('en-GB-u-ca-islamic-umalqura',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'}).format(date).replace(/\s?AH$/,''):'',duration:Number.isFinite(start)&&Number.isFinite(end)&&end>=start?String(Math.round((end-start)/86400000)+1):'',companyShare:validShare?String(Math.round(10000-Number(v.brokerShare)*100)/100):'',signRepresentative:v.representative||'',signCapacity:v.capacity||'',signRepresentativeId:v.representativeId||'',signBroker:v.brokerName||'',signBrokerId:v.brokerId||'',signFal:v.fal||''};
+ }
  if(form.kind==='KP'||form.kind==='KQ'){
   const net=sum(form.kind==='KP'?'fee':'item','amount',form.kind==='KP'?3:4),tax=Math.round(net*15/100),total=net+tax;
   return {net:money(net),tax:money(tax),total:money(total),amountWords:words(total).ar};

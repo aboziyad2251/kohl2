@@ -1,0 +1,40 @@
+{
+  "code": "KC-M",
+  "pages": 8,
+  "dpi": 300,
+  "sourceSha256": "687145d3db8ff0ea2ddf61a06b258c663f390092ca8317342d111dfd7a66530b",
+  "assets": [
+    {
+      "file": "KC-M-1.png",
+      "sha256": "c0f60428f44bdade7cae064656e52cf8e8ed678fc0213f2bc358afd9a10854d8"
+    },
+    {
+      "file": "KC-M-2.png",
+      "sha256": "697911bd820785320bdb5936dc91f581020ecbe940f92c915c420a544c18b23a"
+    },
+    {
+      "file": "KC-M-3.png",
+      "sha256": "7e50701d607de37a02fced56257798bb5b0da06732daf45c9c2f732cf6214892"
+    },
+    {
+      "file": "KC-M-4.png",
+      "sha256": "1a6d5d9cdf932cbc2970dbded29d9eb50eb20ebf3d34402833e78535efd899b7"
+    },
+    {
+      "file": "KC-M-5.png",
+      "sha256": "afdd10479d61aa5b571bbfd7bfb48153241a1d9e47b1d7ebb4115f227226d22e"
+    },
+    {
+      "file": "KC-M-6.png",
+      "sha256": "95e9d392888c595422cdd0356f8574bb3b3058842f2d02ae062f551cadfba72e"
+    },
+    {
+      "file": "KC-M-7.png",
+      "sha256": "49ce240a44b23bdb364434fa12242cae239ec72686a25efca986e08f88547d2c"
+    },
+    {
+      "file": "KC-M-8.png",
+      "sha256": "bb1a1a96e67fd2b9c33f9d6c54ef43ee15bb5d1e11a9d25aae3569c7a908be35"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 // Coordinates are PDF points, measured against the immutable supplied A4 originals.
 export type MarkBox = [number,number,number,number];
 export type Field = {key:string; label:string; page:number; x:number; y:number; w:number; h:number; type?:'text'|'area'|'date'|'money'|'count'|'choice'; required?:boolean; options?:string[]; marks?:number[]; marksY?:number[]; boxes?:MarkBox[]; coloredMarks?:boolean; size?:number; computed?:boolean; inputOnly?:boolean};
-export type Template = {code:string; slug:string; title:string; pages:number; fields:Field[]};
+export type Template = {code:string; slug:string; title:string; pages:number; header?:{x:number[];y:number;widths:number[]}; fields:Field[]};
 const f=(key:string,label:string,x:number,y:number,w:number,h=17,extra:Partial<Field>={}):Field=>({key,label,page:1,x,y:y-3,w,h,...extra});
 const cell=(key:string,label:string,x:number,y:number,w:number,extra:Partial<Field>={})=>f(key,label,x+3,y-4,w-6,17,{...(w<95?{size:6.5}:{}),...extra});
 const area=(key:string,label:string,y:number,h:number,page=1)=>f(key,label,40,y,512,h,{type:'area',page,size:10});
@@ -80,6 +80,22 @@ for(const template of templates)for(const field of template.fields){
  if(template.code==='KC-B'&&field.key==='borneBy')Object.assign(field,{type:'choice',options:['البائع / المؤجر','المشتري / المستأجر'],boxes:[[129.56,48.96,8.64,8.64],[71.5,48.96,8.4,8.64]],y:48.96,h:8.64});
 }
 templates.find(t=>t.code==='KC-B')!.fields.push({key:'feeType',label:'نوع الأتعاب',page:2,x:325.11,y:48.96,w:231,h:8.64,type:'choice',options:['نسبة','مبلغ مقطوع'],boxes:[[547.53,48.96,8.4,8.64],[325.11,48.96,8.4,8.64]],computed:true});
+const cooperationField=(key:string,label:string,page:number,x:number,y:number,w:number,extra:Partial<Field>={}):Field=>({key,label,page,x,y,w,h:14,size:8,...extra});
+templates.push({code:'KC-M',slug:'broker-cooperation',title:'اتفاق التعاون والتسويق العقاري بالعمولة',pages:8,header:{x:[354,174,253],y:125,widths:[90,62,62]},fields:[
+ cooperationField('day','يوم تحرير الاتفاق',1,453,214,48),cooperationField('agreementDate','تاريخ الاتفاق الميلادي',1,308,214,65,{computed:true}),cooperationField('agreementHijri','تاريخ الاتفاق الهجري',1,390,214,61,{computed:true}),
+ cooperationField('representative','اسم ممثل كحل',1,285,357,134,{required:true}),cooperationField('capacity','صفة ممثل كحل',1,147,357,88,{required:true}),cooperationField('representativeId','هوية ممثل كحل',1,278,381,141),
+ cooperationField('authority','سند التمثيل النظامي',1,275,408,145,{type:'choice',options:['مدير مقيّد بالسجل التجاري','وكالة / تفويض'],boxes:[[409,410,9,9],[278,410,9,9]],required:true}),
+ cooperationField('authorizationNumber','رقم الوكالة / التفويض',1,133,407,52),cooperationField('authorizationDate','تاريخ الوكالة / التفويض',1,54,407,48,{type:'date'}),cooperationField('companyEmail','البريد المعتمد لكحل',1,118,430,156),
+ cooperationField('brokerName','اسم المسوّق الرباعي',1,137,516,226,{required:true}),cooperationField('brokerId','الهوية الوطنية للمسوّق',1,210,540,154,{required:true}),cooperationField('fal','رقم ترخيص فال للمسوّق',1,280,564,85,{required:true}),cooperationField('falExpiry','تاريخ انتهاء ترخيص فال',1,144,564,86,{type:'date',required:true}),
+ cooperationField('address','العنوان الوطني للمسوّق',1,137,587,227),cooperationField('mobile','جوال المسوّق',1,282,610,83,{required:true}),cooperationField('email','بريد المسوّق الإلكتروني',1,72,610,123),cooperationField('bank','البنك',1,279,634,85),cooperationField('iban','الآيبان باسم المسوّق',1,73,634,111,{size:7}),
+ cooperationField('duration','مدة الاتفاق بالأيام',2,406,557,44,{computed:true}),cooperationField('start','بداية الاتفاق',2,274,557,79,{type:'date',required:true}),cooperationField('end','نهاية الاتفاق',2,170,557,73,{type:'date',required:true}),cooperationField('protectionDays','مهلة استحقاق العملاء بعد انتهاء الاتفاق (أيام)',2,445,730,50,{type:'count',required:true}),
+ cooperationField('brokerShare','حصة المسوّق من عمولة الوساطة %',3,431,483,67,{type:'money',required:true}),cooperationField('companyShare','حصة كحل %',3,305,483,50,{computed:true}),
+ cooperationField('vehicle','نوع السيارة',6,323,284,128),cooperationField('plate','رقم اللوحة',6,172,284,121),
+ cooperationField('penalty','التعويض الاتفاقي عن كل مخالفة (ر.س)',7,464,320,70,{type:'money',required:true}),
+ cooperationField('disclosure','إقرار عقوبات الهيئة العامة للعقار',8,73,170,457,{type:'choice',required:true,options:['لم تصدر بحقي أي عقوبة','صدرت عقوبة وأفصحت عنها كتابةً'],boxes:[[526,174,9,9],[305,174,9,9]]}),
+ cooperationField('signRepresentative','اسم ممثل كحل في التوقيع',8,335,233,153,{computed:true}),cooperationField('signCapacity','صفة ممثل كحل في التوقيع',8,335,260,164,{computed:true}),cooperationField('signRepresentativeId','هوية ممثل كحل في التوقيع',8,340,287,148,{computed:true}),cooperationField('firstDate','تاريخ توقيع كحل',8,334,314,162,{type:'date'}),
+ cooperationField('signBroker','اسم المسوّق في التوقيع',8,106,233,154,{computed:true}),cooperationField('signBrokerId','هوية المسوّق في التوقيع',8,132,260,81,{computed:true}),cooperationField('signFal','ترخيص فال في التوقيع',8,133,287,79,{computed:true}),cooperationField('secondDate','تاريخ توقيع المسوّق',8,132,314,111,{type:'date'}),
+]});
 export function fieldLimit(field:Field){if(field.options)return Math.max(...field.options.map(s=>s.length));if(field.type==='date')return 10;if(field.type==='money')return 12;if(field.type==='count')return 7;return Math.max(6,Math.floor(field.w/(field.size||9)*1.8)*Math.max(1,Math.floor(field.h/((field.size||9)*1.25))));}
 export const getTemplate=(slug:string)=>templates.find(t=>t.slug===slug);
 
