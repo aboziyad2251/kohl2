@@ -18,6 +18,7 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import { useData } from '@/context/DataContext';
+import ExecutiveAttention from '@/components/portal/ExecutiveAttention';
 
 export default function DashboardPage() {
   const { contracts, properties, ePoas, brokerageAgreements, auditLogs } = useData();
@@ -32,6 +33,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
+      <ExecutiveAttention />
       {/* Top Banner / Welcome */}
       <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-sky-950/60 to-slate-900 border border-sky-500/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-sky-500/5 rounded-full blur-3xl pointer-events-none"></div>
@@ -154,7 +156,7 @@ export default function DashboardPage() {
                 <span>ملخص القيمة الإيجارية وحركة المحفظة</span>
               </h3>
               <span className="text-xs text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
-                إجمالي تحصيل: {totalRevenue.toLocaleString('ar-SA')} ر.س
+                القيمة الإيجارية السنوية للعقود: {totalRevenue.toLocaleString('ar-SA')} ر.س
               </span>
             </div>
 

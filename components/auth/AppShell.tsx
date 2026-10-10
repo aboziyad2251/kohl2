@@ -8,6 +8,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
 import MobileBottomNav from '@/components/layout/MobileBottomNav';
 import PreviewNotice from './PreviewNotice';
+import { AttentionProvider } from '@/context/AttentionContext';
 export default function AppShell({ children }: {
     children: React.ReactNode;
 }) {
@@ -28,5 +29,6 @@ export default function AppShell({ children }: {
         return <div className="w-full"><PreviewNotice />{children}</div>;
     if (!auth.canAccess(module))
         return <p className="p-8">لا تملك صلاحية الدخول لهذه الصفحة.</p>;
-    return <DataProvider key={auth.currentUser.id}><LayoutProvider><Sidebar /><div className="flex-1 flex flex-col min-w-0"><PreviewNotice /><Header /><main className="flex-1 p-3.5 sm:p-5 md:p-8 overflow-y-auto pb-24 md:pb-8 min-w-0">{children}</main></div><MobileBottomNav /></LayoutProvider></DataProvider>;
+    const shell = <LayoutProvider><Sidebar /><div className="flex-1 flex flex-col min-w-0"><PreviewNotice /><Header /><main className="flex-1 p-3.5 sm:p-5 md:p-8 overflow-y-auto pb-24 md:pb-8 min-w-0">{children}</main></div><MobileBottomNav /></LayoutProvider>;
+    return <DataProvider key={auth.currentUser.id}>{auth.isExecutive ? <AttentionProvider key={auth.currentUser.id}>{shell}</AttentionProvider> : shell}</DataProvider>;
 }

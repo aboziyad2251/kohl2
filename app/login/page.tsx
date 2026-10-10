@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
+import { loginErrorMessage } from '@/lib/portal/login-errors';
 export default function Login() {
     const [en, setEn] = useState(false), [email, setEmail] = useState(''), [password, setPassword] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState('');
     const router = useRouter(), auth = useAuth();
@@ -11,7 +13,7 @@ export default function Login() {
     return <main dir={en ? 'ltr' : 'rtl'} className="portal-surface min-h-screen grid place-items-center p-4"><form className="portal-card w-full max-w-md space-y-5" onSubmit={async (e) => { e.preventDefault(); setBusy(true); setError(''); try {
         const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error)
-            throw new Error(en ? 'Invalid email or password' : 'البريد أو كلمة المرور غير صحيحة');
+            throw new Error(loginErrorMessage(error, en));
         await auth.refresh();
         router.replace('/dashboard');
     }
@@ -28,5 +30,6 @@ export default function Login() {
   <label className="block">{en ? 'Email' : 'البريد الإلكتروني'}<input className="portal-input" type="email" required autoComplete="username" value={email} onChange={e => setEmail(e.target.value)}/></label>
   <label className="block">{en ? 'Password' : 'كلمة المرور'}<input className="portal-input" type="password" required autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)}/></label>
   {(error || auth.error) && <p role="alert" className="text-red-700">{error || auth.error}</p>}<button className="portal-button w-full" disabled={busy}>{busy ? '…' : en ? 'Sign in' : 'تسجيل الدخول'}</button>
+  <Link className="block text-center text-sm underline" href="/auth/forgot-password">{en ? 'Forgot your password?' : 'نسيت كلمة المرور؟'}</Link>
  </form></main>;
 }

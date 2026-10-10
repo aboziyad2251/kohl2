@@ -1,4 +1,27 @@
-# Current checkpoint — 5 October 2026
+# Latest office handoff — ten standard forms, 10 October 2026
+
+Resume from `origin/codex/role-portals`. The user requested GitHub push and continuation from the office. Source includes the deployed action center/login improvements, existing four-form module and ten new independent forms. Read `docs/standard-forms-release.md` first, alongside the earlier release/runbooks below. Production still has the four-form module; the new extension is not deployed and its production migration is not applied.
+
+Model/type/build checks, ten-form responsive browser tests, thirteen-page A4 print proofs, original four-form browser regressions, real isolated database/Auth/API concurrency/security/rollback tests and the public TestSprite authentication guard passed. User approval for the new migration and publication is already recorded, conditional on passing tests. Before publishing, finish the checkbox/fee-payer visual findings listed in the release document, regenerate SQL if fields change, and rebuild/retest the exact final image in isolation.
+
+Current stage `/home/debian/projects/kohl-standard-release-20261010`; accepted staged image `kohl-standard:20261010`, digest `sha256:84fd2c796afa276b02c80dca0fd2ba88465ab23b6d7d86f429abc8667fbd8b20`. Acceptance applies only to that staged source and SQL. Deployment helper is prepared but unexecuted; review new-file rollback first. Verify fresh live state, preserve office/live edits, and fetch safely without reset. Production credentials/private backups/test proofs are intentionally excluded from Git and must not be reconstructed from placeholders.
+
+---
+
+# Production checkpoint — Bills & Forms installed, 10 October 2026
+
+Bills & Forms is deployed at `https://app.kohlestate-ksa.online/bills-forms`, linked from the internal sidebar for Admin/CEO and employees. Read `docs/bills-forms-release.md`. Final image `kohl-bills:20261010`, digest `sha256:991eb7518c61e225a37bf4055bfc5bd538a8b0b642357ceb0ec8fc0ec3447c9b`; current private backup/Compose override `/home/debian/backups/kohl-bills-20261009T233232Z/app-image-override.json`. Migration `20261009225626` was explicitly approved and applied; the original migration backup is `/home/debian/backups/kohl-bills-20261009T232757Z`. Full backups were restored successfully before deployment. The final image passed real isolated Auth/API/RPC, numbering concurrency/idempotency, role/deactivation, grants/RLS and rollback checks. Three public TestSprite checks passed. No production test document was issued. Runtime settings, Google login, passwords and signing keys were preserved; email recovery remains disabled. QR is a labelled placeholder, not certified ZATCA integration. Preserve live edits and use the latest image override; do not run deploy.sh blindly. This release's source has not been committed/pushed to GitHub.
+
+---
+# Current checkpoint — 8 October 2026
+
+Action dashboard and scoped in-app alerts are deployed. Read `docs/action-center-release.md`. Running image is `kohl-attention:20261008`, digest `sha256:fb014dc0d1e8684481465e30998c6477afcab4a35040661373fefc3cf9f2f0c1`. Current private backup/Compose override: `/home/debian/backups/kohl-attention-20261007T231506Z/app-image-override.json` (the UTC timestamp is the previous calendar day in Riyadh). No schema migration was applied. Local/VPS builds, real isolated Auth/API scope and deactivation checks, five-role responsive browser checks and TestSprite bilingual login passed. Public login/recovery pages return 200 and protected APIs return 401 without a session. Google login is enabled and user-confirmed; preserve it and the private Google credentials. The user has no SMTP service; `PASSWORD_RECOVERY_ENABLED=false` must remain until actual email delivery is configured and tested. Preserve live deployed source edits and the image override; never run `deploy.sh` blindly. Local source includes the release changes; GitHub publication has not been performed for this release.
+
+---
+
+Final TestSprite checks passed for local bilingual login and deployed recovery guidance, Google redirect and no public registration. See the pinned run receipts in `docs/action-center-release.md`. Email delivery is the remaining blocked capability because no SMTP service exists; in-app alerts and the action dashboard are live.
+
+# Historical checkpoint — 5 October 2026
 
 Role portals are deployed after explicit user approval. Resume from `origin/codex/role-portals` and read `docs/role-portal-release.md`. Running image: `kohl-portals:20261005`, digest `sha256:679c7fe740115abbdb00ce0a20addc90960c5f720aa4885632504bab4326211a`. Current private backup/override: `/home/debian/backups/kohl-portals-20261005T180024Z/app-image-override.json`. Full backup restore, active executive dashboards and API denial checks passed. Passwords, Auth settings and keys were preserved. The user chose full-property owner earnings. The live checkout retains its old Git HEAD with deployed source edits; preserve them before reconciliation and never run `deploy.sh` blindly. Employee checkpoint details below are historical; use the portal image override for future restarts.
 
@@ -111,3 +134,6 @@ Refresh and verify backups if production data changed. Reconcile existing ERP/sc
 Google activation requires the user-owned OAuth client. SMTP is still needed for emailed recovery/invitations; once Google is genuinely enabled, approved Google account creation does not require invitation email. Report these limits accurately.
 
 Phases B/C/D (tenant maintenance, owner statements/PDFs and broker dashboards) are not implemented. Do not start them before Phase A acceptance.
+## Ten standard forms extension — 10 October 2026
+
+See the latest office handoff at the top and `docs/standard-forms-release.md`. Browser/print and real isolated SQL acceptance subsequently passed after the user's conditional approval. Migration `20261009235815` remains unapplied to production, and the extension is not deployed. Complete the documented visual corrections and exact final-image verification from the office.

@@ -24,6 +24,7 @@ import { AppUser, UserRole } from '@/lib/types';
 import PasswordPromptModal from '@/components/auth/PasswordPromptModal';
 import LockScreenModal from '@/components/auth/LockScreenModal';
 import ChangePasswordModal from '@/components/auth/ChangePasswordModal';
+import NotificationBell from '@/components/portal/NotificationBell';
 
 interface HeaderProps {
   title?: string;
@@ -138,6 +139,7 @@ export default function Header({
 
         {/* Right / Actions area */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <NotificationBell />
           {/* Date Display (Desktop) */}
           <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-slate-300">
             <Calendar className="w-3.5 h-3.5 text-sky-400" />

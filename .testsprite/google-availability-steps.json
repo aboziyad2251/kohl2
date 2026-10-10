@@ -1,0 +1,12 @@
+{
+  "planSteps": [
+    {
+      "type": "action",
+      "description": "Open /login and switch to English."
+    },
+    {
+      "type": "assertion",
+      "description": "Verify Google sign-in is enabled, email/password login is available, and there is no public sign-up form or registration button."
+    }
+  ]
+}

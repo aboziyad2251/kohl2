@@ -42,3 +42,7 @@ supabase/.temp/
 docs/portal-live-catalog.txt
 google-oauth*.json
 client_secret*.json
+
+# Local Bills & Forms build and visual checks
+/.next-bills-check/
+/tmp/pdfs/

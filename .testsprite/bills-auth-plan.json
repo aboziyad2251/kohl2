@@ -1,0 +1,10 @@
+{
+ "projectId":"7930d491-00e4-4183-a083-9d1607d945f9",
+ "type":"frontend","name":"Bills and Forms requires an approved signed-in account",
+ "planSteps":[
+  {"type":"action","description":"In a fresh unauthenticated browser, open https://app.kohlestate-ksa.online/bills-forms. Do not enter account credentials or submit a form."},
+  {"type":"assertion","description":"Verify the browser redirects to /login, showing the email/password sign-in form. The Bills and Forms editor, issue-document action and document preview must not be visible."},
+  {"type":"action","description":"Switch the login page to English."},
+  {"type":"assertion","description":"Verify Sign in with Google is enabled and the email and password fields remain available; no public registration option is present."}
+ ]
+}

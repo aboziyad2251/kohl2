@@ -1,0 +1,17 @@
+const fs=require('fs'),ts=require('typescript'),assert=require('node:assert/strict');
+const m={exports:{}};new Function('require','module','exports',ts.transpileModule(fs.readFileSync('lib/bills/model.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText)(require,m,m.exports);
+const {totals,words,billSchema,tlv,hijri}=m.exports;
+assert.deepEqual(totals('100.01',true),{net:10001,tax:1500,total:11501});
+assert.equal(totals('0.10',true).tax,2);
+assert.equal(words(101).en,'one Saudi riyal and one halala only');
+assert.match(words(200).ar,/ريالان سعوديان/);
+assert.match(words(300).ar,/ثلاثة ريالات سعودية/);
+assert.match(words(100000).ar,/ألف/);
+assert.match(words(100000000).en,/one million/);
+const f={kind:'REC',party:'QA',unit:'1',date:'2026-10-10',amount:'1',vat:false,method:'نقداً',reference:'',notes:''};
+assert(billSchema.safeParse(f).success);
+for(const v of [{amount:'-1'},{amount:'1.001'},{date:'2026-02-30'},{vat:true},{party:''},{override:'INV-2026-00001'}])assert(!billSchema.safeParse({...f,...v}).success);
+assert.equal(Buffer.from(tlv(['كحل','123']), 'base64')[1],6);
+assert(hijri('2026-10-10').length>3);
+console.log('Bills: 16 calculation, validation, words, TLV and date assertions passed');
+assert.match(words(totals('999999999.99',true).total).en,/billion/); console.log('Maximum supported invoice amount with VAT passed');

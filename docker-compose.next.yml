@@ -19,6 +19,7 @@ services:
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-}
       - APP_ORIGIN=${APP_ORIGIN:-https://app.kohlestate-ksa.online}
       - GOOGLE_LOGIN_ENABLED=${GOOGLE_LOGIN_ENABLED:-false}
+      - PASSWORD_RECOVERY_ENABLED=${PASSWORD_RECOVERY_ENABLED:-false}
     networks:
       - default
       - supabase_default

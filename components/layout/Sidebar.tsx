@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   ChevronRight,
   Wallet,
+  ReceiptText,
   Sparkles,
   Briefcase,
   ClipboardList,
@@ -35,6 +36,7 @@ interface NavItem {
 }
 
 const allNavItems: NavItem[] = [
+  { name: 'الفواتير والسندات', href: '/bills-forms', icon: ReceiptText, badge: null, moduleKey: 'bills-forms' },
   { name: 'إدارة بوابات العملاء', href: '/portal-management', icon: Building2, badge: null, moduleKey: 'portal-management' },
   { name: 'المستخدمون والصلاحيات', href: '/users-access', icon: ShieldCheck, badge: null, moduleKey: 'users-access' },
   {

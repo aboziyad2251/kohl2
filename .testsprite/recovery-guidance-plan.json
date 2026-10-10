@@ -1,0 +1,23 @@
+{
+  "projectId": "7930d491-00e4-4183-a083-9d1607d945f9",
+  "type": "frontend",
+  "name": "Recovery guidance while email is unavailable",
+  "planSteps": [
+    {
+      "description": "Navigate to /login. Click the Forgot your password link (نسيت كلمة المرور؟). Switch to English.",
+      "type": "action"
+    },
+    {
+      "description": "Verify Password recovery heading and Email password recovery is currently unavailable guidance. No send-recovery button or email-submission form should be present.",
+      "type": "assertion"
+    },
+    {
+      "description": "Click Back to login.",
+      "type": "action"
+    },
+    {
+      "description": "Verify the login page is displayed with email, password and enabled Google sign-in.",
+      "type": "assertion"
+    }
+  ]
+}

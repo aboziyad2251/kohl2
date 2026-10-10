@@ -107,7 +107,7 @@ export function AuthProvider({ children }: {
             return true;
         if (['dashboard', 'employees', 'archive'].includes(module))
             return true;
-        return role === 'EMPLOYEE' && ['crm', 'contracts', 'property-management', 'ownership-properties', 'brokerage-agreements', 'customer-orders', 'general-services'].includes(module);
+        return role === 'EMPLOYEE' && ['bills-forms', 'crm', 'contracts', 'property-management', 'ownership-properties', 'brokerage-agreements', 'customer-orders', 'general-services'].includes(module);
     };
     const value: AuthState = { currentUser, allUsers: authenticated ? [currentUser] : [], role, loading, authenticated, profile, error, isExecutive, isAdmin: authenticated && role === 'ADMIN', isCEO: authenticated && role === 'CEO', isHR: authenticated && role === 'HR', isEmployee: authenticated && role === 'EMPLOYEE', isExternal, canAccess, signOut, refresh, actingOnBehalfOf,
         setActingOnBehalfOf: user => { if (isExecutive)

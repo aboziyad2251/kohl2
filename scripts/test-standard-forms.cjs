@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict'),{load}=require('./load-standard-model.cjs');
+const {templates,fieldLimit}=load('lib/forms/templates.ts'),{standardSchema,computedValues}=load('lib/forms/model.ts');
+function fixture(t){const values=Object.fromEntries(t.fields.filter(f=>!f.computed).map(f=>[f.key,f.options?f.options[0]:f.type==='date'?'2026-10-10':f.type==='money'?'100.01':f.type==='count'?'1':f.type==='area'?'بيانات اختبار محلية فقط':'تجربة']));if(t.code==='KC-L')values.rent='400.04';if(t.code==='KC-B'){values.percentage='2.5';values.fixedFee='';}return {kind:t.code,date:'2026-10-10',values};}
+for(const t of templates){const f=fixture(t);assert(standardSchema.safeParse(f).success,t.code+JSON.stringify(standardSchema.safeParse(f).error));assert(!standardSchema.safeParse({...f,values:{...f.values,constant:'tamper'}}).success);assert(!standardSchema.safeParse({...f,date:'2026-02-30'}).success);assert(!standardSchema.safeParse({...f,override:t.code+'-2026-00000'}).success);assert(!standardSchema.safeParse({...f,override:'REC-2026-00001'}).success);for(const field of t.fields){assert(field.x>=0&&field.x+field.w<=595.28&&field.y>=0&&field.y+field.h<=841.89,t.code+field.key);assert(fieldLimit(field)>0);}}
+const budget={kind:'KB',date:'2026-10-10',values:{opening:'200', 'receipt.0.income':'100.01','receipt.0.trust':'50','receipt.0.tax':'15','expense.0.amount':'20',trustPaid:'10'}};
+assert.equal(computedValues(budget).closing,'345.01');assert.equal(computedValues(budget).trust,'40.00');assert.equal(computedValues({kind:'KQ',date:'2026-10-10',values:{'item.0.amount':'0.10'}}).tax,'0.02');
+assert(!standardSchema.safeParse({kind:'KC-L',date:'2026-10-10',values:{...fixture(templates.find(t=>t.code==='KC-L')).values,rent:'1'}}).success);
+for(const [code,key,value] of [['KQ','item.0.amount','-1'],['KQ','item.0.amount','1.001'],['KA','decision.0.due','2026-02-30'],['KC-B','percentage','101'],['KS','from','2027-01-01']]){const input=fixture(templates.find(t=>t.code===code));input.values[key]=value;assert(!standardSchema.safeParse(input).success);}
+const fs=require('node:fs'),pendingSQL=fs.readFileSync('supabase/migrations/20261009235815_standard_forms.sql','utf8');
+const dbSpecs=JSON.parse(pendingSQL.match(/defs jsonb := '([^\n]*)'::jsonb;/)[1].replaceAll("''","'"));
+for(const t of templates){assert.deepEqual(Object.keys(dbSpecs[t.code]),t.fields.filter(f=>!f.computed).map(f=>f.key));for(const f of t.fields.filter(f=>!f.computed)){assert.equal(dbSpecs[t.code][f.key].max,fieldLimit(f));assert.equal(dbSpecs[t.code][f.key].required,!!f.required);}}
+console.log('Ten template schemas, immutable field whitelist, dates, overrides, geometry, VAT, reconciliation and rent schedule passed');
+module.exports={fixture};

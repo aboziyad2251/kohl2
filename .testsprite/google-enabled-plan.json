@@ -1,0 +1,23 @@
+{
+  "projectId": "7930d491-00e4-4183-a083-9d1607d945f9",
+  "planSteps": [
+    {
+      "description": "Open https://app.kohlestate-ksa.online/login and switch to English.",
+      "type": "action"
+    },
+    {
+      "description": "Verify Sign in with Google is enabled and no awaiting-configuration message appears. Email and password login remain visible.",
+      "type": "assertion"
+    },
+    {
+      "description": "Click Sign in with Google. Do not enter any credentials or complete sign-in.",
+      "type": "action"
+    },
+    {
+      "description": "Verify the browser reaches accounts.google.com for Google sign-in without a provider-disabled or redirect mismatch error.",
+      "type": "assertion"
+    }
+  ],
+  "name": "Enabled Google login opens Google sign-in",
+  "type": "frontend"
+}

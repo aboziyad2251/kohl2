@@ -1,0 +1,129 @@
+{
+  "templateVersion": 2,
+  "dpi": 300,
+  "source": "User supplied unified forms, original fixed artwork and clauses preserved",
+  "documents": [
+    {
+      "code": "KL",
+      "sourceSha256": "27bdfcbc95d6e09cf38a4fd0346d367d0e02a0897dca2c5d210d3623a79cc3b3",
+      "pages": 1,
+      "assets": [
+        {
+          "file": "KL-1.png",
+          "sha256": "4a1380a98dbab984e4da3ad3c51747761e116e45a4bc4bc398bc3a4a30911c73"
+        }
+      ]
+    },
+    {
+      "code": "KM",
+      "sourceSha256": "56e330b956879b1cabcdf93bd1a98a7b760943adc21d749a897dfb9a3618a329",
+      "pages": 1,
+      "assets": [
+        {
+          "file": "KM-1.png",
+          "sha256": "1ca031a5db5309a1330e17e6f382910154d701c1bf5bc1722e266266202e340b"
+        }
+      ]
+    },
+    {
+      "code": "KP",
+      "sourceSha256": "943aaf5633c51a2906be81887afd5ed59fd2a02efb161b10b64526c8ec3b505a",
+      "pages": 2,
+      "assets": [
+        {
+          "file": "KP-1.png",
+          "sha256": "723ac6a7eb00b88a39b4f6d6a627efdc8dc178eb90c6190df0951c719be22415"
+        },
+        {
+          "file": "KP-2.png",
+          "sha256": "c40fd39d5332163d987053381b9defd71164599d20beb03f07f5ecddf01078f3"
+        }
+      ]
+    },
+    {
+      "code": "KQ",
+      "sourceSha256": "141643f39498c612a001a3d819a95ef6fa22e0e7db79641ae6ef9dd1ba1bb85d",
+      "pages": 1,
+      "assets": [
+        {
+          "file": "KQ-1.png",
+          "sha256": "25e4f6eb48077cfedd7cf8a64fe2ca029f0467d5a072bf65ad9a3029bafedb99"
+        }
+      ]
+    },
+    {
+      "code": "KR",
+      "sourceSha256": "3ce958adc09e441251d80a269be060d14e30a65f277639b9c3685bf1677913a6",
+      "pages": 1,
+      "assets": [
+        {
+          "file": "KR-1.png",
+          "sha256": "5cbdd35d22bd5e8f8c380786b635f84a412f4b3b9960f2d1256bd2466f99fb9e"
+        }
+      ]
+    },
+    {
+      "code": "KB",
+      "sourceSha256": "e7e77ecd3e6fd493180d9c609e704b9e44f0e6b5abc0c303f8f2b0019ad8d588",
+      "pages": 1,
+      "assets": [
+        {
+          "file": "KB-1.png",
+          "sha256": "8b1bc5b4753e090856ee6d08ab3ab2c6016a21f32d48c7f08e7a7ef069b67775"
+        }
+      ]
+    },
+    {
+      "code": "KA",
+      "sourceSha256": "04833271c1d21511dbdf6e9f89095509f2c1ff49228621c1ac969e714095db7d",
+      "pages": 1,
+      "assets": [
+        {
+          "file": "KA-1.png",
+          "sha256": "71aec3f5e773005481a2172519971d01183cc72df85d5f20ec8b047784222e31"
+        }
+      ]
+    },
+    {
+      "code": "KC-L",
+      "sourceSha256": "91882bf1614ed6a2decacf93c0db232c0940c8df53705d1921504683f65fa862",
+      "pages": 2,
+      "assets": [
+        {
+          "file": "KC-L-1.png",
+          "sha256": "5b989b505d55e0025c71ea1254908946d71f41f60a83420336a2218b9a718f89"
+        },
+        {
+          "file": "KC-L-2.png",
+          "sha256": "930966f5699452364b9eeba68ee89dbf46765ad8f305872a9f3e98807ee4a053"
+        }
+      ]
+    },
+    {
+      "code": "KC-B",
+      "sourceSha256": "8c2e0d367b1087ad452126b624e84c96fe5caed5cee12c6e9991e00cafdb7335",
+      "pages": 2,
+      "assets": [
+        {
+          "file": "KC-B-1.png",
+          "sha256": "ee09b604bb17cd4947dd5bb5310c36b7919a8c4a1a7adef4bd9d08aa39cdb86f"
+        },
+        {
+          "file": "KC-B-2.png",
+          "sha256": "a202a9e35c6df7292f1cc2d48455ad3ed968e3f3659cfc56ec57bd7fc260b538"
+        }
+      ]
+    },
+    {
+      "code": "KS",
+      "sourceSha256": "a78027931ab362b5fad311503a64489241da78e253de3a070d29757ff5196d2e",
+      "pages": 1,
+      "assets": [
+        {
+          "file": "KS-1.png",
+          "sha256": "3a734b54a2df6b26628998370e918e11de1e6eaaee08f1fa21de1cfbe5e0c342"
+        }
+      ]
+    }
+  ]
+}
