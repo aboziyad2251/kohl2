@@ -1,5 +1,11 @@
 # Ten standard forms — office handoff, 10 October 2026
 
+## Production deployment completed — 10 October 2026
+
+The user explicitly approved this exact deployment after the corrected release passed its checks. All fourteen forms are live at `/bills-forms`. Running image: `kohl-standard:20261010`, digest `sha256:487ae988018948dc7c16ea4b9af9109b46f158c208962671a32bbb60597fb095`. Current private backup/Compose override: `/home/debian/backups/kohl-standard-20261010T143747Z/app-image-override.json`. A full production database backup restored successfully before migration. The new standard-form function was applied transactionally; the original four-form function and existing documents remain intact. Runtime settings, Google login, recovery-disabled setting, passwords and keys were unchanged. All ten public routes and the catalog returned 200, and anonymous issuance/administrative APIs returned 401. No real document or account was created during deployment checks. This section supersedes the pending-deployment notes below.
+
+Resume from `origin/codex/role-portals` with this current override. Preserve live source edits and all earlier backups; do not run `deploy.sh` blindly. Rollback restores previous source/image and retains additive schema and documents. Actual customer/operator issuance remains a user acceptance step. TestSprite was unavailable on the office PC; no new TestSprite pass is claimed.
+
 ## Corrected release ready for deployment — 10 October 2026
 
 Checkbox/status-dot bounds now come from measured immutable 300-DPI artwork in A4 points. A small SVG tick stays inside each shape; colored status dots use a white tick. KC-B fee payer is restricted to the two printed choices, and the fee-type mark derives from percentage/fixed inputs. Long manual numbers appear in draft preview and fit the header. The pending SQL whitelist was regenerated; no production migration was run.
