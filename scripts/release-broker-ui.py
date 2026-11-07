@@ -6,8 +6,8 @@ Private receipts retain runtime settings; never copy them into Git.
 import copy,datetime,hashlib,http.client,json,os,pathlib,shutil,socket,subprocess,sys,time,urllib.request,urllib.error,zipfile
 os.umask(0o077)
 live=pathlib.Path('/home/debian/projects/kohl-crm-app')
-stage=pathlib.Path('/home/debian/projects/kohl-broker-ui-release-20261108')
-image='kohl-broker-ui:20261108'
+stage=pathlib.Path('/home/debian/projects/kohl-broker-ui-release-20261108r2')
+image='kohl-broker-ui:20261108r2'
 files=['app/globals.css','components/portal/BrokerPanel.tsx','components/portal/PortalDashboard.tsx']
 def inspect(name):return json.loads(subprocess.check_output(['docker','inspect',name]))[0]
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -16,16 +16,25 @@ class Engine(http.client.HTTPConnection):
   self.sock=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);self.sock.connect('/var/run/docker.sock')
 def api(method,path,body=None):
  conn=Engine('localhost',timeout=60);conn.request(method,'/v1.41'+path,json.dumps(body) if body is not None else None,{'Content-Type':'application/json'});response=conn.getresponse();data=response.read();conn.close()
- assert response.status<300,'Docker operation failed: '+method+' '+path
+ assert response.status<300,'Docker operation failed ('+str(response.status)+'): '+str(json.loads(data).get('message','Unknown error'))[:400]
  return json.loads(data) if data else None
 def create(name,old,new_image,preview=False):
+ if preview:
+  network='kohl_broker_ui_review'
+  if subprocess.run(['docker','network','inspect',network],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode:
+   api('POST','/networks/create',{'Name':network,'Internal':True})
+  config={'Image':new_image,'Env':['NODE_ENV=production','PORT=3000','HOSTNAME=0.0.0.0','GOOGLE_LOGIN_ENABLED=true','PASSWORD_RECOVERY_ENABLED=false'], 'Entrypoint':old['Config']['Entrypoint'],'Cmd':old['Config']['Cmd'],'User':old['Config'].get('User',''),'WorkingDir':old['Config'].get('WorkingDir',''), 'ExposedPorts':{'3000/tcp':{}},'HostConfig':{'NetworkMode':network,'PortBindings':{'3000/tcp':[{'HostIp':'127.0.0.1','HostPort':'39180'}]},'RestartPolicy':{'Name':'no','MaximumRetryCount':0}},'NetworkingConfig':{'EndpointsConfig':{network:{}}}}
+  result=api('POST','/containers/create?name='+name,config);api('POST','/containers/'+result['Id']+'/start');return result['Id']
  config=copy.deepcopy(old['Config']);config['Image']=new_image
  host=copy.deepcopy(old['HostConfig'])
- if preview:
-  host['PortBindings']={'3000/tcp':[{'HostIp':'127.0.0.1','HostPort':'39180'}]};host['RestartPolicy']={'Name':'no','MaximumRetryCount':0}
  config['HostConfig']=host
- config['NetworkingConfig']={'EndpointsConfig':{network:{'Aliases':(entry.get('Aliases') or []) if not preview else [name]} for network,entry in old['NetworkSettings']['Networks'].items()}}
- result=api('POST','/containers/create?name='+name,config);api('POST','/containers/'+result['Id']+'/start');return result['Id']
+ endpoints={network:{'Aliases':(entry.get('Aliases') or []) if not preview else [name]} for network,entry in old['NetworkSettings']['Networks'].items()}
+ primary=host['NetworkMode'];assert primary in endpoints,'Unexpected primary network'
+ config['NetworkingConfig']={'EndpointsConfig':{primary:endpoints[primary]}}
+ result=api('POST','/containers/create?name='+name,config)
+ for network,endpoint in endpoints.items():
+  if network!=primary:api('POST','/networks/'+network+'/connect',{'Container':result['Id'],'EndpointConfig':endpoint})
+ api('POST','/containers/'+result['Id']+'/start');return result['Id']
 def ready(base):
  for attempt in range(40):
   try:
@@ -40,6 +49,11 @@ def checks(base):
  for path in ['/api/portal/dashboard','/api/access/users','/api/portal/attention']:
   try:urllib.request.urlopen(base+path,timeout=15);raise AssertionError('Signed-out API was allowed')
   except urllib.error.HTTPError as error:assert error.code==401
+def preview_checks():
+ preview=inspect('kohl_broker_ui_preview')
+ assert set(preview['NetworkSettings']['Networks'])=={'kohl_broker_ui_review'}
+ address='http://'+preview['NetworkSettings']['Networks']['kohl_broker_ui_review']['IPAddress']+':3000'
+ ready(address);checks(address)
 if sys.argv[1]=='build':
  assert not stage.exists(),'Stage already exists; inspect before reuse'
  old=inspect('kohl_crm_app');stage.mkdir(mode=0o700)
@@ -55,8 +69,12 @@ if sys.argv[1]=='build':
   result=subprocess.run(['docker','build','-f','Dockerfile.next','-t',image,'--build-arg','NEXT_PUBLIC_SUPABASE_URL='+env['NEXT_PUBLIC_SUPABASE_URL'],'--build-arg','NEXT_PUBLIC_SUPABASE_ANON_KEY='+env['NEXT_PUBLIC_SUPABASE_ANON_KEY'],'.'],cwd=stage,stdout=log,stderr=subprocess.STDOUT)
  assert result.returncode==0,'Build failed; inspect private build.log'
  receipt={'image':image,'image_id':inspect(image)['Id'],'previous_image':old['Image'],'source_before':manifest,'source_after':{name:digest(stage/name) for name in files}}
- (stage/'build.json').write_text(json.dumps(receipt));create('kohl_broker_ui_preview',old,receipt['image_id'],True);ready('http://127.0.0.1:39180');checks('http://127.0.0.1:39180')
+ (stage/'build.json').write_text(json.dumps(receipt));create('kohl_broker_ui_preview',old,receipt['image_id'],True);preview_checks()
  print('Built and preview smoke checks passed: '+receipt['image_id'])
+elif sys.argv[1]=='preview':
+ receipt=json.loads((stage/'build.json').read_text());old=inspect('kohl_crm_app')
+ assert old['Image']==receipt['previous_image']
+ create('kohl_broker_ui_preview',old,receipt['image_id'],True);preview_checks();print('Staged preview smoke checks passed')
 elif sys.argv[1]=='deploy':
  receipt=json.loads((stage/'build.json').read_text());accepted=json.loads((stage/'browser-acceptance.json').read_text())
  assert accepted['passed'] and accepted['image_id']==receipt['image_id']

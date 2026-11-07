@@ -1,10 +1,12 @@
 # Phone OTP setup — 8 November 2026
 
-The user requested phone-number login by sent token and selected help with provider setup. They are creating a Unifonic business account and requesting a transactional sender name for Kohl. Account creation, sender approval and a funded SMS account remain external dependencies; do not claim SMS delivery works yet.
+The user requested phone-number login by sent token and subsequently required that the service be free. **Do not purchase SMS credit, register a paid service, or enable paid SMS delivery.** The earlier Unifonic setup suggestion is superseded by this cost constraint. Unifonic SMS is charged, so it is not a free solution; no account purchase, SMS transmission or activation has been performed.
+
+Existing Google/password sign-in remains available without introducing an SMS service. Supabase supports authenticator-app TOTP MFA without SMS charges, but it is an additional factor after primary sign-in, not a code delivered to a phone number. Discuss that different flow with the user before implementing it. Do not advertise free production SMS delivery or represent limited trial credit as permanently free. See [Unifonic SMS pricing](https://docs.unifonic.com/articles/products-documentation/how-sms-is-charged-by-unifonic/a/definitions) and [Supabase TOTP](https://supabase.com/docs/guides/auth/auth-mfa/totp).
 
 Live readiness was inspected without printing secrets: self-hosted `supabase/gotrue:v2.189.0`, `GOTRUE_EXTERNAL_PHONE_ENABLED=false`, `GOTRUE_DISABLE_SIGNUP=true`, no configured SMS provider or credential values. This release does not enable phone auth or change any account. Existing password and Google sign-in remain available; email recovery remains disabled until SMTP delivery is verified.
 
-## User setup
+## Historical paid SMS setup — on hold under the free-service requirement
 
 1. Create the business account using [Unifonic getting started](https://docs.unifonic.com/articles/products-documentation/sms-02-getting-started).
 2. Request a **transactional** sender name for Kohl and complete the business documents requested in the provider's secure dashboard. See [sender registration](https://docs.unifonic.com/articles/products-documentation/sms-06-sender-id-registration/).
@@ -12,6 +14,8 @@ Live readiness was inspected without printing secrets: self-hosted `supabase/got
 4. Tell the agent only that the account/sender is ready and where the restricted credential file is stored. Select an authorized test recipient privately for the real delivery test.
 
 ## Implementation when the provider is ready
+
+This paid-SMS implementation is on hold. Revisit it only if the user later explicitly accepts provider charges; the current requirement is free service.
 
 - Inspect the installed Auth version's supported Send SMS hook configuration. Unifonic is a custom provider integration, not one of Supabase's built-in provider selections. Use a signed server-side [Send SMS hook](https://supabase.com/docs/guides/auth/auth-hooks/send-sms-hook) adapter; never expose the provider secret or OTP in client bundles/logs. Confirm the installed version supports the chosen hook before modifying Auth configuration.
 - Supabase owns OTP generation, expiration, verification and session issuance. The adapter delivers only authenticated Auth hook requests. Enforce signature/timestamp/replay checks, bounded requests, provider error handling and delivery rate limits. Never create a parallel ad-hoc token login system.

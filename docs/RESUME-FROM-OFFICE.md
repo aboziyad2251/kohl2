@@ -1,4 +1,14 @@
-# Latest office handoff — ten standard forms, 10 October 2026
+# Latest deployment — broker portal UI, 8 November 2026
+
+The approved broker portal redesign is live. Read `docs/broker-portal-ui-review.md` and `docs/phone-otp-setup.md`. Current image `kohl-broker-ui:20261108r2`, digest `sha256:6ce1427b87690b85c846fb4961d09cdf51c220b02d332028155240f062626c24`; private rollback checkpoint `/home/debian/backups/kohl-broker-ui-20261107T214206Z`. Source/container backups retain runtime secrets privately. Exact-image isolated browser checks, bilingual/mobile layout, inactive-tab contrast, public pages and anonymous API denial passed. Runtime environment, production networks/ports, database, Auth configuration and real records were preserved.
+
+Important drift: live source/image already contained newer property, CRM, mobile and ivory-surface releases beyond this GitHub branch. This deployment preserved them by building from live source and patching only three broker UI files. GitHub contains the reviewed feature delta; it does not supersede all uncommitted live source. Container labels do not identify a Compose project. Inspect the current container/checkpoint before any restart, preserve live edits and never reset/deploy the entire checkout blindly. SSH worked with the existing `id_ed25519` key and the recorded VPS address; the `kohl-vps` alias was absent on this PC.
+
+Phone OTP: the user subsequently required **free service**. Unifonic SMS is paid, so the earlier provider-signup suggestion is on hold. No SMS was purchased/sent or enabled. Phone Auth is disabled, no SMS provider is configured, Google/password login remain available, and email recovery stays disabled. Authenticator-app TOTP is a possible additional factor without SMS delivery fees, but has not been implemented or selected. Do not claim phone-number SMS login works or enable a paid provider under the current instruction.
+
+---
+
+# Historical office handoff — ten standard forms, 10 October 2026
 
 **Latest deployment: revised KC-M cooperation agreement, 10 October 2026.** Fifteen forms are live, with the eight-page agreement at `/bills-forms/broker-cooperation`. Read `docs/cooperation-form-release.md`. Running image: `kohl-cooperation:20261010`, digest `sha256:d7015bce2ba1dff48849eadf527315147aaffbe68f9fb0b8d379a79b044d1bcf`. Current private backup/override: `/home/debian/backups/kohl-cooperation-20261010T175331Z/app-image-override.json`. Full database backup restore, transactional whitelist extension and final isolated acceptance passed; runtime settings/passwords/keys were unchanged. Resume from `origin/codex/role-portals`, preserve deployed source edits and earlier backups, and use this override for future restarts. Earlier image/override notes below are historical.
 
