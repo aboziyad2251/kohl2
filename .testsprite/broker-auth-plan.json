@@ -1,0 +1,11 @@
+{
+  "projectId": "7930d491-00e4-4183-a083-9d1607d945f9",
+  "type": "frontend",
+  "name": "Local broker portal requires approved sign in",
+  "planSteps": [
+    {"type":"action","description":"Open /portal in a fresh signed-out browser. Do not enter any credentials."},
+    {"type":"assertion","description":"Verify redirect to /login with email and password inputs. Broker contracts, commissions and targets must not be visible."},
+    {"type":"action","description":"Switch the login page to English."},
+    {"type":"assertion","description":"Verify the Sign in form and email/password inputs are visible in English. The broker workspace remains inaccessible."}
+  ]
+}
