@@ -1,4 +1,14 @@
-# Latest deployment — broker portal UI, 8 November 2026
+# Latest recovery — grouped navigation and broker frontend, 9 November 2026
+
+Read `docs/navigation-restoration.md` first. The user selected restoring the complete previous release, then safely reapplying the broker design. Main `kohl_crm_app` is restored to image `sha256:4128d746c87f15ff345a57de78be75b83c0551da0b368f202250484eb8c874d3` (`kohl-main:nav-restored-20261109`), preserving six grouped categories, search/favorites/mobile navigation and all 32 page-manifest entries. Recovery checkpoint `/home/debian/backups/kohl-nav-restore-20261108T230403Z`.
+
+Broker design is separately served by `kohl_broker_frontend`, image `sha256:223b615202c1e8553c15b60c59d75e3079acd72f28c0f1a256ef4544960a76a6`, only for exact `/portal` and namespaced `/__broker_ui/_next/static/`. No frontend production credentials; isolated internal proxy network. App proxy routing is persisted in host 8's advanced configuration, and only the npm network membership was added to the proxy Compose file after guarded validation. Private proxy checkpoint `/home/debian/backups/kohl-broker-frontend-20261108T231147Z`.
+
+**The source checkout is older than the restored main image. Do not rebuild/deploy the main app from it.** The previous broker build inadvertently omitted newer navigation and pages despite preserving source edits; that whole-app build/deploy path is retired. Preserve the restored image/tag and reconcile complete source before any main-app rebuild. Route-manifest, categories and cross-build portal navigation checks are mandatory. No database/Auth/account change was made in this recovery. Pending local password-reset changes were excluded; SMTP setup is still pending.
+
+---
+
+# Historical deployment — broker portal UI, 8 November 2026
 
 The approved broker portal redesign is live. Read `docs/broker-portal-ui-review.md` and `docs/phone-otp-setup.md`. Current image `kohl-broker-ui:20261108r2`, digest `sha256:6ce1427b87690b85c846fb4961d09cdf51c220b02d332028155240f062626c24`; private rollback checkpoint `/home/debian/backups/kohl-broker-ui-20261107T214206Z`. Source/container backups retain runtime secrets privately. Exact-image isolated browser checks, bilingual/mobile layout, inactive-tab contrast, public pages and anonymous API denial passed. Runtime environment, production networks/ports, database, Auth configuration and real records were preserved.
 

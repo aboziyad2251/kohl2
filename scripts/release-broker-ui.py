@@ -55,6 +55,7 @@ def preview_checks():
  address='http://'+preview['NetworkSettings']['Networks']['kohl_broker_ui_review']['IPAddress']+':3000'
  ready(address);checks(address)
 if sys.argv[1]=='build':
+ raise RuntimeError('Retired: source is older than the preserved main image. Use the isolated frontend release and read docs/navigation-restoration.md.')
  assert not stage.exists(),'Stage already exists; inspect before reuse'
  old=inspect('kohl_crm_app');stage.mkdir(mode=0o700)
  shutil.copytree(live,stage,dirs_exist_ok=True,ignore=shutil.ignore_patterns('.git','node_modules','.next*','.env*','.portal-stage','backups','tmp'))
@@ -76,6 +77,7 @@ elif sys.argv[1]=='preview':
  assert old['Image']==receipt['previous_image']
  create('kohl_broker_ui_preview',old,receipt['image_id'],True);preview_checks();print('Staged preview smoke checks passed')
 elif sys.argv[1]=='deploy':
+ raise RuntimeError('Retired whole-app deployment. Preserve the restored main image; read docs/navigation-restoration.md.')
  receipt=json.loads((stage/'build.json').read_text());accepted=json.loads((stage/'browser-acceptance.json').read_text())
  assert accepted['passed'] and accepted['image_id']==receipt['image_id']
  old=inspect('kohl_crm_app');assert old['Image']==receipt['previous_image'],'Live image changed'
