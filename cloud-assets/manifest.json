@@ -1,0 +1,46 @@
+[
+  {
+    "path": "public/forms/kohl/KC-M-3.png",
+    "sha256": "7e50701d607de37a02fced56257798bb5b0da06732daf45c9c2f732cf6214892",
+    "parts": [
+      "KC-M-3.png.000.b64",
+      "KC-M-3.png.001.b64",
+      "KC-M-3.png.002.b64",
+      "KC-M-3.png.003.b64",
+      "KC-M-3.png.004.b64",
+      "KC-M-3.png.005.b64",
+      "KC-M-3.png.006.b64",
+      "KC-M-3.png.007.b64"
+    ]
+  },
+  {
+    "path": "public/forms/kohl/KC-M-4.png",
+    "sha256": "1a6d5d9cdf932cbc2970dbded29d9eb50eb20ebf3d34402833e78535efd899b7",
+    "parts": [
+      "KC-M-4.png.000.b64",
+      "KC-M-4.png.001.b64",
+      "KC-M-4.png.002.b64",
+      "KC-M-4.png.003.b64",
+      "KC-M-4.png.004.b64",
+      "KC-M-4.png.005.b64",
+      "KC-M-4.png.006.b64",
+      "KC-M-4.png.007.b64",
+      "KC-M-4.png.008.b64"
+    ]
+  },
+  {
+    "path": "public/forms/kohl/KC-M-7.png",
+    "sha256": "49ce240a44b23bdb364434fa12242cae239ec72686a25efca986e08f88547d2c",
+    "parts": [
+      "KC-M-7.png.000.b64",
+      "KC-M-7.png.001.b64",
+      "KC-M-7.png.002.b64",
+      "KC-M-7.png.003.b64",
+      "KC-M-7.png.004.b64",
+      "KC-M-7.png.005.b64",
+      "KC-M-7.png.006.b64",
+      "KC-M-7.png.007.b64",
+      "KC-M-7.png.008.b64"
+    ]
+  }
+]

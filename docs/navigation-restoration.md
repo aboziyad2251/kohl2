@@ -1,3 +1,5 @@
+> Follow-up, 9 November 2026: original production source has now been recovered and reconciled; see `source-reconciliation.md`. Password recovery was subsequently deployed and user-verified; see `password-recovery-release.md`. The restoration narrative below records the earlier incident. Production remains on the same protected three-frontend topology.
+
 # Grouped navigation restored — 9 November 2026
 
 The user reported that navigation categories had reverted, and selected restoring the complete previous release before safely reapplying the broker design.

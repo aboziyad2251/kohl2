@@ -1,8 +1,9 @@
+import { withAudit } from '@/lib/audit/server';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { requireIdentity, administrative, adminClient, invitationRedirect, apiError, json, PortalError } from '@/lib/portal/server';
 export const dynamic = 'force-dynamic';
-export async function POST(req: NextRequest, { params }: {
+async function POSTHandler(req: NextRequest, { params }: {
     params: {
         id: string;
     };
@@ -42,3 +43,5 @@ export async function POST(req: NextRequest, { params }: {
         return apiError(error);
     }
 }
+
+export const POST=withAudit(POSTHandler);

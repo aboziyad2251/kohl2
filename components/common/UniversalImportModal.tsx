@@ -1,4 +1,5 @@
 'use client';
+import { runAuditedExport } from '@/lib/audit/client';
 
 import React, { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
@@ -105,7 +106,7 @@ export default function UniversalImportModal({
     const ws = XLSX.utils.json_to_sheet([sample]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Template');
-    XLSX.writeFile(wb, `${title.replace(/\s+/g, '_')}_template.xlsx`);
+    void runAuditedExport(`${title.replace(/\s+/g, '_')}_template.xlsx`,()=>XLSX.writeFile(wb,`${title.replace(/\s+/g, '_')}_template.xlsx`));
   };
 
   const handleConfirmImport = () => {

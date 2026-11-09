@@ -1,3 +1,4 @@
+import { withAudit } from '@/lib/audit/server';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { requireIdentity, adminClient, apiError, json, PortalError } from '@/lib/portal/server';
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
         return json({ url: data.signedUrl });
     } catch (error) { return apiError(error); }
 }
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
     try {
         const { user, profile } = await requireIdentity(req);
         if (!['TENANT', 'OWNER', 'ADMIN', 'CEO'].includes(profile.account.role) || profile.account.history_only) throw new PortalError(403, 'Photo upload not allowed');
@@ -39,3 +40,5 @@ export async function POST(req: NextRequest) {
         return json({ saved: true });
     } catch (error) { return apiError(error); }
 }
+
+export const POST=withAudit(POSTHandler);

@@ -1,4 +1,5 @@
 'use client';
+import { auditedPrint } from '@/lib/audit/client';
 
 import React, { useRef } from 'react';
 import { ArchivedDocument } from '@/lib/types';
@@ -41,7 +42,7 @@ export default function ArchiveDossierPrintModal({
   if (!isOpen || !doc) return null;
 
   const handleTriggerPrint = () => {
-    window.print();
+    void auditedPrint();
   };
 
   const categoryLabel = CATEGORY_NAMES[doc.category] || doc.category;

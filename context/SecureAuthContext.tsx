@@ -93,7 +93,11 @@ export function AuthProvider({ children }: {
         return () => { data.subscription.unsubscribe(); clearInterval(timer); document.removeEventListener('visibilitychange', visible); };
     }, [refresh]);
     const authenticated = !!currentUser.id, role = currentUser.role, isExecutive = authenticated && ['ADMIN', 'CEO'].includes(role), isExternal = authenticated && ['BROKER', 'OWNER', 'TENANT'].includes(role);
-    const signOut = async () => { ++generation.current; setCurrentUser(anonymous); setProfile(null); setActing(null); await supabase.auth.signOut(); };
+    const signOut = async () => {
+        try{await portalRequest('/api/auth/logout',{method:'POST'});}catch{console.warn('[audit] app logout endpoint unavailable; revoking directly');}
+        const {error}=await supabase.auth.signOut({scope:'global'});if(error){setError('تعذر تسجيل الخروج؛ أعد المحاولة');return;}
+        ++generation.current;setCurrentUser(anonymous);setProfile(null);setActing(null);
+    };
     const verifyOwn = async (password: string): Promise<Result> => {
         if (!authenticated)
             return { success: false, error: 'Sign in required' };
@@ -105,6 +109,8 @@ export function AuthProvider({ children }: {
             return false;
         if (isExecutive)
             return true;
+        if (module === 'audit') return profile?.audit_viewer === true;
+        if (module === 'daily-reports') return profile?.kr_reports === true;
         if (['dashboard', 'employees', 'archive'].includes(module))
             return true;
         return role === 'EMPLOYEE' && ['bills-forms', 'crm', 'contracts', 'property-management', 'ownership-properties', 'brokerage-agreements', 'customer-orders', 'general-services'].includes(module);

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import {useDraftForm} from '@/lib/drafts/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { customerOrderSchema, CustomerOrderInput } from '../../lib/validations';
 import { useData } from '../../context/DataContext';
@@ -34,11 +34,12 @@ export default function NewCustomerOrderModal({ isOpen, onClose }: NewCustomerOr
   const {
     register,
     handleSubmit,
+    clearDraft,
     setValue,
     watch,
     reset,
     formState: { errors },
-  } = useForm<CustomerOrderInput>({
+  } = useDraftForm<CustomerOrderInput>('NewCustomerOrderModal', {
     resolver: zodResolver(customerOrderSchema),
     defaultValues: {
       client_name: '',
@@ -51,7 +52,7 @@ export default function NewCustomerOrderModal({ isOpen, onClose }: NewCustomerOr
       status: 'New',
       notes: '',
     },
-  });
+  }, isOpen);
 
   const selectedCategory = watch('category');
 

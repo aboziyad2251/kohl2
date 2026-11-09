@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import type { DashboardMetrics } from '@/lib/dashboard/metrics';
+import { useWorkspaceData } from '@/components/navigation/useWorkspaceData';
 import Link from 'next/link';
 import {
   FileSignature,
@@ -23,28 +25,33 @@ import ExecutiveAttention from '@/components/portal/ExecutiveAttention';
 export default function DashboardPage() {
   const { contracts, properties, ePoas, brokerageAgreements, auditLogs } = useData();
 
+  const metrics = useWorkspaceData<DashboardMetrics>('/api/workspace/dashboard-metrics');
+  const documentation = metrics.data?.documentation;
+  const agencies = metrics.data?.agencies;
+  const ejar = metrics.data?.ejar;
   // Compute KPI metrics
-  const activeContractsCount = contracts.filter((c) => c.status === 'Active').length;
-  const totalPropertiesCount = properties.length;
-  const activeEPoasCount = ePoas.filter((e) => e.status === 'Active').length;
-  const expiringBrokerageCount = brokerageAgreements.filter((b) => b.ejar_status === 'Active').length;
+  const activeContractsCount = metrics.data?.activeContracts ?? '—';
+  const totalPropertiesCount = metrics.data?.totalProperties ?? '—';
+  const activeEPoasCount = agencies?.active ?? '—';
+  const expiringBrokerageCount = metrics.data?.activeBrokerage ?? '—';
 
   const totalRevenue = contracts.reduce((acc, curr) => acc + curr.rent_amount, 0);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
-      <ExecutiveAttention />
+
+<div className="kohl-heading"><div><h1>كل التفاصيل. قرار أوضح.</h1><p>مركز قيادة مكتبك العقاري — من أول طلب إلى آخر دفعة</p></div><Link href="/contracts" className="kohl-primary">+ العقود والإيجارات</Link></div>
       {/* Top Banner / Welcome */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-sky-950/60 to-slate-900 border border-sky-500/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl relative overflow-hidden">
+      <div className="kohl-hero p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-sky-950/60 to-slate-900 border border-sky-500/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-sky-500/5 rounded-full blur-3xl pointer-events-none"></div>
         <div>
           <div className="flex items-center gap-2 text-sky-400 text-xs font-bold mb-1">
             <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span>نظام إداري ديناميكي متصل بقاعدة البيانات وحافظة التخزين الحية</span>
+            <span>كحل العقارية · مساحة عمل موحّدة</span>
           </div>
-          <h1 className="text-2xl font-bold text-white">مرحباً بك في لوحة تحكم المكتب العقاري</h1>
+          <h1 className="text-2xl font-bold text-white">أعمال المكتب، برؤية واحدة</h1>
           <p className="text-xs text-slate-400 mt-1 max-w-xl">
-            إدارة شاملة للملكية، العقارات، عقود إيجار السكنية والتجارية، والوكالات الإلكترونية بمرونة وتوثيق دقيق.
+            العقارات والعقود والعملاء والتحصيل. نظرة واضحة على ما يحتاج اهتمامك اليوم.
           </p>
         </div>
 
@@ -73,6 +80,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {metrics.loading && <p role="status">جارٍ تحميل المؤشرات…</p>}
+      {metrics.error && <p role="alert">{metrics.error} <button className="underline" onClick={metrics.refresh}>إعادة تحميل المؤشرات</button></p>}
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Metric 1 */}
@@ -87,7 +96,7 @@ export default function DashboardPage() {
             <div className="text-3xl font-extrabold text-white">{activeContractsCount}</div>
             <div className="text-[11px] text-emerald-400 mt-1 flex items-center gap-1">
               <TrendingUp className="w-3.5 h-3.5" />
-              <span>معدل توثيق 100% منصة إيجار</span>
+              <span>{!documentation ? 'حالة التوثيق غير متاحة بعد' : documentation.total ? `معدل توثيق إيجار ${documentation.percentage}% · ${documentation.documented} من ${documentation.total}` : '0% · لا توجد عقود مؤهلة'}</span>
             </div>
           </div>
         </div>
@@ -119,9 +128,9 @@ export default function DashboardPage() {
           </div>
           <div>
             <div className="text-3xl font-extrabold text-white">{activeEPoasCount}</div>
-            <div className="text-[11px] text-amber-400 mt-1 flex items-center gap-1">
+            <div className={`text-[11px] ${agencies?.tone === 'green' ? 'text-emerald-400' : 'text-amber-400'} mt-1 flex items-center gap-1`}>
               <UserCheck className="w-3.5 h-3.5" />
-              <span>جميع الوكالات سارية الصلاحية</span>
+              <span>{agencies?.message || 'حالة الوكالات غير متاحة بعد'}</span>
             </div>
           </div>
         </div>
@@ -138,12 +147,13 @@ export default function DashboardPage() {
             <div className="text-3xl font-extrabold text-white">{expiringBrokerageCount}</div>
             <div className="text-[11px] text-purple-400 mt-1 flex items-center gap-1">
               <Clock className="w-3.5 h-3.5" />
-              <span>محدثة ومربوطة بشبكة إيجار</span>
+              <span data-status={ejar?.state} className={`kr-badge kr-${ejar?.state === 'LINKED' ? 'green' : ejar?.state === 'PENDING' ? 'amber' : 'gray'}`}>{ejar ? `${ejar.label} · ${ejar.linked} / ${ejar.total}` : 'حالة الربط غير متاحة بعد'}</span>
             </div>
           </div>
         </div>
       </div>
 
+      <ExecutiveAttention />
       {/* Main Content Grid: Quick Workflows & Recent Activity Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left 2 Columns: Financial Overview & Property Portfolio */}

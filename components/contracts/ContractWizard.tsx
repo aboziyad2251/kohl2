@@ -1,7 +1,8 @@
 'use client';
+import {useDraftState,useDraftControls} from '@/lib/drafts/hooks';
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import {useDraftForm} from '@/lib/drafts/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   X,
@@ -43,8 +44,8 @@ export default function ContractWizard({
   onAddTenant,
   onSuccess,
 }: ContractWizardProps) {
-  const [contractType, setContractType] = useState<ContractType>('RESIDENTIAL');
-  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [contractType, setContractType] = useDraftState<ContractType>('ContractWizard:contractType', 'RESIDENTIAL');
+  const [currentStep, setCurrentStep] = useDraftState<number>('ContractWizard:currentStep', 1);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isAddTenantOpen, setIsAddTenantOpen] = useState<boolean>(false);
 
@@ -59,18 +60,20 @@ export default function ContractWizard({
   const {
     register,
     handleSubmit,
+    clearDraft,
     watch,
     setValue,
     reset,
     formState: { errors },
-  } = useForm<any>({
+  } = useDraftForm<any>('ContractWizard', {
     resolver: zodResolver(activeSchema),
     defaultValues: {
       payment_schedule: 'Quarterly',
       primary_lessor_consent: false,
     },
-  });
+  }, isOpen);
 
+  const clearPageDraft=useDraftControls('ContractWizard');
   if (!isOpen) return null;
 
   const watchPropertyId = watch('property_id');
@@ -130,9 +133,12 @@ export default function ContractWizard({
         created_at: new Date().toISOString(),
       };
 
-      onSuccess(newContract);
+      await onSuccess(newContract);
+
+      clearDraft();
       reset();
       setCurrentStep(1);
+      clearPageDraft();
       onClose();
     } catch (err) {
       console.error(err);

@@ -1,4 +1,16 @@
-# Latest checkpoint — password recovery live, 9 November 2026
+# Latest checkpoint — production source reconciled, 9 November 2026
+
+Resume from `origin/codex/role-portals`. Read `docs/source-reconciliation.md` first. The complete source for the preserved main image has been recovered from the original `kohl-crm-cloud` commit `bab4aaa37d557e06d2d2a4dee1f847f959e944d5` and combined with the broker redesign and verified password recovery updates. The release checkpoint's 359 source blobs matched its recorded GitHub blob hashes without drift. This supersedes the older warning that the GitHub application source lacks the restored navigation/pages.
+
+The reconciled branch passes production build, TypeScript, all 78 live route checks, six navigation categories, the recovered mock/isolated-database suites, responsive workspace/report/audit/import browser suites, seven-role password tests, and the local TestSprite smoke check. `scripts/check-release-baseline.cjs` is now a CI gate; do not remove existing routes or navigation categories silently.
+
+The live site remains on its verified three-container main/broker/account topology described below. This task reconciles source, not a production rollout or migration. The old live directory `/home/debian/projects/kohl-crm-app` remains preserved and must no longer be used as the source of new builds; the clean reconciled source mirror is `/home/debian/projects/kohl-reconciled-20261109`. Read its `SOURCE_COMMIT` before building. Root `deploy.sh` is disabled. Future releases must explicitly choose the target frontend, preserve namespaced proxy routing and verify the exact candidate image before an approved cutover.
+
+Own-password links in the modal and portal remain source-only additions; recovery from login and the separate account frontend are already live and user-verified. Do not infer that this source reconciliation changed the running UI. Historical migration files were recovered as source only, never applied to production. Preserve current credentials, images, rollback checkpoints, real records and private deployed edits.
+
+---
+
+# Previous checkpoint — password recovery live, 9 November 2026
 
 Resume from `origin/codex/role-portals`. Read `docs/password-recovery-release.md` and `docs/navigation-restoration.md` before adding features. This checkpoint supersedes historical SMTP/recovery-disabled notes below.
 

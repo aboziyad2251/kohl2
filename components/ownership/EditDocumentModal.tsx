@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import {useDraftForm} from '@/lib/drafts/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, FileText, CheckCircle2 } from 'lucide-react';
@@ -36,11 +36,12 @@ export default function EditDocumentModal({
   const {
     register,
     handleSubmit,
+    clearDraft,
     reset,
     formState: { errors },
-  } = useForm<DocInput>({
+  } = useDraftForm<DocInput>('EditDocumentModal:' + (documentItem?.id || 'none'), {
     resolver: zodResolver(docSchema),
-  });
+  }, isOpen && !!documentItem);
 
   useEffect(() => {
     if (documentItem) {
@@ -69,7 +70,9 @@ export default function EditDocumentModal({
         file_url: data.file_url || documentItem.file_url,
       };
 
-      onSuccess(updated);
+      await onSuccess(updated);
+
+      clearDraft();
       onClose();
     } catch (err) {
       console.error(err);

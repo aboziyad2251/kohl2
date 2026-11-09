@@ -1,3 +1,4 @@
+import { withAudit } from '@/lib/audit/server';
 import { NextRequest } from 'next/server';
 import { requireIdentity, administrative, adminClient, invitationRedirect, apiError, json, PortalError } from '@/lib/portal/server';
 import { saveUserSchema } from '@/lib/portal/validation';
@@ -11,7 +12,7 @@ export async function GET(req: NextRequest) {
         return apiError(error);
     }
 }
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
     try {
         const { user } = await requireIdentity(req, true);
         const parsed = saveUserSchema.safeParse(await req.json());
@@ -74,3 +75,5 @@ export async function POST(req: NextRequest) {
         return apiError(error);
     }
 }
+
+export const POST=withAudit(POSTHandler);

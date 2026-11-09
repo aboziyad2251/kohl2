@@ -1,413 +1,54 @@
 'use client';
-import { portalRequest } from '@/lib/portal/client';
-
-import React, { useState } from 'react';
+import { runAuditedExport, auditedPrint } from '@/lib/audit/client';
 import Link from 'next/link';
-import {
-  Sparkles,
-  TrendingUp,
-  CheckCircle2,
-  AlertTriangle,
-  Lightbulb,
-  Printer,
-  Calendar,
-  RefreshCw,
-  Zap,
-  Building,
-  ArrowRight,
-  ShieldCheck,
-  RotateCcw,
-} from 'lucide-react';
-import { useData } from '@/context/DataContext';
-import { AiDailyReport } from '@/lib/types';
-
-export default function DailyReportsPage() {
-  const { aiReports, transactions, dailySummaries, properties, ePoas, rezeroFinancialDate } = useData();
-
-  const todayStr = new Date().toISOString().split('T')[0];
-  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
-  const [reports, setReports] = useState<AiDailyReport[]>(aiReports);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [rezeroSuccess, setRezeroSuccess] = useState(false);
-
-  // Sync reports if context updates
-  React.useEffect(() => {
-    if (aiReports && aiReports.length > 0) {
-      setReports(aiReports);
-    }
-  }, [aiReports]);
-
-  // Exact Earnings Calculation for Selected Date (Matches Earnings Page 100%)
-  const selectedDateTransactions = transactions.filter((t) => t.transaction_date === selectedDate);
-
-  const earningsGross = selectedDateTransactions
-    .filter((t) => t.flow_type === 'INCOME')
-    .reduce((sum, t) => sum + t.gross_amount, 0);
-
-  const earningsExpenses = selectedDateTransactions
-    .filter((t) => t.flow_type === 'EXPENSE')
-    .reduce((sum, t) => sum + t.net_amount, 0);
-
-  const earningsNet = earningsGross - earningsExpenses;
-
-  // Check if daily summary exists for selected date
-  const summaryForDate = dailySummaries.find((s) => s.summary_date === selectedDate);
-  const effectiveGross = selectedDateTransactions.length > 0
-    ? earningsGross
-    : summaryForDate
-    ? summaryForDate.total_gross_income
-    : 0;
-
-  const effectiveNet = selectedDateTransactions.length > 0
-    ? earningsNet
-    : summaryForDate
-    ? summaryForDate.total_net_income
-    : 0;
-
-  const effectiveDeals = summaryForDate?.new_contracts_count ?? selectedDateTransactions.filter(t => t.contract_id || t.transaction_type === 'RENTAL_PAYMENT' || t.transaction_type === 'BROKERAGE_COMMISSION').length;
-
-  const effectiveOccupancy = summaryForDate?.occupancy_rate ?? 0;
-
-  // Find active report for selected date, or fallback with clean zero state
-  const rawActiveReport =
-    reports.find((r) => r.report_date === selectedDate) || {
-      id: `adr-${selectedDate}`,
-      report_date: selectedDate,
-      gross_income: effectiveGross,
-      net_income: effectiveNet,
-      what_went_well: effectiveGross > 0 ? [
-        'إغلاق اتفاقيتي وساطة تجارية وتحصيل العمولات المباشرة.',
-        'تحصيل الدفعة الإيجارية السكنية بانتظام عبر المكتب.',
-        'توثيق العقود والوساطات المنفذة اليوم عبر منصة إيجار بانتظام.'
-      ] : [
-        'جاهزية النظام والمنصة لاستقبال وتوثيق صفقات وعمليات اليوم الجديد.',
-        'لا توجد أي متأخرات أو تعثرات مالية مسجلة على العقود والوحدات.',
-        'اكتمال التوثيق الإلكتروني ومطابقة السجلات العقارية بنسبة 100%.'
-      ],
-      what_went_bad: effectiveGross > 0 ? [
-        'وجود وحدات سكنية شاغرة متوقفة لأكثر من 10 أيام دون تأجير.',
-        'تأخر توثيق وكالة إلكترونية واحدة للمالك مما يعطل إبرام عقد جديد.',
-        'ارتفاع تكاليف الصيانة التشغيلية في بعض المباني.'
-      ] : [
-        'لم يتم تسجيل أي معاملات مالية أو صفقات جديدة لهذا اليوم حتى الآن (الرصيد: 0 ر.س).',
-        'فرصة لتنشيط حركة التأجير وتحويل طلبات العملاء إلى عقود منجزة.',
-        'متابعة تسويق الوحدات الشاغرة لسرعة تحقيق أولى إيرادات اليوم.'
-      ],
-      ai_recommendations: effectiveGross > 0 ? [
-        'إطلاق تقديم خصم تشجيعي بنسبة 5% لسرعة شغل الوحدات السكنية الشاغرة خلال 48 ساعة.',
-        'متابعة كتابة العدل لإصدار الوكالة الإلكترونية المعلقة لإغلاق العقد العقاري الجديد غداً.',
-        'إعادة تفاوض عقود الصيانة السنوية للحصول على خصم كميات وتقليل المصاريف التشغيلية.'
-      ] : [
-        'التواصل المباشر مع العملاء المهتمين لإبرام عقود الإيجار والوساطة اليوم.',
-        'متابعة العقود المعلقة وإتمام التوثيق عبر منصة إيجار لتحصيل العمولات فوراً.',
-        'تسجيل أي مقبوضات أو مصروفات فور حدوثها لتحديث لوحة الأداء المالي.'
-      ],
-      income_increment_strategy: effectiveGross > 0
-        ? 'التركيز الفوري غداً على استكمال توثيق العقود المعلقة وإبرام الاتفاقيات الجديدة لزيادة الإيرادات الإجمالية والصافية للمكتب.'
-        : 'التركيز الفوري اليوم على إغلاق صفقات الإيجار والوساطة الجديدة لتوليد أولى التدفقات النقدية والأرباح للمكتب.',
-    };
-
-  // Enforce 100% Match with Earnings Page Metrics
-  const activeReport = {
-    ...rawActiveReport,
-    report_date: selectedDate,
-    gross_income: effectiveGross,
-    net_income: effectiveNet,
-  };
-
-  const handleRezero = async () => {
-    if (rezeroFinancialDate) {
-      await rezeroFinancialDate(selectedDate);
-    }
-    const zeroReport: AiDailyReport = {
-      id: `adr-${selectedDate}`,
-      report_date: selectedDate,
-      gross_income: 0,
-      net_income: 0,
-      what_went_well: [
-        'جاهزية النظام والمنصة لاستقبال وتوثيق صفقات وعمليات اليوم الجديد.',
-        'لا توجد أي متأخرات أو تعثرات مالية مسجلة على العقود والوحدات.',
-        'اكتمال التوثيق الإلكتروني ومطابقة السجلات العقارية بنسبة 100%.'
-      ],
-      what_went_bad: [
-        'لم يتم تسجيل أي معاملات مالية أو صفقات جديدة لهذا اليوم حتى الآن (الرصيد: 0 ر.س).',
-        'فرصة لتنشيط حركة التأجير وتحويل طلبات العملاء إلى عقود منجزة.',
-        'متابعة تسويق الوحدات الشاغرة لسرعة تحقيق أولى إيرادات اليوم.'
-      ],
-      ai_recommendations: [
-        'التواصل المباشر مع العملاء المهتمين لإبرام عقود الإيجار والوساطة اليوم.',
-        'متابعة العقود المعلقة وإتمام التوثيق عبر منصة إيجار لتحصيل العمولات فوراً.',
-        'تسجيل أي مقبوضات أو مصروفات فور حدوثها لتحديث لوحة الأداء المالي.'
-      ],
-      income_increment_strategy: 'التركيز الفوري اليوم على إغلاق صفقات الإيجار والوساطة الجديدة لتوليد أولى التدفقات النقدية والأرباح للمكتب.',
-    };
-    setReports((prev) => [zeroReport, ...prev.filter((r) => r.report_date !== selectedDate)]);
-    setRezeroSuccess(true);
-    setTimeout(() => setRezeroSuccess(false), 3500);
-  };
-
-  const handleGenerateAiReport = async () => {
-    setIsGenerating(true);
-    try {
-      const data = await portalRequest<{ success: boolean; report: AiDailyReport }>('/api/financials/ai-insights', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          report_date: selectedDate,
-          grossIncome: effectiveGross,
-          netIncome: effectiveNet,
-          transactions: selectedDateTransactions,
-          operationalStatus: { vacantUnitsCount: 3, pendingEPoasCount: ePoas.length },
-        }),
-      });
-
-      if (data.success && data.report) {
-        const newReport: AiDailyReport = {
-          ...data.report,
-          gross_income: effectiveGross,
-          net_income: effectiveNet,
-        };
-        const updated = [
-          newReport,
-          ...reports.filter((r) => r.report_date !== newReport.report_date),
-        ];
-        setReports(updated);
-      }
-    } catch (err) {
-      console.error('Failed to generate report:', err);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handlePrintPdf = () => {
-    window.print();
-  };
-
-  return (
-    <div className="space-y-8 animate-in fade-in duration-200 print:bg-white print:text-black">
-      {/* Top Banner & Actions (Hidden during print) */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-sky-950/60 to-slate-900 border border-sky-500/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl print:hidden">
-        <div>
-          <div className="flex items-center gap-2 text-sky-400 text-xs font-bold mb-1">
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>محرك مستشار الذكاء الاصطناعي لزيادة الدخل (AI Engine)</span>
-          </div>
-          <h1 className="text-2xl font-bold text-white">التقرير اليومي ومستشار الذكاء الاصطناعي</h1>
-          <p className="text-xs text-slate-400 mt-1 max-w-2xl">
-            تحليل الأداء اليومي ("أين نجحنا" مقابل "ما هي الاختناقات والتسريبات") وتوصيات فورية لزيادة أرباح الغد.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs">
-            <Calendar className="w-4 h-4 text-slate-400" />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-transparent text-white focus:outline-none text-xs"
-            />
-          </div>
-
-          <button
-            onClick={handleGenerateAiReport}
-            disabled={isGenerating}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-sky-600/30 disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
-            <span>{isGenerating ? 'جاري تحليل البيانات...' : 'توليد تحليل AI اليوم'}</span>
-          </button>
-
-          <button
-            onClick={handleRezero}
-            className="px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold transition flex items-center gap-2 shadow-sm"
-            title="تصفير أرقام وإحصائيات اليوم"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span>تصفير الأرقام</span>
-          </button>
-
-          <button
-            onClick={handlePrintPdf}
-            className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition flex items-center gap-2"
-          >
-            <Printer className="w-4 h-4 text-sky-400" />
-            <span>تصدير PDF / طباعة</span>
-          </button>
-        </div>
-      </div>
-
-      {rezeroSuccess && (
-        <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-emerald-400 text-xs font-semibold flex items-center gap-2.5 animate-in fade-in">
-          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-          <span>تم تصفير جميع أرقام وإحصائيات اليوم بنجاح (الدخل: 0 ر.س - الأرباح: 0 ر.س - الصفقات: 0 - الإشغال: 0%)</span>
-        </div>
-      )}
-
-      {/* Printable Report Document Container */}
-      <div className="space-y-6 print:space-y-4">
-        {/* Daily Snapshot Header */}
-        <div className="p-6 rounded-2xl glass-panel space-y-4 print:border print:border-slate-300 print:bg-white print:text-black">
-          <div className="flex items-center justify-between border-b border-slate-800 print:border-slate-300 pb-4">
-            <div>
-              <div className="flex items-center gap-2 text-sky-400 font-bold text-xs print:text-black">
-                <Building className="w-4 h-4" />
-                <span>مكتب العقارات المعتمد - تقرير الأداء اليومي</span>
-              </div>
-              <h2 className="text-xl font-extrabold text-white print:text-black mt-1">
-                ملخص اليوم المالي التشغيلي: <span className="dir-ltr">{activeReport.report_date}</span>
-              </h2>
-            </div>
-
-            <div className="text-left">
-              <span className="text-[11px] text-slate-400 print:text-slate-600 block">مرجع التقرير:</span>
-              <span className="font-mono text-xs text-sky-400 print:text-black font-bold">
-                REF-{activeReport.report_date.replace(/-/g, '')}-AI
-              </span>
-            </div>
-          </div>
-
-          {/* Quick Metrics Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
-            <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 print:border-slate-300 print:bg-slate-50">
-              <span className="text-[11px] text-slate-400 print:text-slate-600 block">إجمالي الدخل اليومي (Gross)</span>
-              <span className="text-xl font-extrabold text-sky-400 print:text-black">
-                {activeReport.gross_income.toLocaleString('ar-SA')} ر.س
-              </span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 print:border-slate-300 print:bg-slate-50">
-              <span className="text-[11px] text-slate-400 print:text-slate-600 block">صافي الأرباح (Net Income)</span>
-              <span className="text-xl font-extrabold text-emerald-400 print:text-emerald-700">
-                {activeReport.net_income.toLocaleString('ar-SA')} ر.س
-              </span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 print:border-slate-300 print:bg-slate-50">
-              <span className="text-[11px] text-slate-400 print:text-slate-600 block">الصفقات الإيجارية المغلقة</span>
-              <span className="text-xl font-extrabold text-purple-400 print:text-purple-700">{effectiveDeals} صفقات جديدة</span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 print:border-slate-300 print:bg-slate-50">
-              <span className="text-[11px] text-slate-400 print:text-slate-600 block">نسبة الإشغال الإجمالية</span>
-              <span className="text-xl font-extrabold text-amber-400 print:text-amber-700">{effectiveOccupancy}%</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Strategic AI Highlight Banner */}
-        <div className="p-6 rounded-2xl bg-gradient-to-r from-amber-950/40 via-slate-900 to-sky-950/40 border border-amber-500/30 space-y-3 print:bg-amber-50 print:border-amber-300 print:text-black">
-          <div className="flex items-center gap-2 text-amber-400 print:text-amber-800 font-bold text-xs">
-            <Zap className="w-4 h-4" />
-            <span>استراتيجية التعظيم السريع للدخل (Income Increment Strategy)</span>
-          </div>
-          <p className="text-sm font-semibold text-slate-200 print:text-black leading-relaxed">
-            "{activeReport.income_increment_strategy}"
-          </p>
-        </div>
-
-        {/* Main 2-Column Section: Positive Drivers vs Bottlenecks */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* 🟢 "Where Was Good" (Positive Drivers) */}
-          <div className="p-6 rounded-2xl glass-panel space-y-4 print:border print:border-slate-300 print:bg-white">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-slate-800 print:border-slate-300">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-white print:text-black text-sm">🟢 أين نجحنا اليوم (Where Was Good)</h3>
-                <p className="text-[11px] text-slate-400 print:text-slate-600">محركات النمو والإنجازات التشغيلية والمالية المحققة</p>
-              </div>
-            </div>
-
-            <ul className="space-y-3">
-              {activeReport.what_went_well.map((item, idx) => (
-                <li
-                  key={idx}
-                  className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/80 print:bg-slate-50 print:border-slate-200 text-xs text-slate-200 print:text-black flex items-start gap-3"
-                >
-                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5">
-                    {idx + 1}
-                  </span>
-                  <span className="leading-relaxed">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* 🔴 "What Went Bad" (Bottlenecks & Revenue Leaks) */}
-          <div className="p-6 rounded-2xl glass-panel space-y-4 print:border print:border-slate-300 print:bg-white">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-slate-800 print:border-slate-300">
-              <div className="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-white print:text-black text-sm">🔴 التحديات والتسريبات المالية (What Went Bad)</h3>
-                <p className="text-[11px] text-slate-400 print:text-slate-600">عوامل تباطؤ الدخل والفرص المفقودة والتأخيرات</p>
-              </div>
-            </div>
-
-            <ul className="space-y-3">
-              {activeReport.what_went_bad.map((item, idx) => (
-                <li
-                  key={idx}
-                  className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/80 print:bg-slate-50 print:border-slate-200 text-xs text-slate-200 print:text-black flex items-start gap-3"
-                >
-                  <span className="w-5 h-5 rounded-full bg-rose-500/20 text-rose-400 font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5">
-                    {idx + 1}
-                  </span>
-                  <span className="leading-relaxed">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* 💡 AI Increment Recommendations */}
-        <div className="p-6 rounded-2xl glass-panel space-y-4 print:border print:border-slate-300 print:bg-white">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-slate-800 print:border-slate-300">
-            <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-400 flex items-center justify-center">
-              <Lightbulb className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-bold text-white print:text-black text-sm">💡 توصيات AI التنفيذية لزيادة دخل الغد</h3>
-              <p className="text-[11px] text-slate-400 print:text-slate-600">خطوات عمل مباشرة مستخرجة ذكائياً لتعظيم الإيرادات الإجمالية والصافية</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {activeReport.ai_recommendations.map((rec, idx) => (
-              <div
-                key={idx}
-                className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 print:bg-slate-50 print:border-slate-300 space-y-2"
-              >
-                <div className="flex items-center gap-2 text-sky-400 font-bold text-xs print:text-sky-800">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>توصية #{idx + 1}</span>
-                </div>
-                <p className="text-xs text-slate-200 print:text-black leading-relaxed">{rec}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Footer Signature Box for Management Review */}
-        <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 print:bg-slate-100 print:border-slate-300 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="w-6 h-6 text-sky-400 print:text-black" />
-            <div>
-              <div className="font-bold text-white print:text-black">اعتماد إدارة المكتب العقاري</div>
-              <div className="text-[10px] text-slate-400 print:text-slate-600">تم إنشاء التحليل تلقائياً بواسطة محرك الذكاء الاصطناعي الداعم للمكتب</div>
-            </div>
-          </div>
-
-          <div className="text-left text-slate-400 print:text-black">
-            <span>تاريخ التصدير والطباعة: </span>
-            <span className="font-semibold text-white print:text-black dir-ltr">{new Date().toLocaleString('ar-SA')}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+import { ZodError } from 'zod';
+import { useEffect,useRef,useState } from 'react';
+import { portalRequest } from '@/lib/portal/client';
+import { riyadhDay } from '@/lib/navigation/workspace';
+import { contentSchema,type KrContent,type KrReport } from '@/lib/kr/schema';
+import KrReportView from '@/components/kr/KrReportView';
+import KrManagementAccess from '@/components/kr/KrManagementAccess';
+type Schedule={enabled:boolean;report_time:string;timezone:string};
+type State={report:KrReport|null;recent:{report_date:string}[];schedule:Schedule;can_edit:boolean};
+function downloadJson(value:unknown,name:string){void runAuditedExport(name,()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});}
+export default function DailyReportsPage(){
+ const [day,setDay]=useState(riyadhDay()),[report,setReport]=useState<KrReport|null>(null),[content,setContent]=useState<KrContent|null>(null);
+ const [recent,setRecent]=useState<State['recent']>([]),[schedule,setSchedule]=useState<Schedule|null>(null),[canEdit,setCanEdit]=useState(false);
+ const [busy,setBusy]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState(''),[message,setMessage]=useState(''),[dirty,setDirty]=useState(false);
+ const request=useRef(0);
+ async function load(selected=day){const serial=++request.current;setLoading(true);setError('');setMessage('');setReport(null);setContent(null);setCanEdit(false);setDirty(false);
+  try{const result=await portalRequest<State>(`/api/financials/kr?date=${selected}`);if(serial!==request.current)return;setReport(result.report);setContent(result.report?.content||null);setRecent(result.recent);setSchedule(result.schedule);setCanEdit(result.can_edit);}catch(e){if(serial===request.current)setError(e instanceof Error?e.message:'تعذر تحميل التقرير');}finally{if(serial===request.current)setLoading(false);}}
+ useEffect(()=>{void load(day);return()=>{request.current++;};},[day]);
+ useEffect(()=>{if(!dirty)return;const handler=(event:BeforeUnloadEvent)=>{event.preventDefault();event.returnValue='';};window.addEventListener('beforeunload',handler);return()=>window.removeEventListener('beforeunload',handler);},[dirty]);
+ const editable=!!report&&canEdit&&!busy;
+ function selectDate(value:string){if(!value)return;if(dirty&&!window.confirm('هناك تعديلات غير محفوظة. الانتقال دون حفظ؟'))return;setDay(value);}
+ async function refreshState(){const result=await portalRequest<State>(`/api/financials/kr?date=${day}`);setRecent(result.recent);if(result.report)setReport(result.report);setCanEdit(result.can_edit);}
+ async function mutate(operation:'PREPARE'|'SAVE'){setBusy(true);setError('');setMessage('');try{
+  const payload={operation,report_date:day,revision:report?.revision,...(operation==='SAVE'?{content:contentSchema.parse(content)}:{})};
+  const result=await portalRequest<{report:KrReport}>('/api/financials/kr',{method:'POST',body:JSON.stringify(payload)});
+  setReport(result.report);setContent(result.report.content);setDirty(false);setMessage('تم حفظ التقرير وإتاحته للإدارة وتحديث الأجندة.');await refreshState();
+ }catch(e){setError(e instanceof ZodError?'راجع الحقول ومواعيد خطة اليوم التالي بتوقيت الرياض.':e instanceof Error?e.message:'تعذر حفظ التقرير');}finally{setBusy(false);}}
+ async function importFile(file?:File){if(!file)return;if(file.size>1024*1024){setError('حجم JSON يتجاوز1 MB');return;}setBusy(true);setError('');setMessage('');try{
+  const input=JSON.parse(await file.text());if(input.report_date!==day)throw new Error('اختر تاريخ التقرير المطابق لملف JSON أولاً.');
+  const result=await portalRequest<{report:KrReport}>('/api/financials/kr/import',{method:'POST',body:JSON.stringify({...input,revision:report?.revision})});
+  setReport(result.report);setContent(result.report.content);setDirty(false);setMessage('تم استيراد التقرير وإتاحته للإدارة وتحديث الأجندة؛ الأرقام المالية من ERP.');await refreshState();
+ }catch(e){setError(e instanceof Error?e.message:'ملف JSON غير صالح');}finally{setBusy(false);}}
+ async function downloadVersion(revision:number){setBusy(true);setError('');try{const result=await portalRequest<{snapshot:unknown}>(`/api/financials/kr?date=${day}&revision=${revision}`);downloadJson(result.snapshot,`KR-${day}-revision-${revision}.json`);}catch(e){setError(e instanceof Error?e.message:'تعذر تنزيل النسخة السابقة');}finally{setBusy(false);}}
+ async function saveSchedule(enabled:boolean,time:string){setBusy(true);setError('');try{const result=await portalRequest<{schedule:Schedule}>('/api/financials/kr/schedule',{method:'PATCH',body:JSON.stringify({enabled,report_time:time.slice(0,5)})});setSchedule(result.schedule);setMessage('تم حفظ موعد إعداد التقرير بتوقيت الرياض.');}catch(e){setError(e instanceof Error?e.message:'تعذر حفظ الجدولة');}finally{setBusy(false);}}
+ return <div className="space-y-5 kr-workspace" dir="rtl"><div className="kr-edit-control space-y-4">
+  <div className="flex flex-wrap justify-between items-center gap-3"><div><h1 className="text-2xl font-bold">تقرير اليوم KR</h1><p>تقرير يومي للإدارة · أربعة أقسام · توقيت الرياض</p></div><label>تاريخ التقرير<input type="date" className="portal-input" value={day} disabled={busy} onChange={e=>selectDate(e.target.value)}/></label></div>
+  <p>التقرير المحفوظ متاح مباشرة للمسؤول العام والرئيس التنفيذي والمديرين المخولين. يمكن اختيار أي يوم سابق؛ التعديلات تحفظ كسجل إصدارات.</p>
+  {canEdit&&<Link className="underline" href="/financials/daily-reports/legacy">التقارير السابقة والتحليل AI</Link>}
+  <div className="flex flex-wrap gap-3">
+   {canEdit&&<><button className="portal-button" disabled={busy||loading||dirty} onClick={()=>void mutate('PREPARE')}>{report?'تحديث لقطة المصادر':'إعداد من المصادر'}</button><button className="portal-button" disabled={!editable||!dirty} onClick={()=>void mutate('SAVE')}>حفظ التقرير</button><label className="underline">استيراد Claude / هاتف JSON<input aria-label="استيراد تقرير JSON" type="file" accept="application/json,.json" disabled={busy||dirty} className="block text-sm max-w-56" onChange={e=>{const file=e.target.files?.[0];e.target.value='';void importFile(file);}}/></label></>}
+   <button disabled={busy||loading||dirty} className="underline" onClick={()=>void load()}>إعادة تحميل</button><button className="underline" disabled={!report||dirty||busy} onClick={()=>void auditedPrint()}>طباعة / حفظ PDF</button><button className="underline" disabled={!content||busy} onClick={()=>content&&downloadJson({event_id:crypto.randomUUID(),report_date:day,content},`KR-${day}.json`)}>تصدير JSON</button>
+  </div>
+  {schedule&&<details><summary>الجدولة اليومية · {schedule.enabled?'مفعلة':'متوقفة'} · {schedule.report_time.slice(0,5)} Asia/Riyadh</summary><p>إعداد التقرير وإتاحته مباشرة للإدارة عند الموعد المحدد، مع تحديث مهام اليوم التالي.</p>{canEdit&&<><label>موعد إعداد التقرير<input type="time" value={schedule.report_time.slice(0,5)} disabled={busy} onChange={e=>void saveSchedule(schedule.enabled,e.target.value)}/></label><label className="mx-3"><input type="checkbox" checked={schedule.enabled} disabled={busy} onChange={e=>void saveSchedule(e.target.checked,schedule.report_time)}/> تفعيل الجدولة</label></>}</details>}
+  {canEdit&&<KrManagementAccess/>}
+  {!!recent.length&&<details><summary>آخر التقارير المحفوظة</summary><div className="flex flex-wrap gap-3">{recent.map(item=><button type="button" className="underline" key={item.report_date} disabled={busy} onClick={()=>selectDate(item.report_date)}>{item.report_date}</button>)}</div></details>}
+  {!!report?.previous_versions?.length&&<details className="portal-card"><summary>سجل الإصدارات السابقة</summary>{report.previous_versions.map(v=><div className="py-2" key={v.revision}><p>الإصدار {v.revision} · {v.actor_name}</p><p>{v.reason}</p><button className="underline" disabled={busy} onClick={()=>void downloadVersion(v.revision)}>تنزيل نسخة الإصدار {v.revision}</button></div>)}</details>}
+  {error&&<p role="alert" className="text-red-500 whitespace-pre-wrap">{error}</p>}{message&&<p role="status" className="text-emerald-600">{message}</p>}{dirty&&<p role="status">تعديلات غير محفوظة؛ احفظها لإتاحتها للإدارة وتحديث الأجندة.</p>}{loading&&<p role="status">جارٍ تحميل تقرير KR…</p>}
+  {report&&<><p>الحالة: محفوظ ومرئي للإدارة · الإصدار {report.revision}</p>{!canEdit&&<p>صلاحية مشاهدة التقارير فقط.</p>}{report.facts.warnings.length>0&&<ul className="kr-source-warnings">{report.facts.warnings.map((warning,i)=><li key={i}>{warning}</li>)}</ul>}</>}
+  {!report&&!loading&&!error&&<p>{canEdit?'لا يوجد تقرير محفوظ لهذا التاريخ. أعدّه من المصادر أو استورد JSON.':'لا يوجد تقرير محفوظ لهذا التاريخ.'}</p>}
+ </div>{report&&content&&<KrReportView report={report} content={content} editable={editable} onChange={value=>{setContent(value);setDirty(true);setMessage('');}}/>}</div>;
 }

@@ -1,0 +1,53 @@
+name: Workspace release checks
+
+on:
+  pull_request:
+  push:
+    branches: [main, 'codex/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workspace-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
+    name: Build and tests (Node ${{ matrix.node }})
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Configure isolated build
+        run: cp .env.example .env.local
+      - name: Build
+        run: npm run build
+      - name: Typecheck generated routes
+        run: npx tsc --noEmit
+      - name: Preserve deployed routes and navigation
+        run: node scripts/check-release-baseline.cjs
+      - name: Hatif, draft, and navigation tests (mocked)
+        run: |
+          node tests/hatif.cjs
+          node tests/drafts.cjs
+          node tests/navigation.cjs
+          node tests/kr.cjs
+          node tests/kr-workflow-db.cjs
+          node tests/kr-management-db.cjs
+          node tests/audit.cjs
+          node tests/audit-db.cjs
+          node tests/broker-summary.cjs
+          node tests/property-upsert.cjs
+          node tests/property-upsert-db.cjs

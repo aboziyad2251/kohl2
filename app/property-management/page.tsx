@@ -1,4 +1,8 @@
 'use client';
+import SmartPropertyImportModal from '@/components/ownership/SmartPropertyImportModal';
+import { runAuditedExport } from '@/lib/audit/client';
+import { useRouteTab } from '@/lib/navigation/useRouteTab';
+import {useDraftState,useDraftControls} from '@/lib/drafts/hooks';
 
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
@@ -36,16 +40,20 @@ import {
 } from 'lucide-react';
 
 export default function PropertyManagementPage() {
+  const [smartImportOpen,setSmartImportOpen]=useState(false);
+  const {refreshProperties}=useData();
+  const [importRefreshError,setImportRefreshError]=useState('');
+
   const { managedProperties, maintenanceTasks, updateManagedProperty, updateMaintenanceTask, archiveProcessRecord } = useData();
 
-  const [activeTab, setActiveTab] = useState<'CONTRACTS' | 'MAINTENANCE' | 'STATEMENTS'>('CONTRACTS');
+  const [activeTab, setActiveTab] = useRouteTab('CONTRACTS', ['CONTRACTS', 'MAINTENANCE', 'STATEMENTS'] as const);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
   // Modal States
-  const [isAddPropertyModalOpen, setIsAddPropertyModalOpen] = useState(false);
-  const [isAddMaintenanceModalOpen, setIsAddMaintenanceModalOpen] = useState(false);
+  const [isAddPropertyModalOpen, setIsAddPropertyModalOpen] = useDraftState("ui:isAddPropertyModalOpen", false);
+  const [isAddMaintenanceModalOpen, setIsAddMaintenanceModalOpen] = useDraftState("ui:isAddMaintenanceModalOpen", false);
   const [editingContract, setEditingContract] = useState<ManagedPropertyContract | null>(null);
   const [editingTask, setEditingTask] = useState<PropertyMaintenanceTask | null>(null);
   const [viewingContract, setViewingContract] = useState<ManagedPropertyContract | null>(null);
@@ -145,7 +153,7 @@ export default function PropertyManagementPage() {
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'إدارة الأملاك');
-    XLSX.writeFile(workbook, `تقرير_إدارة_الأملاك_${new Date().toISOString().split('T')[0]}.xlsx`);
+    void runAuditedExport(`تقرير_إدارة_الأملاك_${new Date().toISOString().split('T')[0]}.xlsx`,()=>XLSX.writeFile(workbook,`تقرير_إدارة_الأملاك_${new Date().toISOString().split('T')[0]}.xlsx`));
   };
 
   const getStatusBadge = (status: ManagementStatus) => {
@@ -214,6 +222,9 @@ export default function PropertyManagementPage() {
 
   return (
     <div className="p-6 md:p-10 space-y-8 select-none">
+      <div className="flex flex-wrap gap-3 mb-4"><button className="portal-button" onClick={()=>setSmartImportOpen(true)}>استيراد العقارات والمزايا — Excel / CSV</button>{importRefreshError&&<p role="alert">{importRefreshError}</p>}</div>
+      {smartImportOpen&&<SmartPropertyImportModal onClose={()=>setSmartImportOpen(false)} onSaved={()=>{setSmartImportOpen(false);void refreshProperties().catch(e=>setImportRefreshError(e.message));}}/>}
+
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
         <div>

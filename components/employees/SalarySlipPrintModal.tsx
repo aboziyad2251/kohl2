@@ -1,4 +1,5 @@
 'use client';
+import { auditedPrint } from '@/lib/audit/client';
 
 import React, { useState } from 'react';
 import {
@@ -35,7 +36,7 @@ export default function SalarySlipPrintModal({
   if (!isOpen || !payment) return null;
 
   const handlePrint = () => {
-    window.print();
+    void auditedPrint();
   };
 
   const handleArchive = async () => {

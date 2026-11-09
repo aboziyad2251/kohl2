@@ -1,4 +1,5 @@
 'use client';
+import {useDraftState,useDraftControls} from '@/lib/drafts/hooks';
 
 import React, { useState } from 'react';
 import {
@@ -40,7 +41,7 @@ export default function ContractsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
   // Modals & Drawers
-  const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [isWizardOpen, setIsWizardOpen] = useDraftState('ui:isWizardOpen', false);
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const [editContract, setEditContract] = useState<Contract | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);

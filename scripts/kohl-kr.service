@@ -1,0 +1,13 @@
+[Unit]
+Description=Prepare Kohl KR report and queue management approval
+After=network-online.target
+
+[Service]
+Type=oneshot
+DynamicUser=yes
+EnvironmentFile=/etc/kohl-kr-scheduler.env
+ExecStart=/usr/bin/node /opt/kohl-kr/kr-scheduler.mjs
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true

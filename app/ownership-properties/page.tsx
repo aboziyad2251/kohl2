@@ -1,5 +1,10 @@
 'use client';
+import SmartPropertyImportModal from '@/components/ownership/SmartPropertyImportModal';
+import { useRouteTab } from '@/lib/navigation/useRouteTab';
+import {propertyKinds,propertyUses} from '@/lib/property-classification';
+import {useDraftState,useDraftControls} from '@/lib/drafts/hooks';
 
+import Link from 'next/link';
 import React, { useState } from 'react';
 import {
   Building2,
@@ -30,6 +35,10 @@ import AddRepresentativeModal from '@/components/ownership/AddRepresentativeModa
 import AddEPoaModal from '@/components/ownership/AddEPoaModal';
 import AddTenantModal from '@/components/ownership/AddTenantModal';
 import EditPropertyModal from '@/components/ownership/EditPropertyModal';
+import PropertySpecifications from '@/components/ownership/PropertySpecifications';
+import { propertyBadge, propertyLocation, safeMediaUrl } from '@/lib/properties/specifications';
+import PropertyProfile from '@/components/ownership/PropertyProfile';
+import DeedAttachment from '@/components/ownership/DeedAttachment';
 import EditLessorModal from '@/components/ownership/EditLessorModal';
 import EditTenantModal from '@/components/ownership/EditTenantModal';
 import EditRepresentativeModal from '@/components/ownership/EditRepresentativeModal';
@@ -38,6 +47,10 @@ import EditEPoaModal from '@/components/ownership/EditEPoaModal';
 import ConfirmDeleteModal from '@/components/common/ConfirmDeleteModal';
 
 export default function OwnershipPropertiesPage() {
+  const [smartImportOpen,setSmartImportOpen]=useState(false);
+  const {refreshProperties}=useData();
+  const [importRefreshError,setImportRefreshError]=useState('');
+
   const {
     properties,
     documents,
@@ -66,21 +79,22 @@ export default function OwnershipPropertiesPage() {
     resetToDefaults,
   } = useData();
 
-  const [activeTab, setActiveTab] = useState<'properties' | 'documents' | 'epoa' | 'lessors' | 'tenants' | 'representatives' | 'audit'>('properties');
+  const [activeTab, setActiveTab] = useRouteTab('properties', ['properties', 'documents', 'epoa', 'lessors', 'tenants', 'representatives', 'audit'] as const);
 
   // Search
   const [searchQuery, setSearchQuery] = useState('');
 
   // Workflow Modal States
-  const [isAddDocPropModalOpen, setIsAddDocPropModalOpen] = useState(false);
-  const [isChangeRepModalOpen, setIsChangeRepModalOpen] = useState(false);
-  const [isChangeLessorModalOpen, setIsChangeLessorModalOpen] = useState(false);
-  const [isAddLessorModalOpen, setIsAddLessorModalOpen] = useState(false);
-  const [isAddTenantModalOpen, setIsAddTenantModalOpen] = useState(false);
-  const [isAddRepModalOpen, setIsAddRepModalOpen] = useState(false);
-  const [isAddEPoaModalOpen, setIsAddEPoaModalOpen] = useState(false);
+  const [isAddDocPropModalOpen, setIsAddDocPropModalOpen] = useDraftState('ui:isAddDocPropModalOpen', false);
+  const [isChangeRepModalOpen, setIsChangeRepModalOpen] = useDraftState('ui:isChangeRepModalOpen', false);
+  const [isChangeLessorModalOpen, setIsChangeLessorModalOpen] = useDraftState('ui:isChangeLessorModalOpen', false);
+  const [isAddLessorModalOpen, setIsAddLessorModalOpen] = useDraftState('ui:isAddLessorModalOpen', false);
+  const [isAddTenantModalOpen, setIsAddTenantModalOpen] = useDraftState('ui:isAddTenantModalOpen', false);
+  const [isAddRepModalOpen, setIsAddRepModalOpen] = useDraftState('ui:isAddRepModalOpen', false);
+  const [isAddEPoaModalOpen, setIsAddEPoaModalOpen] = useDraftState('ui:isAddEPoaModalOpen', false);
 
   // Edit Modal States
+  const [profileProperty, setProfileProperty] = useState<Property | null>(null);
   const [editProperty, setEditProperty] = useState<Property | null>(null);
   const [editLessor, setEditLessor] = useState<Lessor | null>(null);
   const [editTenant, setEditTenant] = useState<Tenant | null>(null);
@@ -98,16 +112,18 @@ export default function OwnershipPropertiesPage() {
   // Attachment preview
   const [viewingDoc, setViewingDoc] = useState<OwnershipDocument | null>(null);
 
-  const handleAddDocPropSuccess = (newProp: Property, newDoc: OwnershipDocument) => {
-    addProperty(newProp, newDoc);
+  const handleAddDocPropSuccess = async (newProp: Property, newDoc: OwnershipDocument) => {
+    await addProperty(newProp, newDoc);
   };
 
-  const confirmDelete = () => {
+  const [propertyError,setPropertyError] = useState('');
+  const confirmDelete = async () => {
     if (!deleteTarget) return;
 
     switch (deleteTarget.type) {
       case 'property':
-        deleteProperty(deleteTarget.id);
+        try { await deleteProperty(deleteTarget.id);setPropertyError(''); }
+        catch(error){setPropertyError(error instanceof Error ? error.message : 'تعذر حذف العقار');}
         break;
       case 'document':
         deleteDocument(deleteTarget.id);
@@ -127,6 +143,11 @@ export default function OwnershipPropertiesPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
+      <div className="flex flex-wrap gap-3 mb-4"><button className="portal-button" onClick={()=>setSmartImportOpen(true)}>استيراد العقارات والمزايا — Excel / CSV</button>{importRefreshError&&<p role="alert">{importRefreshError}</p>}</div>
+      {smartImportOpen&&<SmartPropertyImportModal onClose={()=>setSmartImportOpen(false)} onSaved={()=>{setSmartImportOpen(false);void refreshProperties().catch(e=>setImportRefreshError(e.message));}}/>}
+
+      {propertyError && <p role="alert" className="text-red-400">{propertyError}</p>}
+      <Link href="/property-map" className="portal-button inline-flex">خريطة كحل العقارية ↗</Link>
       {/* Page Header & Workflow Action Toolbar */}
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
@@ -272,6 +293,7 @@ export default function OwnershipPropertiesPage() {
         </button>
       </div>
 
+      {profileProperty && <PropertyProfile key={profileProperty.id} property={properties.find(p => p.id === profileProperty.id) || profileProperty} onEdit={() => { setEditProperty(properties.find(p => p.id === profileProperty.id) || profileProperty); setProfileProperty(null); }} onClose={() => setProfileProperty(null)} />}
       {/* TAB 1: PROPERTIES REGISTRY */}
       {activeTab === 'properties' && (
         <div className="space-y-4">
@@ -283,13 +305,16 @@ export default function OwnershipPropertiesPage() {
               >
                 <div>
                   <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                    <span className="font-bold text-sm text-white">{prop.title}</span>
+                    <button type="button" onClick={() => setProfileProperty(prop)} className="font-bold text-sm text-white text-right underline underline-offset-4">{propertyLocation(prop)}</button>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300">
-                      {prop.property_type}
+                      {propertyBadge(prop)}
                     </span>
                   </div>
 
                   <div className="mt-3 space-y-2 text-xs text-slate-300">
+                    <p className="font-bold">{prop.title}</p>
+                    {safeMediaUrl(prop.media_url) ? <a href={safeMediaUrl(prop.media_url)!} target="_blank" rel="noopener noreferrer" className="portal-button inline-flex">ملف العقار · الموقع والصور والفيديو ↗</a> : <button type="button" onClick={() => setProfileProperty(prop)} className="portal-button">ملف العقار · الموقع والصور والفيديو ↗</button>}
+                    <PropertySpecifications property={prop} />
                     <div className="flex justify-between">
                       <span className="text-slate-400">المدينة والعنوان:</span>
                       <span className="font-medium text-slate-200">{prop.city} - {prop.address}</span>
@@ -317,7 +342,7 @@ export default function OwnershipPropertiesPage() {
                       className="p-1 rounded bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 transition"
                       title="تعديل العقار"
                     >
-                      <Pencil className="w-3.5 h-3.5" />
+                      <Pencil className="w-3.5 h-3.5" /><span>تعديل العقار</span>
                     </button>
                     <button
                       onClick={() => setIsChangeRepModalOpen(true)}
@@ -701,6 +726,7 @@ export default function OwnershipPropertiesPage() {
 
             <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-3">
               <FileText className="w-16 h-16 text-sky-400 mx-auto" />
+              {viewingDoc.deed_object_path&&<DeedAttachment id={viewingDoc.id}/>}
               <div className="text-xs text-slate-300">تاريخ الإصدار: {viewingDoc.issue_date}</div>
               <div className="text-xs font-bold text-white">المالك المسجل: {viewingDoc.lessor?.name}</div>
             </div>

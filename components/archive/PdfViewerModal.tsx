@@ -1,4 +1,5 @@
 'use client';
+import { runAuditedExport, auditedPrint } from '@/lib/audit/client';
 
 import React from 'react';
 import { ArchivedDocument } from '@/lib/types';
@@ -34,10 +35,10 @@ export default function PdfViewerModal({
       link.href = doc.file_data_url;
       link.download = doc.file_name || `${doc.archive_code}.pdf`;
       window.document.body.appendChild(link);
-      link.click();
+      void runAuditedExport(doc.file_name||'archive-document.pdf',()=>link.click(),doc.id);
       window.document.body.removeChild(link);
     } else {
-      window.print();
+      void auditedPrint();
     }
   };
 
@@ -46,13 +47,13 @@ export default function PdfViewerModal({
     if (iframe && iframe.contentWindow) {
       try {
         iframe.contentWindow.focus();
-        iframe.contentWindow.print();
+        void auditedPrint(doc.id,()=>{try{iframe.contentWindow!.print();}catch{window.print();}});
         return;
       } catch (e) {
         console.warn('Iframe print restricted, triggering window print:', e);
       }
     }
-    window.print();
+    void auditedPrint();
   };
 
   return (

@@ -7,6 +7,7 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {sans: ['IBM Plex Sans Arabic', 'Arial', 'sans-serif']},
       colors: {
         brand: {
           50: '#f0f7ff',

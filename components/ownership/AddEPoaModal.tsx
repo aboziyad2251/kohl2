@@ -1,4 +1,5 @@
 'use client';
+import {useDraftState,useDraftControls} from '@/lib/drafts/hooks';
 
 import React, { useState } from 'react';
 import { ShieldCheck, X } from 'lucide-react';
@@ -19,13 +20,14 @@ export default function AddEPoaModal({
   representatives,
   onSubmit,
 }: AddEPoaModalProps) {
-  const [poaNumber, setPoaNumber] = useState('');
-  const [grantorId, setGrantorId] = useState('');
-  const [attorneyId, setAttorneyId] = useState('');
-  const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
-  const [expiryDate, setExpiryDate] = useState('');
-  const [scopeDetails, setScopeDetails] = useState('');
+  const [poaNumber, setPoaNumber] = useDraftState('AddEPoaModal:poaNumber', '');
+  const [grantorId, setGrantorId] = useDraftState('AddEPoaModal:grantorId', '');
+  const [attorneyId, setAttorneyId] = useDraftState('AddEPoaModal:attorneyId', '');
+  const [issueDate, setIssueDate] = useDraftState('AddEPoaModal:issueDate', new Date().toISOString().split('T')[0]);
+  const [expiryDate, setExpiryDate] = useDraftState('AddEPoaModal:expiryDate', '');
+  const [scopeDetails, setScopeDetails] = useDraftState('AddEPoaModal:scopeDetails', '');
 
+  const clearPageDraft=useDraftControls('AddEPoaModal');
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -55,6 +57,7 @@ export default function AddEPoaModal({
     setAttorneyId('');
     setExpiryDate('');
     setScopeDetails('');
+    clearPageDraft();
     onClose();
   };
 

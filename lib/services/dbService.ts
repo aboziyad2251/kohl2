@@ -370,12 +370,17 @@ export async function dbDeleteOwnershipDocument(id: string) {
 // -------------------
 export async function dbInsertProperty(prop: Property) {
   try {
-    if (!isUuid(prop.id)) return;
-    await supabase.from('properties').insert([
+    if (!isUuid(prop.id)) throw new Error('Invalid property id');
+    const { data, error } = await supabase.from('properties').insert([
       {
         id: prop.id,
         property_name: prop.title,
+        latitude: prop.latitude ?? null,
+        map_purposes: prop.map_purposes ?? [],
+        map_visible: prop.map_visible ?? true,
+        longitude: prop.longitude ?? null,
         property_type: prop.property_type,
+        property_kind:prop.property_kind,property_use:prop.property_use,
         address: prop.address,
         city: prop.city,
         units_count: prop.units_count,
@@ -383,39 +388,25 @@ export async function dbInsertProperty(prop: Property) {
         lessor_id: isUuid(prop.lessor_id) ? prop.lessor_id : null,
         current_representative_id: isUuid(prop.current_representative_id) ? prop.current_representative_id : null,
       },
-    ]);
+    ]).select('id').single();
+    if (error || !data) throw new Error('Property insert failed');
   } catch (e) {
-    console.warn('Supabase dbInsertProperty error:', e);
+    throw new Error('تعذر حفظ العقار وموقعه. تحقق من البيانات ثم أعد المحاولة.');
   }
 }
 
 export async function dbUpdateProperty(prop: Property) {
-  try {
-    await supabase
-      .from('properties')
-      .update({
-        property_name: prop.title,
-        property_type: prop.property_type,
-        address: prop.address,
-        city: prop.city,
-        units_count: prop.units_count,
-        ownership_document_id: prop.ownership_document_id,
-        lessor_id: prop.lessor_id,
-        current_representative_id: prop.current_representative_id,
-      })
-      .eq('id', prop.id);
-  } catch (e) {
-    console.warn('Supabase dbUpdateProperty error:', e);
-  }
+  const { portalRequest } = await import('@/lib/portal/client');
+  const fields = ['title','property_type','property_kind','property_use','address','city','units_count','lessor_id','current_representative_id','rooms','lounges','bathrooms','entrances','price','region','district','media_url'] as const;
+  const nullableSpecifications = new Set(['rooms','lounges','bathrooms','entrances','price']);
+  const values = Object.fromEntries(fields.filter(key => prop[key] !== undefined && (!nullableSpecifications.has(key) || prop[key] !== null || prop[`${key}_edited` as keyof Property] === true)).map(key => [key, prop[key]]));
+  return portalRequest<{ property: Property }>(`/api/properties/${prop.id}`, { method: 'PATCH', body: JSON.stringify(values) });
 }
 
 export async function dbDeleteProperty(id: string) {
+  const { data, error } = await supabase.from('properties').delete().eq('id', id).select('id').single();
+  if (error || !data) throw new Error('تعذر حذف العقار. احذف الصور والفيديو والسجلات المرتبطة به أولاً ثم حاول مرة أخرى.');
   markIdAsDeleted(id);
-  try {
-    await supabase.from('properties').delete().eq('id', id);
-  } catch (e) {
-    console.warn('Supabase dbDeleteProperty error:', e);
-  }
 }
 
 // -------------------
@@ -867,10 +858,16 @@ export async function dbDeleteCustomerOrder(id: string) {
 // ----------------------------------------------------
 export async function dbInsertManagedProperty(prop: ManagedPropertyContract) {
   try {
-    await supabase.from('managed_property_contracts').insert([{
+    const { data,error } = await supabase.from('managed_property_contracts').insert([{
       id: prop.id,
       contract_number: prop.contract_number,
       property_name: prop.property_name,
+      latitude: prop.latitude ?? null,
+      longitude: prop.longitude ?? null,
+      city: prop.city ?? "",
+      address: prop.address ?? "",
+      map_purposes: prop.map_purposes ?? ["MANAGEMENT"],
+      map_visible: prop.map_visible ?? true,
       lessor_name: prop.lessor_name,
       lessor_phone: prop.lessor_phone,
       property_type: prop.property_type,
@@ -886,9 +883,10 @@ export async function dbInsertManagedProperty(prop: ManagedPropertyContract) {
       end_date: prop.end_date,
       status: prop.status,
       notes: prop.notes,
-    }]);
+    }]).select('id').single();
+    if(error||!data)throw new Error('Managed property insert failed');
   } catch (e) {
-    console.warn('Supabase dbInsertManagedProperty error:', e);
+    throw new Error('تعذر حفظ عقار الإدارة وموقعه. تحقق من البيانات ثم حاول مرة أخرى.');
   }
 }
 
@@ -1504,3 +1502,14 @@ export async function dbDeleteCrmActivity(id: string) {
 }
 
 export { STORAGE_KEYS };
+
+/** Refresh only CRM data through the signed-in browser client and existing RLS. */
+export async function dbFetchCrmSnapshot(signal:AbortSignal){
+ const replies=await Promise.all([
+  supabase.from('crm_leads').select('*').order('created_at',{ascending:false}).order('id').abortSignal(signal),
+  supabase.from('crm_deals').select('*').order('created_at',{ascending:false}).order('id').abortSignal(signal),
+  supabase.from('crm_activities').select('*').order('created_at',{ascending:false}).order('id').abortSignal(signal),
+ ]);
+ if(replies.some(r=>r.error||!r.data))throw new Error('CRM refresh failed');
+ return {leads:replies[0].data as CrmLead[],deals:replies[1].data as CrmDeal[],activities:replies[2].data as CrmActivity[]};
+}

@@ -1,4 +1,7 @@
+import { withAudit } from '@/lib/audit/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { calculatedReport } from '@/lib/financial-report';
+import { z } from 'zod';
 import { requireIdentity, apiError } from '@/lib/portal/server';
 
 interface Transaction {
@@ -8,7 +11,7 @@ interface Transaction {
 }
 
 interface OperationalStatus {
-  vacantUnitsCount?: number;
+  vacantUnitsCount?: number | null;
   [key: string]: any;
 }
 
@@ -20,10 +23,17 @@ interface RequestPayload {
   operationalStatus?: OperationalStatus;
 }
 
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
   try { await requireIdentity(req, true); } catch (error) { return apiError(error); }
   try {
-    const body: RequestPayload = await req.json();
+    const parsed = z.object({
+      report_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      grossIncome: z.number().finite().default(0), netIncome: z.number().finite().default(0),
+      transactions: z.array(z.object({ flow_type: z.enum(['INCOME', 'EXPENSE']), net_amount: z.number().finite().optional() }).passthrough()).max(10000).default([]),
+      operationalStatus: z.object({ vacantUnitsCount: z.number().nonnegative().nullable().optional(), managedPropertiesCount: z.number().nonnegative().optional() }).default({}),
+    }).safeParse(await req.json());
+    if (!parsed.success) return NextResponse.json({ success: false, error: 'بيانات التقرير غير صالحة' }, { status: 400 });
+    const body = parsed.data;
     const {
       report_date = new Date().toISOString().split('T')[0],
       grossIncome = 0,
@@ -49,6 +59,7 @@ Analyze the daily financial ledger and operational data:
 - Transactions Log: ${JSON.stringify(transactions)}
 - Vacant Units & Pending Agreements: ${JSON.stringify(operationalStatus)}
 
+Use only the supplied records. Do not invent transactions, properties, percentages, arrears, legal compliance, or pending powers of attorney. Distinguish suggestions from observed facts. Vacancy counts describe current managed properties only, not historical occupancy. Do not claim taxes were deducted unless the data proves it.
 Respond with ONLY valid JSON (no markdown formatting, no explanation, no backticks) matching this exact schema:
 {
   "what_went_well": ["point 1 in Arabic", "point 2 in Arabic"],
@@ -120,57 +131,22 @@ Respond with ONLY valid JSON (no markdown formatting, no explanation, no backtic
       }
     }
 
-    // Dynamic Contextual Saudi Real Estate Fallback Engine
-    if (!aiResult || !Array.isArray(aiResult.what_went_well)) {
-      const txCount = transactions.length;
-      const incomeTx = transactions.filter((t) => t.flow_type === 'INCOME');
-      const expenseTx = transactions.filter((t) => t.flow_type === 'EXPENSE');
-      const totalExpense = expenseTx.reduce((acc, curr) => acc + (Number(curr.net_amount) || 0), 0);
-      const isZeroed = grossIncome === 0 && txCount === 0;
-
-      aiResult = {
-        what_went_well: isZeroed ? [
-          'جاهزية النظام والمنصة لاستقبال وتوثيق صفقات وعمليات اليوم الجديد.',
-          'لا توجد أي متأخرات أو تعثرات مالية مسجلة على العقود والوحدات.',
-          'اكتمال التوثيق الإلكتروني ومطابقة السجلات العقارية بنسبة 100%.'
-        ] : [
-          `تحصيل أرباح وإيرادات يومية بقيمة ${grossIncome.toLocaleString('ar-SA')} ريال من ${incomeTx.length} معاملة مقبوضة.`,
-          `تحقيق صافي أرباح تشغيلية (Net) قدرها ${netIncome.toLocaleString('ar-SA')} ريال بعد خصم المصروفات والضرائب المستحقة.`,
-          `توثيق وتنفيذ ${txCount} معاملات عقارية رسمية معتمدة عبر المنصة اليوم.`
-        ],
-        what_went_bad: isZeroed ? [
-          'لم يتم تسجيل أي معاملات مالية أو صفقات جديدة لهذا اليوم حتى الآن (الرصيد: 0 ر.س).',
-          'فرصة لتنشيط حركة التأجير وتحويل طلبات العملاء إلى عقود منجزة.',
-          'متابعة تسويق الوحدات الشاغرة لسرعة تحقيق أولى إيرادات اليوم.'
-        ] : [
-          `وجود ${operationalStatus.vacantUnitsCount || 0} وحدات سكنية وتجارية شاغرة متبقية تسببت في هدر إيجاري تقديري.`,
-          `تسجيل مصروفات صيانة وتحديث طارئة بقيمة ${totalExpense.toLocaleString('ar-SA')} ريال اليوم.`,
-          `تأخر إنهاء مراجعة وكالة إلكترونية (E-POA) معلقة يعطل إغلاق اتفاقية وساطة.`
-        ],
-        ai_recommendations: isZeroed ? [
-          'التواصل المباشر مع العملاء المهتمين لإبرام عقود الإيجار والوساطة اليوم.',
-          'متابعة العقود المعلقة وإتمام التوثيق عبر منصة إيجار لتحصيل العمولات فوراً.',
-          'تسجيل أي مقبوضات أو مصروفات فور حدوثها لتحديث لوحة الأداء المالي.'
-        ] : [
-          'تقديم عروض تشجيعية مجانية لخدمات التوثيق السريع على الوحدات الشاغرة لسرعة إعادة تأجيرها خلال 48 ساعة.',
-          'التركيز الفوري غداً على التواصل مع المؤجر لإكمال إجراءات الوكالة الإلكترونية المعلقة وإبرام عقد برج الملقا التجاري.',
-          'إعادة هيكلة عقود الصيانة السنوية للمصاعد والمرافق للحصول على خصم 15% وتخفيض التكاليف التشغيلية.'
-        ],
-        income_increment_strategy: isZeroed
-          ? 'التركيز الفوري اليوم على إغلاق صفقات الإيجار والوساطة الجديدة لتوليد أولى التدفقات النقدية والأرباح للمكتب.'
-          : `توجيه الفريق التنفيذي غداً بإنهاء إجراءات الوكالة الإلكترونية المعلقة وتسويق الوحدات الشاغرة لضمان تحقيق زيادات إيرادات فورية.`
-      };
-    }
+    const analysis = z.object({
+      what_went_well: z.array(z.string().max(3000)).min(1).max(20),
+      what_went_bad: z.array(z.string().max(3000)).min(1).max(20),
+      ai_recommendations: z.array(z.string().max(3000)).min(1).max(20),
+      income_increment_strategy: z.string().min(1).max(5000),
+    }).safeParse(aiResult);
+    const source = analysis.success ? 'ai' : 'calculated';
+    const content = analysis.success ? analysis.data : calculatedReport(grossIncome, netIncome, transactions, operationalStatus);
 
     const report = {
       id: `adr-${Date.now()}`,
       report_date,
       gross_income: grossIncome,
       net_income: netIncome,
-      what_went_well: aiResult.what_went_well,
-      what_went_bad: aiResult.what_went_bad,
-      ai_recommendations: aiResult.ai_recommendations,
-      income_increment_strategy: aiResult.income_increment_strategy,
+      ...content,
+      analysis_source: source,
       created_at: new Date().toISOString(),
     };
 
@@ -183,3 +159,5 @@ Respond with ONLY valid JSON (no markdown formatting, no explanation, no backtic
     );
   }
 }
+
+export const POST=withAudit(POSTHandler);

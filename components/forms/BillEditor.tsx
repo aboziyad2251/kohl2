@@ -1,14 +1,16 @@
 'use client';
+import { auditedPrint } from '@/lib/audit/client';
 import { useState } from 'react';
+import {useDraftState,useDraftControls} from '@/lib/drafts/hooks';
 import { useAuth } from '@/context/AuthContext';
 import { portalRequest } from '@/lib/portal/client';
 import { BillForm, billSchema, titles, totals, money, words, hijri, tlv } from '@/lib/bills/model';
 import '@/app/bills-forms/print.css';
 type Issued={number:string;form:BillForm;createdAt:string};
 export default function BillsForms({initialKind='REC'}:{initialKind?:BillForm['kind']}){
- const {isExecutive}=useAuth();
- const [form,setForm]=useState<BillForm>({kind:initialKind,invoiceType:'rent',party:'',unit:'',date:new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()),amount:'0',vat:false,method:'تحويل بنكي',reference:'',notes:'',nature:'إيراد للمكتب',bank:'',iban:'',condition:'',keys:''});
- const [issued,setIssued]=useState<Issued|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[manual,setManual]=useState(false),[attempt,setAttempt]=useState<{id:string;form:BillForm}|null>(null);
+ const {isExecutive}=useAuth();const clearDraft=useDraftControls('bill:');
+ const [form,setForm]=useDraftState<BillForm>('bill:form', {kind:initialKind,invoiceType:'rent',party:'',unit:'',date:new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()),amount:'0',vat:false,method:'تحويل بنكي',reference:'',notes:'',nature:'إيراد للمكتب',bank:'',iban:'',condition:'',keys:''});
+ const [issued,setIssued]=useDraftState<Issued|null>('bill:issued',null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[manual,setManual]=useDraftState('bill:manual',false),[attempt,setAttempt]=useDraftState<{id:string;form:BillForm}|null>('bill:attempt',null);
  const update=(key:keyof BillForm,value:unknown)=>{setForm(f=>({...f,[key]:value}));setAttempt(null);setError('');};
  const active=issued?.form||form, parsed=billSchema.safeParse(active), values=totals(/^\d{1,9}(\.\d{1,2})?$/.test(active.amount)?active.amount:'0',active.vat), wording=words(values.total);
  const fields: {key:keyof BillForm;label:string;type?:string}[]=[{key:'party',label:active.kind==='VOU'?'المستفيد':'العميل / المستأجر / المستلم'},{key:'unit',label:'العقار / الوحدة'},{key:'date',label:'التاريخ الميلادي',type:'date'},{key:'amount',label:'المبلغ قبل الضريبة (ر.س)'},{key:'reference',label:'مرجع العقد / العملية / الشيك'},{key:'bank',label:'البنك'},{key:'iban',label:'آيبان المستفيد'}];
@@ -30,8 +32,8 @@ export default function BillsForms({initialKind='REC'}:{initialKind?:BillForm['k
  {isExecutive&&<><label className="flex gap-2"><input type="checkbox" checked={manual} onChange={e=>{setManual(e.target.checked);setAttempt(null);}}/>تعيين الرقم يدوياً (الإدارة)</label>{manual&&<input aria-label="رقم المستند اليدوي" className="bill-input" placeholder={`${form.kind}-${form.date.slice(0,4)}-00001`} value={form.override||''} onChange={e=>update('override',e.target.value)}/>}</>}
  </fieldset>
  {error&&<p role="alert" className="text-red-300">{error}</p>}
- <div className="flex flex-wrap gap-3">{!issued?<button disabled={busy} onClick={issue} className="bg-emerald-700 rounded-xl px-5 py-3 disabled:opacity-50">{busy?'جارٍ الإصدار…':'حفظ وإصدار الرقم'}</button>:<><button onClick={()=>window.print()} className="bg-emerald-700 rounded-xl px-5 py-3">طباعة / حفظ PDF</button><button onClick={()=>{setIssued(null);setAttempt(null);setManual(false);setForm(f=>({...f,override:undefined}));}} className="border rounded-xl px-5 py-3">مستند جديد</button></>}
- <button disabled={!parsed.success||!!issued} onClick={()=>window.print()} className="border border-slate-600 rounded-xl px-5 py-3 disabled:opacity-40">طباعة مسودة</button></div>
+ <div className="flex flex-wrap gap-3">{!issued?<button disabled={busy} onClick={issue} className="bg-emerald-700 rounded-xl px-5 py-3 disabled:opacity-50">{busy?'جارٍ الإصدار…':'حفظ وإصدار الرقم'}</button>:<><button onClick={()=>void auditedPrint()} className="bg-emerald-700 rounded-xl px-5 py-3">طباعة / حفظ PDF</button><button onClick={()=>{setIssued(null);setAttempt(null);setManual(false);setForm(f=>({...f,override:undefined}));}} className="border rounded-xl px-5 py-3">مستند جديد</button></>}
+ <button disabled={!parsed.success||!!issued} onClick={()=>void auditedPrint()} className="border border-slate-600 rounded-xl px-5 py-3 disabled:opacity-40">طباعة مسودة</button></div>
  <p className="text-xs text-slate-400">من نافذة الطباعة اختر Save as PDF، مقاس A4، وعطّل ترويسة وتذييل المتصفح. المسودة لا تحجز رقماً. الإصدار يثبت محتوى المستند.</p>
  </section>
  <article className="bill-document" aria-label="معاينة المستند">

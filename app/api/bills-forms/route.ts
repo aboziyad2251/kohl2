@@ -1,8 +1,9 @@
+import { withAudit } from '@/lib/audit/server';
 import { NextRequest } from 'next/server';
 import { requireIdentity, apiError, json, PortalError } from '@/lib/portal/server';
 import { billSchema } from '@/lib/bills/model';
 export const dynamic = 'force-dynamic';
-export async function POST(req:NextRequest){try{
+async function POSTHandler(req:NextRequest){try{
  const {client,profile} = await requireIdentity(req);
  if(!['ADMIN','CEO','EMPLOYEE'].includes(profile.account.role))throw new PortalError(403,'Operational staff only');
  const {requestId,form} = await req.json();
@@ -13,3 +14,5 @@ export async function POST(req:NextRequest){try{
  if(error)throw new PortalError(error.code==='42501'?403:error.code==='23505'?409:503,error.code==='23505'?'Document number already exists':'تعذر إصدار المستند. يلزم تفعيل قاعدة بيانات الفواتير أو مراجعة الصلاحيات.');
  return json(data);
  }catch(e){return apiError(e);}}
+
+export const POST=withAudit(POSTHandler);

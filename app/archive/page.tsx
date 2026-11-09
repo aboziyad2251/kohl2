@@ -1,5 +1,7 @@
 'use client';
+import { runAuditedExport } from '@/lib/audit/client';
 
+import { useRouteTab } from '@/lib/navigation/useRouteTab';
 import React, { useState, useMemo } from 'react';
 import { useData } from '@/context/DataContext';
 import {
@@ -76,7 +78,7 @@ export default function ArchivePage() {
     transactions,
   } = useData();
 
-  const [activeTab, setActiveTab] = useState<'MANUAL' | 'SYSTEM_ALL'>('MANUAL');
+  const [activeTab, setActiveTab] = useRouteTab('MANUAL', ['MANUAL', 'SYSTEM_ALL'] as const);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'ALL' | ArchivedDocumentCategory>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<'ALL' | ArchivedDocumentStatus>('ALL');
@@ -260,7 +262,7 @@ export default function ArchivePage() {
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'الأرشيف_الإلكتروني');
-    XLSX.writeFile(wb, `سجل_الأرشيف_الإلكتروني_${new Date().toISOString().split('T')[0]}.xlsx`);
+    void runAuditedExport(`سجل_الأرشيف_الإلكتروني_${new Date().toISOString().split('T')[0]}.xlsx`,()=>XLSX.writeFile(wb,`سجل_الأرشيف_الإلكتروني_${new Date().toISOString().split('T')[0]}.xlsx`));
   };
 
   return (

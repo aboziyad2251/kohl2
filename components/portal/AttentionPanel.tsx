@@ -2,8 +2,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { AttentionSummary, AttentionTab } from '@/lib/portal/attention';
-export default function AttentionPanel({ data, en = false, onSelect }: { data: AttentionSummary; en?: boolean; onSelect?: (tab: AttentionTab) => void }) {
-    const [filter, setFilter] = useState('all'), [expanded, setExpanded] = useState(false);
+export default function AttentionPanel({ data, en = false, onSelect, initialFilter = 'all' }: { data: AttentionSummary; en?: boolean; onSelect?: (tab: AttentionTab) => void; initialFilter?: string }) {
+    const [filter, setFilter] = useState(['all', 'payments', 'maintenance', 'broker', 'overview'].includes(initialFilter) ? initialFilter : 'all'), [expanded, setExpanded] = useState(false);
     const t = (ar: string, english: string) => en ? english : ar;
     const filters = ['all', 'payments', 'maintenance', 'broker', 'overview'] as const;
     const labels = { all: t('الكل', 'All'), payments: t('الدفعات', 'Payments'), maintenance: t('الصيانة', 'Maintenance'), broker: t('العمولات', 'Commissions'), overview: t('التجديد', 'Renewals') };

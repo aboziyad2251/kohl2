@@ -40,6 +40,7 @@ export interface Representative {
 }
 
 export interface OwnershipDocument {
+  deed_object_path?: string;
   id: string;
   document_number: string; // رقم صك الملكية
   issue_date: string;
@@ -50,9 +51,38 @@ export interface OwnershipDocument {
 }
 
 export interface Property {
+  unit_number_edited?: boolean;
+  building_name_edited?: boolean;
+  property_code?: string | null;
+  license_number?: string | null;
+  building_name?: string | null;
+  unit_number?: string | null;
+  notes?: string | null;
+  amenities?: Record<string,number|boolean|string|null>;
+
+  rooms_edited?: boolean;
+  lounges_edited?: boolean;
+  bathrooms_edited?: boolean;
+  entrances_edited?: boolean;
+  price_edited?: boolean;
+  rooms?: number | null;
+  lounges?: number | null;
+  bathrooms?: number | null;
+  entrances?: number | null;
+  price?: number | null;
+  region?: string | null;
+  district?: string | null;
+  media_url?: string | null;
+  spreadsheet_details?: import('./property-import').ApartmentRow & {source_name:string;sheet_name:string};
+  map_purposes?: ('MANAGEMENT' | 'RENT' | 'SALE')[];
+  map_visible?: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
   id: string;
   title: string;
   property_type: PropertyType;
+  property_kind?: import('./property-classification').PropertyKind;
+  property_use?: 'Residential'|'Commercial';
   address: string;
   city: string;
   units_count: number;
@@ -81,6 +111,8 @@ export interface EPoa {
 }
 
 export interface Contract {
+  ejar_contract_number?: string | null;
+  ejar_sync_status?: 'UNLINKED' | 'PENDING' | 'LINKED';
   id: string;
   contract_number: string;
   type: ContractType;
@@ -109,6 +141,8 @@ export interface Contract {
 }
 
 export interface BrokerageAgreement {
+  ejar_contract_number?: string | null;
+  ejar_sync_status?: 'UNLINKED' | 'PENDING' | 'LINKED';
   id: string;
   agreement_number: string;
   property_id: string;
@@ -194,6 +228,7 @@ export interface DailyFinancialSummary {
 }
 
 export interface AiDailyReport {
+  analysis_source?: 'ai' | 'calculated';
   id: string;
   report_date: string;
   gross_income: number;
@@ -232,6 +267,12 @@ export type ManagementStatus = 'Active' | 'Under_Renewal' | 'Expired' | 'Suspend
 export type MaintenanceStatus = 'Pending' | 'In_Progress' | 'Completed' | 'Cancelled';
 
 export interface ManagedPropertyContract {
+  latitude?: number | null;
+  longitude?: number | null;
+  city?: string;
+  address?: string;
+  map_purposes?: ('MANAGEMENT' | 'RENT' | 'SALE')[];
+  map_visible?: boolean;
   id: string;
   contract_number: string; // رقم عقد إدارة الأملاك (PMC-2026-001)
   property_name: string; // اسم العقار أو المجمع (عمارة النخيل السكنية)
@@ -440,7 +481,7 @@ export interface TaskDelegation {
 // ----------------------------------------------------
 // REAL ESTATE CRM TYPES (نظام إدارة علاقات العملاء العقاري)
 // ----------------------------------------------------
-export type CrmLeadType = 'BUYER' | 'SELLER' | 'TENANT' | 'LANDLORD' | 'INVESTOR';
+export type CrmLeadType = 'UNSPECIFIED' | 'BUYER' | 'SELLER' | 'TENANT' | 'LANDLORD' | 'INVESTOR';
 export type CrmPipelineStage = 'NEW' | 'CONTACTED' | 'SHOWING' | 'NEGOTIATION' | 'WON' | 'LOST';
 export type CrmPriority = 'HIGH' | 'MEDIUM' | 'LOW';
 export type CrmSource = 'WEBSITE' | 'WHATSAPP' | 'REFERRAL' | 'SOCIAL_MEDIA' | 'WALK_IN' | 'PHONE' | 'OTHER';
@@ -503,5 +544,6 @@ export interface CrmActivity {
   created_by_name: string;
   created_at?: string;
 }
+
 
 

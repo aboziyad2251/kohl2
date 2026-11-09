@@ -1,4 +1,5 @@
 'use client';
+import {useDraftState,useDraftControls} from '@/lib/drafts/hooks';
 
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
@@ -13,18 +14,19 @@ interface NewMaintenanceTaskModalProps {
 export default function NewMaintenanceTaskModal({ isOpen, onClose }: NewMaintenanceTaskModalProps) {
   const { managedProperties, addMaintenanceTask } = useData();
 
-  const [selectedPropertyId, setSelectedPropertyId] = useState(
-    managedProperties[0]?.id || ''
+  const [selectedPropertyId, setSelectedPropertyId] = useDraftState(
+    "NewMaintenanceTaskModal:selectedPropertyId", managedProperties[0]?.id || ''
   );
-  const [unitName, setUnitName] = useState('');
-  const [maintenanceType, setMaintenanceType] = useState('سباكة');
-  const [costAmount, setCostAmount] = useState(350);
-  const [contractorName, setContractorName] = useState('');
-  const [contractorPhone, setContractorPhone] = useState('');
-  const [status, setStatus] = useState<MaintenanceStatus>('Pending');
-  const [notes, setNotes] = useState('');
+  const [unitName, setUnitName] = useDraftState("NewMaintenanceTaskModal:unitName", '');
+  const [maintenanceType, setMaintenanceType] = useDraftState("NewMaintenanceTaskModal:maintenanceType", 'سباكة');
+  const [costAmount, setCostAmount] = useDraftState("NewMaintenanceTaskModal:costAmount", 350);
+  const [contractorName, setContractorName] = useDraftState("NewMaintenanceTaskModal:contractorName", '');
+  const [contractorPhone, setContractorPhone] = useDraftState("NewMaintenanceTaskModal:contractorPhone", '');
+  const [status, setStatus] = useDraftState<MaintenanceStatus>("NewMaintenanceTaskModal:status", 'Pending');
+  const [notes, setNotes] = useDraftState("NewMaintenanceTaskModal:notes", '');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const clearDraft=useDraftControls('NewMaintenanceTaskModal:');
   if (!isOpen) return null;
 
   const selectedManagedProperty = managedProperties.find(
@@ -58,6 +60,7 @@ export default function NewMaintenanceTaskModal({ isOpen, onClose }: NewMaintena
       };
 
       await addMaintenanceTask(newTask);
+      clearDraft();
       onClose();
     } catch (err) {
       console.error('Error adding maintenance task:', err);

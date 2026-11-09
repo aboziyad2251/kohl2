@@ -1,93 +1,22 @@
 'use client';
-
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import {
-  LayoutDashboard,
-  UserCheck,
-  Users,
-  FileSignature,
-  Menu,
-} from 'lucide-react';
-import { useLayout } from '@/context/LayoutContext';
-
-interface BottomNavItem {
-  name: string;
-  href: string;
-  icon: any;
-}
-
-const mainNavItems: BottomNavItem[] = [
-  {
-    name: 'الرئيسية',
-    href: '/dashboard',
-    icon: LayoutDashboard,
-  },
-  {
-    name: 'الـ CRM',
-    href: '/crm',
-    icon: UserCheck,
-  },
-  {
-    name: 'الموظفين',
-    href: '/employees',
-    icon: Users,
-  },
-  {
-    name: 'العقود',
-    href: '/contracts',
-    icon: FileSignature,
-  },
+import {usePathname} from 'next/navigation';
+import {LayoutDashboard,MapPinned,Building2,FileSignature,UserCheck,Users,FolderArchive,Grid2X2} from 'lucide-react';
+import {useLayout} from '@/context/LayoutContext';
+import {useAuth} from '@/context/AuthContext';
+const items=[
+ {name:'الرئيسية',href:'/dashboard',module:'dashboard',icon:LayoutDashboard},
+ {name:'العملاء',href:'/crm',module:'crm',icon:UserCheck},
+ {name:'العقارات',href:'/ownership-properties',module:'ownership-properties',icon:Building2},
+ {name:'العقود',href:'/contracts',module:'contracts',icon:FileSignature},
+ {name:'الموظفون',href:'/employees',module:'employees',icon:Users},
+ {name:'الأرشيف',href:'/archive',module:'archive',icon:FolderArchive},
 ];
-
-export default function MobileBottomNav() {
-  const pathname = usePathname();
-  const { toggleMobileNav, isMobileNavOpen } = useLayout();
-
-  return (
-    <nav className="flex md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/80 px-2 py-1.5 justify-around items-center select-none shadow-2xl">
-      {mainNavItems.map((item) => {
-        const isActive = pathname === item.href || (pathname === '/' && item.href === '/dashboard');
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all duration-150 ${
-              isActive
-                ? 'text-sky-400 font-bold'
-                : 'text-slate-400 hover:text-slate-200 font-medium'
-            }`}
-          >
-            <div className="relative">
-              <Icon className={`w-5 h-5 transition-transform ${isActive ? 'scale-110' : ''}`} />
-              {isActive && (
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-sky-400"></span>
-              )}
-            </div>
-            <span className="text-[10px] mt-1 leading-none">{item.name}</span>
-          </Link>
-        );
-      })}
-
-      {/* Menu Drawer Toggle Button */}
-      <button
-        onClick={toggleMobileNav}
-        className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all duration-150 ${
-          isMobileNavOpen
-            ? 'text-sky-400 font-bold'
-            : 'text-slate-400 hover:text-slate-200 font-medium'
-        }`}
-      >
-        <div className="relative">
-          <Menu className={`w-5 h-5 transition-transform ${isMobileNavOpen ? 'scale-110' : ''}`} />
-          {isMobileNavOpen && (
-            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-sky-400"></span>
-          )}
-        </div>
-        <span className="text-[10px] mt-1 leading-none">القائمة</span>
-      </button>
-    </nav>
-  );
+export default function MobileBottomNav(){
+ const path=usePathname(),{toggleMobileNav,isMobileNavOpen}=useLayout(),{canAccess}=useAuth();
+ return <nav aria-label="التنقل السريع للجوال" className="kohl-mobile-dock md:hidden">{items.filter(i=>canAccess(i.module)).slice(0,4).map(item=>{
+ const active=path===item.href||(path==='/'&&item.href==='/dashboard'),Icon=item.icon;
+ return <Link href={item.href} key={item.href} aria-current={active?'page':undefined} className="kohl-dock-item"><span className="kohl-dock-icon"><Icon size={21} strokeWidth={active?2.3:1.7}/></span><span>{item.name}</span></Link>;
+ })}<button type="button" className="kohl-dock-item" aria-expanded={isMobileNavOpen} aria-controls="kohl-mobile-menu" onClick={toggleMobileNav}><span className="kohl-dock-icon"><Grid2X2 size={21} strokeWidth={1.7}/></span><span>المزيد</span></button></nav>;
 }

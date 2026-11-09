@@ -1,9 +1,10 @@
+import { withAudit } from '@/lib/audit/server';
 import { NextRequest } from 'next/server';
 import { requireIdentity, apiError, json, PortalError } from '@/lib/portal/server';
 import { workflow } from '@/lib/portal/workflow-server';
 import { workflowSchema, customerOperations } from '@/lib/portal/workflows';
 export const dynamic = 'force-dynamic';
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
     try {
         const { user, profile } = await requireIdentity(req);
         const parsed = workflowSchema.safeParse(await req.json());
@@ -13,3 +14,5 @@ export async function POST(req: NextRequest) {
         return json(await workflow(user.id, operation, payload));
     } catch (error) { return apiError(error); }
 }
+
+export const POST=withAudit(POSTHandler);

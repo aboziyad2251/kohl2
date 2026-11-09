@@ -1,4 +1,5 @@
 import 'server-only';
+import { auditContext, auditFetch } from '@/lib/audit/context';
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import type { PortalProfile } from './types';
@@ -19,7 +20,7 @@ export function adminClient() {
     if (!key)
         throw new PortalError(503, 'User administration is not configured');
     return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false },
-        global: { fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }) } });
+        global: { fetch: auditFetch } });
 }
 export async function requireIdentity(req: NextRequest, executive = false) {
     const bearer = req.headers.get('authorization')?.match(/^Bearer (.+)$/)?.[1];
@@ -27,7 +28,7 @@ export async function requireIdentity(req: NextRequest, executive = false) {
         throw new PortalError(401, 'Sign in required');
     const { url, key } = config();
     const client = createClient(url, key, { global: { headers: { Authorization: `Bearer ${bearer}` },
-            fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }) },
+            fetch: auditFetch },
         auth: { persistSession: false, autoRefreshToken: false } });
     const { data: identity, error } = await client.auth.getUser(bearer);
     if (error || !identity.user)
@@ -40,6 +41,7 @@ export async function requireIdentity(req: NextRequest, executive = false) {
         throw new PortalError(403, 'Identity mismatch');
     if (executive && !['ADMIN', 'CEO'].includes(profile.account.role))
         throw new PortalError(403, 'Admin or CEO required');
+    const context=auditContext.getStore();if(context)context.actor=identity.user.id;
     return { user: identity.user, profile, client };
 }
 export async function administrative(actor: string, operation: string, payload: unknown = {}, requestId = crypto.randomUUID()) {

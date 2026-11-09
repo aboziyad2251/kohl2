@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import {useDraftForm} from '@/lib/drafts/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, ShieldCheck, CheckCircle2 } from 'lucide-react';
@@ -41,11 +41,12 @@ export default function EditEPoaModal({
   const {
     register,
     handleSubmit,
+    clearDraft,
     reset,
     formState: { errors },
-  } = useForm<EPoaInput>({
+  } = useDraftForm<EPoaInput>('EditEPoaModal:' + (ePoa?.id || 'none'), {
     resolver: zodResolver(ePoaSchema),
-  });
+  }, isOpen && !!ePoa);
 
   useEffect(() => {
     if (ePoa) {
@@ -82,7 +83,9 @@ export default function EditEPoaModal({
         status: data.status as EPoaStatus,
       };
 
-      onSuccess(updated);
+      await onSuccess(updated);
+
+      clearDraft();
       onClose();
     } catch (err) {
       console.error(err);

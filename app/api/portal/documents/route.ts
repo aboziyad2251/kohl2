@@ -1,3 +1,4 @@
+import { withAudit } from '@/lib/audit/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireIdentity, apiError, PortalError } from '@/lib/portal/server';
@@ -9,7 +10,7 @@ export const dynamic = 'force-dynamic';
 const schema = z.discriminatedUnion('kind', [z.object({ kind: z.literal('payment'), payment_id: z.string().uuid() }), z.object({ kind: z.literal('statement'), start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) })]);
 // Bound parallel Chromium processes on this application instance.
 let rendering = 0;
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
     let acquired = false;
     try {
         const { user, profile } = await requireIdentity(req), body = schema.parse(await req.json());
@@ -29,3 +30,5 @@ export async function POST(req: NextRequest) {
     } catch (error) { return apiError(error); }
     finally { if (acquired) rendering--; }
 }
+
+export const POST=withAudit(POSTHandler);

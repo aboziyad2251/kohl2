@@ -11,9 +11,9 @@ export default function Login() {
     const [google, setGoogle] = useState(false);
     useEffect(() => { fetch('/api/auth/providers', {cache:'no-store'}).then(r => r.json()).then(data => setGoogle(data.google === true)).catch(() => {}); }, []);
     return <main dir={en ? 'ltr' : 'rtl'} className="portal-surface min-h-screen grid place-items-center p-4"><form className="portal-card w-full max-w-md space-y-5" onSubmit={async (e) => { e.preventDefault(); setBusy(true); setError(''); try {
-        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-        if (error)
-            throw new Error(loginErrorMessage(error, en));
+        const response=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email.trim(),password})});
+        const result=await response.json();if(!response.ok)throw new Error(result.error||'Sign in failed');
+        const {error}=await supabase.auth.setSession(result.session);if(error)throw new Error(loginErrorMessage(error,en));
         await auth.refresh();
         router.replace('/dashboard');
     }

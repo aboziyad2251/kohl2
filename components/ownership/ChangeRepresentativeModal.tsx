@@ -1,7 +1,8 @@
 'use client';
+import {useDraftState,useDraftControls} from '@/lib/drafts/hooks';
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import {useDraftForm} from '@/lib/drafts/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X, UserCheck, ShieldAlert, ArrowRightLeft, CheckCircle2 } from 'lucide-react';
 import { changeRepresentativeSchema, ChangeRepresentativeInput } from '@/lib/validations';
@@ -25,17 +26,18 @@ export default function ChangeRepresentativeModal({
   auditLogs,
   onSuccess,
 }: ChangeRepresentativeModalProps) {
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
+  const [selectedPropertyId, setSelectedPropertyId] = useDraftState<string>('ChangeRepresentativeModal:selectedPropertyId', '');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     register,
     handleSubmit,
+    clearDraft,
     reset,
     formState: { errors },
-  } = useForm<ChangeRepresentativeInput>({
+  } = useDraftForm<ChangeRepresentativeInput>('ChangeRepresentativeModal', {
     resolver: zodResolver(changeRepresentativeSchema),
-  });
+  }, isOpen);
 
   if (!isOpen) return null;
 
@@ -55,7 +57,9 @@ export default function ChangeRepresentativeModal({
         notes: data.notes,
       });
 
-      onSuccess(result.updatedProperties, result.updatedAuditLogs);
+      await onSuccess(result.updatedProperties, result.updatedAuditLogs);
+
+      clearDraft();
       reset();
       onClose();
     } catch (err: any) {

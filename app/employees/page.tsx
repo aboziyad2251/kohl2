@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouteTab } from '@/lib/navigation/useRouteTab';
 import React, { useState } from 'react';
 import {
   Users,
@@ -67,7 +68,7 @@ export default function EmployeesPage() {
 
   const { currentUser, role, isExecutive, isHR, isEmployee } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>('timesheet');
+  const [activeTab, setActiveTab] = useRouteTab<ActiveTab>('timesheet', isExecutive ? ['timesheet', 'directory', 'payroll', 'leaves', 'delegation'] : isHR ? ['timesheet', 'directory', 'payroll', 'leaves'] : ['timesheet', 'payroll', 'leaves']);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPaymentForPrint, setSelectedPaymentForPrint] = useState<PayrollPayment | null>(null);
   const [isDelegatorOpen, setIsDelegatorOpen] = useState(false);

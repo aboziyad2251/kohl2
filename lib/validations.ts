@@ -51,8 +51,12 @@ export const ownershipDocumentPropertySchema = z.object({
   file_url: z.string().optional(),
 
   // بيانات العقار
+  latitude: z.number().finite().min(-90).max(90),
+  longitude: z.number().finite().min(-180).max(180),
+  map_purposes: z.array(z.enum(['MANAGEMENT','RENT','SALE'])).max(3).default([]),
   property_title: z.string().min(3, 'اسم/عنوان العقار مطلوب'),
-  property_type: z.enum(['Residential', 'Commercial', 'Land'], {
+  property_kind:z.enum(['LAND','APARTMENT','VILLA','FLOOR','BUILDING','SHOWROOM','SHOP','KIOSK','FOOD_TRUCK']),
+  property_type: z.enum(['Residential', 'Commercial'], {
     errorMap: () => ({ message: 'نوع العقار مطلوب' }),
   }),
   address: z.string().min(5, 'تفاصيل العنوان مطلوبة'),

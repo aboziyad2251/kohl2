@@ -1,4 +1,5 @@
 'use client';
+import {useDraftState,useDraftControls} from '@/lib/drafts/hooks';
 
 import React, { useState } from 'react';
 import { UserCheck, X } from 'lucide-react';
@@ -12,12 +13,13 @@ interface AddRepresentativeModalProps {
 }
 
 export default function AddRepresentativeModal({ isOpen, onClose, onSubmit }: AddRepresentativeModalProps) {
-  const [name, setName] = useState('');
-  const [nationalId, setNationalId] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [ePoaNumber, setEPoaNumber] = useState('');
+  const [name, setName] = useDraftState('AddRepresentativeModal:name', '');
+  const [nationalId, setNationalId] = useDraftState('AddRepresentativeModal:nationalId', '');
+  const [phone, setPhone] = useDraftState('AddRepresentativeModal:phone', '');
+  const [email, setEmail] = useDraftState('AddRepresentativeModal:email', '');
+  const [ePoaNumber, setEPoaNumber] = useDraftState('AddRepresentativeModal:ePoaNumber', '');
 
+  const clearPageDraft=useDraftControls('AddRepresentativeModal');
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -41,6 +43,7 @@ export default function AddRepresentativeModal({ isOpen, onClose, onSubmit }: Ad
     setPhone('');
     setEmail('');
     setEPoaNumber('');
+    clearPageDraft();
     onClose();
   };
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import {useDraftForm} from '@/lib/drafts/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, DollarSign, CheckCircle2 } from 'lucide-react';
@@ -54,12 +54,13 @@ export default function EditTransactionModal({
   const {
     register,
     handleSubmit,
+    clearDraft,
     reset,
     watch,
     formState: { errors },
-  } = useForm<TxInput>({
+  } = useDraftForm<TxInput>('EditTransactionModal:' + (transaction?.id || 'none'), {
     resolver: zodResolver(txSchema),
-  });
+  }, isOpen && !!transaction);
 
   const watchFlowType = watch('flow_type') || 'INCOME';
   const watchGross = watch('gross_amount') || 0;
@@ -115,7 +116,9 @@ export default function EditTransactionModal({
         brokerage_agreement: brokerage,
       };
 
-      onSuccess(updated);
+      await onSuccess(updated);
+
+      clearDraft();
       onClose();
     } catch (err) {
       console.error(err);

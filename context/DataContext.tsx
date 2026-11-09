@@ -1,6 +1,7 @@
 'use client';
+import {supabase} from '@/lib/supabaseClient';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import {
   Lessor,
   Tenant,
@@ -119,6 +120,7 @@ import {
   dbInsertTaskDelegation,
   dbUpdateTaskDelegation,
   dbDeleteTaskDelegation,
+  dbFetchCrmSnapshot,
   dbInsertCrmLead,
   dbUpdateCrmLead,
   dbDeleteCrmLead,
@@ -158,6 +160,8 @@ interface DataContextType {
   crmLeads: CrmLead[];
   crmDeals: CrmDeal[];
   crmActivities: CrmActivity[];
+  refreshCrm: () => Promise<boolean>;
+  refreshProperties: () => Promise<void>;
 
   // Entity Actions
   addProperty: (property: Property, document?: OwnershipDocument) => Promise<void>;
@@ -307,6 +311,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [crmDeals, setCrmDeals] = useState<CrmDeal[]>([]);
   const [crmActivities, setCrmActivities] = useState<CrmActivity[]>([]);
 
+  const crmWriteVersion=useRef(0),crmWrites=useRef(0),crmRefreshing=useRef(false);
+  const refreshProperties=useCallback(async()=>{
+    const rows:Property[]=[];
+    for(let page=0;page<20;page++){
+      const {data,error}=await supabase.from('properties').select('*,title:property_name').order('id').range(page*1000,page*1000+999);
+      if(error)throw new Error('تعذر تحديث قائمة العقارات');
+      rows.push(...(data||[]));if((data||[]).length<1000){setProperties(rows);return;}
+    }
+    throw new Error('عدد العقارات يتجاوز حد التحميل');
+  },[]);
+  const refreshCrm=useCallback(async()=>{
+    if(isLoading||crmWrites.current||crmRefreshing.current)return false;
+    crmRefreshing.current=true;const version=crmWriteVersion.current;
+    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),10000);
+    try{
+      const data=await dbFetchCrmSnapshot(controller.signal);
+      // Discard a snapshot that raced an optimistic local edit or save.
+      if(crmWrites.current||version!==crmWriteVersion.current)return false;
+      setCrmLeads(old=>JSON.stringify(old)===JSON.stringify(data.leads)?old:data.leads);
+      setCrmDeals(old=>JSON.stringify(old)===JSON.stringify(data.deals)?old:data.deals);
+      setCrmActivities(old=>JSON.stringify(old)===JSON.stringify(data.activities)?old:data.activities);
+      return true;
+    }finally{clearTimeout(timeout);crmRefreshing.current=false;}
+  },[isLoading]);
+
   useEffect(() => {
     async function initData() {
       setIsLoading(true);
@@ -356,24 +385,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await dbInsertOwnershipDocument(newDoc);
     }
 
+    await dbInsertProperty(newProp);
     const updatedProps = [newProp, ...properties];
     setProperties(updatedProps);
     syncLocal(STORAGE_KEYS.PROPERTIES, updatedProps);
-    await dbInsertProperty(newProp);
   };
 
   const updateProperty = async (updatedProp: Property) => {
-    const updatedProps = properties.map((p) => (p.id === updatedProp.id ? updatedProp : p));
-    setProperties(updatedProps);
-    syncLocal(STORAGE_KEYS.PROPERTIES, updatedProps);
-    await dbUpdateProperty(updatedProp);
+    const { property: saved } = await dbUpdateProperty(updatedProp);
+    const next = { ...updatedProp, ...saved, lessor: lessors.find(l => l.id === saved.lessor_id), current_representative: representatives.find(r => r.id === saved.current_representative_id) };
+    setProperties(current => { const rows = current.map(p => p.id === next.id ? next : p); syncLocal(STORAGE_KEYS.PROPERTIES, rows); return rows; });
   };
 
   const deleteProperty = async (propertyId: string) => {
+    await dbDeleteProperty(propertyId);
     const updatedProps = properties.filter((p) => p.id !== propertyId);
     setProperties(updatedProps);
     syncLocal(STORAGE_KEYS.PROPERTIES, updatedProps);
-    await dbDeleteProperty(propertyId);
   };
 
   const updatePropertyRep = async (propertyId: string, newRepId: string, notes?: string) => {
@@ -819,10 +847,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // MANAGED PROPERTIES ACTIONS
   // ------------------------------------
   const addManagedProperty = async (prop: ManagedPropertyContract) => {
+    await dbInsertManagedProperty(prop);
     const updated = [prop, ...managedProperties];
     setManagedProperties(updated);
     syncLocal(STORAGE_KEYS.MANAGED_PROPERTIES, updated);
-    await dbInsertManagedProperty(prop);
   };
 
   const updateManagedProperty = async (prop: ManagedPropertyContract) => {
@@ -1075,24 +1103,36 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // CRM LEADS ACTIONS
   // ------------------------------------
   const addCrmLead = async (lead: CrmLead) => {
+    crmWrites.current++;crmWriteVersion.current++;
+    try {
     const updated = [lead, ...crmLeads];
     setCrmLeads(updated);
     syncLocal(STORAGE_KEYS.CRM_LEADS, updated);
     await dbInsertCrmLead(lead);
+  
+    } finally {crmWrites.current--;crmWriteVersion.current++;}
   };
 
   const updateCrmLead = async (lead: CrmLead) => {
+    crmWrites.current++;crmWriteVersion.current++;
+    try {
     const updated = crmLeads.map((l) => (l.id === lead.id ? lead : l));
     setCrmLeads(updated);
     syncLocal(STORAGE_KEYS.CRM_LEADS, updated);
     await dbUpdateCrmLead(lead);
+  
+    } finally {crmWrites.current--;crmWriteVersion.current++;}
   };
 
   const deleteCrmLead = async (leadId: string) => {
+    crmWrites.current++;crmWriteVersion.current++;
+    try {
     const updated = crmLeads.filter((l) => l.id !== leadId);
     setCrmLeads(updated);
     syncLocal(STORAGE_KEYS.CRM_LEADS, updated);
     await dbDeleteCrmLead(leadId);
+  
+    } finally {crmWrites.current--;crmWriteVersion.current++;}
   };
 
   const updateLeadStage = async (leadId: string, stage: CrmLead['stage']) => {
@@ -1106,24 +1146,36 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // CRM DEALS ACTIONS
   // ------------------------------------
   const addCrmDeal = async (deal: CrmDeal) => {
+    crmWrites.current++;crmWriteVersion.current++;
+    try {
     const updated = [deal, ...crmDeals];
     setCrmDeals(updated);
     syncLocal(STORAGE_KEYS.CRM_DEALS, updated);
     await dbInsertCrmDeal(deal);
+  
+    } finally {crmWrites.current--;crmWriteVersion.current++;}
   };
 
   const updateCrmDeal = async (deal: CrmDeal) => {
+    crmWrites.current++;crmWriteVersion.current++;
+    try {
     const updated = crmDeals.map((d) => (d.id === deal.id ? deal : d));
     setCrmDeals(updated);
     syncLocal(STORAGE_KEYS.CRM_DEALS, updated);
     await dbUpdateCrmDeal(deal);
+  
+    } finally {crmWrites.current--;crmWriteVersion.current++;}
   };
 
   const deleteCrmDeal = async (dealId: string) => {
+    crmWrites.current++;crmWriteVersion.current++;
+    try {
     const updated = crmDeals.filter((d) => d.id !== dealId);
     setCrmDeals(updated);
     syncLocal(STORAGE_KEYS.CRM_DEALS, updated);
     await dbDeleteCrmDeal(dealId);
+  
+    } finally {crmWrites.current--;crmWriteVersion.current++;}
   };
 
   const updateDealStage = async (dealId: string, stage: CrmDeal['stage']) => {
@@ -1137,24 +1189,36 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // CRM ACTIVITIES ACTIONS
   // ------------------------------------
   const addCrmActivity = async (act: CrmActivity) => {
+    crmWrites.current++;crmWriteVersion.current++;
+    try {
     const updated = [act, ...crmActivities];
     setCrmActivities(updated);
     syncLocal(STORAGE_KEYS.CRM_ACTIVITIES, updated);
     await dbInsertCrmActivity(act);
+  
+    } finally {crmWrites.current--;crmWriteVersion.current++;}
   };
 
   const updateCrmActivity = async (act: CrmActivity) => {
+    crmWrites.current++;crmWriteVersion.current++;
+    try {
     const updated = crmActivities.map((a) => (a.id === act.id ? act : a));
     setCrmActivities(updated);
     syncLocal(STORAGE_KEYS.CRM_ACTIVITIES, updated);
     await dbUpdateCrmActivity(act);
+  
+    } finally {crmWrites.current--;crmWriteVersion.current++;}
   };
 
   const deleteCrmActivity = async (actId: string) => {
+    crmWrites.current++;crmWriteVersion.current++;
+    try {
     const updated = crmActivities.filter((a) => a.id !== actId);
     setCrmActivities(updated);
     syncLocal(STORAGE_KEYS.CRM_ACTIVITIES, updated);
     await dbDeleteCrmActivity(actId);
+  
+    } finally {crmWrites.current--;crmWriteVersion.current++;}
   };
 
   // ------------------------------------
@@ -1247,6 +1311,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         payrollPayments,
         leaveRequests,
         taskDelegations,
+        refreshCrm,
+        refreshProperties,
         crmLeads,
         crmDeals,
         crmActivities,

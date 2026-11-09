@@ -1,7 +1,10 @@
 'use client';
+import {useDraftState,useDraftControls} from '@/lib/drafts/hooks';
 
+import {propertyKinds,propertyUses} from '@/lib/property-classification';
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import ImportPropertyModal from './ImportPropertyModal';
+import {useDraftForm} from '@/lib/drafts/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X, FileText, Building2, User, Plus, CheckCircle2 } from 'lucide-react';
 import { ownershipDocumentPropertySchema, OwnershipDocumentPropertyInput } from '@/lib/validations';
@@ -13,7 +16,7 @@ interface AddDocumentPropertyModalProps {
   onClose: () => void;
   lessors: Lessor[];
   representatives: Representative[];
-  onSuccess: (newProp: Property, newDoc: OwnershipDocument) => void;
+  onSuccess: (newProp: Property, newDoc: OwnershipDocument) => void | Promise<void>;
 }
 
 export default function AddDocumentPropertyModal({
@@ -24,24 +27,30 @@ export default function AddDocumentPropertyModal({
   onSuccess,
 }: AddDocumentPropertyModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [importing,setImporting]=useDraftState('AddDocumentPropertyModal:importing', false);
+  const [saveError,setSaveError] = useState('');
 
   const {
     register,
     handleSubmit,
+    clearDraft,
     reset,
     formState: { errors },
-  } = useForm<OwnershipDocumentPropertyInput>({
+  } = useDraftForm<OwnershipDocumentPropertyInput>('AddDocumentPropertyModal', {
     resolver: zodResolver(ownershipDocumentPropertySchema),
     defaultValues: {
       units_count: 1,
       property_type: 'Residential',
     },
-  });
+  }, isOpen);
 
   if (!isOpen) return null;
 
+  if(importing)return <ImportPropertyModal lessors={lessors} onClose={()=>setImporting(false)} onSaved={()=>{setImporting(false);onClose();window.location.reload();}} />;
+
   const onSubmit = async (data: OwnershipDocumentPropertyInput) => {
     setIsSubmitting(true);
+    setSaveError('');
     try {
       const lessor = lessors.find((l) => l.id === data.lessor_id);
       const rep = representatives.find((r) => r.id === data.current_representative_id);
@@ -60,9 +69,14 @@ export default function AddDocumentPropertyModal({
         id: generateEntityId(),
         title: data.property_title,
         property_type: data.property_type,
+        property_kind:data.property_kind,property_use:data.property_type as 'Residential'|'Commercial',
         address: data.address,
         city: data.city,
         units_count: Number(data.units_count),
+        latitude: data.latitude,
+        map_purposes: data.map_purposes,
+        map_visible: true,
+        longitude: data.longitude,
         ownership_document_id: newDoc.id,
         ownership_document: newDoc,
         lessor_id: data.lessor_id,
@@ -72,11 +86,11 @@ export default function AddDocumentPropertyModal({
         created_at: new Date().toISOString(),
       };
 
-      onSuccess(newProp, newDoc);
+      await onSuccess(newProp, newDoc);
       reset();
       onClose();
     } catch (err) {
-      console.error(err);
+      setSaveError(err instanceof Error ? err.message : 'تعذر حفظ العقار');
     } finally {
       setIsSubmitting(false);
     }
@@ -104,8 +118,12 @@ export default function AddDocumentPropertyModal({
           </button>
         </div>
 
+        <div className="px-6 pt-4"><button type="button" onClick={()=>setImporting(true)} className="portal-button">إضافة عقار أو أكثر من Excel</button><p className="text-xs text-slate-400 mt-2">قراءة الشقق من A5 إلى آخر رقم، ثم إضافة الصك.</p></div>
         {/* Form Body */}
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6"><label className="block text-sm font-bold">نوع العقار<select className="portal-input" {...register('property_kind')}><option value="">حدد نوع العقار</option>{propertyKinds.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select>{errors.property_kind&&<span className="text-red-400">حدد نوع العقار</span>}</label>
+          {saveError && <p role="alert" className="text-red-400">{saveError}</p>}
+          <fieldset className="grid grid-cols-1 sm:grid-cols-2 gap-3"><legend className="font-bold mb-2">دبوس موقع العقار (مطلوب)</legend><label className="text-xs">خط العرض Latitude *<input type="number" step="any" min="-90" max="90" required {...register('latitude', { valueAsNumber: true })} className="portal-input" dir="ltr" />{errors.latitude && <span className="text-red-400">أدخل خط عرض بين -90 و90</span>}</label><label className="text-xs">خط الطول Longitude *<input type="number" step="any" min="-180" max="180" required {...register('longitude', { valueAsNumber: true })} className="portal-input" dir="ltr" />{errors.longitude && <span className="text-red-400">أدخل خط طول بين -180 و180</span>}</label><p className="text-xs text-slate-400 sm:col-span-2">انسخ إحداثيات دبوس العقار من Google Maps. يمكنك إضافة الصور والفيديو بعد حفظ العقار من زر ملف العقار.</p></fieldset>
+          <fieldset><legend className="font-bold mb-2">التصنيف في خريطة كحل العقارية</legend><div className="flex flex-wrap gap-4">{([['MANAGEMENT','تحت الإدارة'],['RENT','للإيجار'],['SALE','للبيع']] as const).map(([value,label])=><label key={value} className="flex gap-2 text-sm"><input type="checkbox" value={value} {...register('map_purposes')}/>{label}</label>)}</div></fieldset>
           {/* Section 1: Ownership Document */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sky-400 font-semibold text-sm border-b border-slate-800 pb-2">
@@ -181,14 +199,14 @@ export default function AddDocumentPropertyModal({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">نوع العقار *</label>
+                <label className="block text-xs font-medium text-slate-300 mb-1.5">استخدام العقار *</label>
                 <select
                   {...register('property_type')}
                   className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-sky-500 focus:outline-none"
                 >
                   <option value="Residential">سكني (Residential)</option>
                   <option value="Commercial">تجاري (Commercial)</option>
-                  <option value="Land">أرض (Land)</option>
+                  
                 </select>
                 {errors.property_type && (
                   <p className="text-[11px] text-red-400 mt-1">{errors.property_type.message}</p>
@@ -278,3 +296,4 @@ export default function AddDocumentPropertyModal({
     </div>
   );
 }
+

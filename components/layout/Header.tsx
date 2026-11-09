@@ -25,6 +25,9 @@ import PasswordPromptModal from '@/components/auth/PasswordPromptModal';
 import LockScreenModal from '@/components/auth/LockScreenModal';
 import ChangePasswordModal from '@/components/auth/ChangePasswordModal';
 import NotificationBell from '@/components/portal/NotificationBell';
+import { navGroups, routeItem } from '@/lib/navigation';
+import NavigationSearch from '@/components/navigation/NavigationSearch';
+import { AppearanceSwitch } from '@/components/layout/Appearance';
 
 interface HeaderProps {
   title?: string;
@@ -39,7 +42,7 @@ const ROLE_BADGE_STYLES: Partial<Record<UserRole, { bg: string; text: string; bo
 };
 
 export default function Header({
-  title = 'نظام إدارة العقود والملكية العقارية',
+  title,
   subtitle = 'لوحة التحكم والعمليات المباشرة',
 }: HeaderProps) {
   const {
@@ -81,35 +84,22 @@ export default function Header({
 
   const pathname = usePathname();
 
-  // Dynamic route titles
-  const routeTitles: Record<string, string> = {
-    '/': 'لوحة التحكم القيادية',
-    '/dashboard': 'لوحة التحكم القيادية',
-    '/crm': 'إدارة علاقات العملاء (CRM)',
-    '/employees': 'شؤون الموظفين والدوام والرواتب',
-    '/archive': 'الأرشيف الإلكتروني والوثائق',
-    '/customer-orders': 'طلبات العملاء العقارية',
-    '/property-management': 'إدارة الأملاك والتشغيل',
-    '/financials/earnings': 'الأرباح والمعاملات المالية',
-    '/financials/daily-reports': 'التقرير اليومي ومستشار AI',
-    '/contracts': 'مركز العقود والإيجارات',
-    '/ownership-properties': 'الملكية والعقارات والوكالات',
-    '/brokerage-agreements': 'اتفاقيات الوساطة العقارية',
-    '/general-services': 'الخدمات العامة والمعاملات',
-  };
-
-  const currentTitle = title || routeTitles[pathname] || 'نظام إدارة المكتب العقاري';
+  const currentRoute = routeItem(pathname);
+  const currentGroup = navGroups.find(group => group.id === currentRoute?.group);
+  const currentTitle = title || currentRoute?.title || 'نظام إدارة المكتب العقاري';
   const badgeStyle = ROLE_BADGE_STYLES[role] || ROLE_BADGE_STYLES.EMPLOYEE!;
 
   return (
     <>
-      <header className="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-3.5 sm:px-6 md:px-8 py-3 sticky top-0 z-30 flex items-center justify-between">
+      <header className="kohl-app-header bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-3.5 sm:px-6 md:px-8 py-3 sticky top-0 z-30 flex items-center justify-between">
         {/* Left / Title area */}
         <div className="flex items-center gap-2.5 min-w-0">
           {/* Mobile Hamburger Drawer Trigger */}
           <button
             onClick={toggleMobileNav}
             className="flex md:hidden p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition shrink-0"
+            aria-expanded={isMobileNavOpen}
+            aria-controls="kohl-mobile-menu"
             title="القائمة الرئيسية"
             aria-label="القائمة الرئيسية"
           >
@@ -132,39 +122,27 @@ export default function Header({
               </span>
             </div>
             <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 hidden sm:block truncate">
-              نظام إدارة المكتب العقاري • Kohl Real Estate
+              {currentGroup ? `${currentGroup.label} / ${currentRoute?.label}` : 'نظام إدارة المكتب العقاري • Kohl Real Estate'}
             </p>
           </div>
         </div>
 
         {/* Right / Actions area */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <AppearanceSwitch />
           <NotificationBell />
           {/* Date Display (Desktop) */}
-          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-slate-300">
+          <div className="hidden 2xl:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-slate-300">
             <Calendar className="w-3.5 h-3.5 text-sky-400" />
             <span>{currentDate}</span>
           </div>
 
-          {/* Global Search input (Large Desktop) */}
-          <div className="relative hidden lg:block w-48 xl:w-56">
-            <Search className="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
-            <input
-              type="text"
-              placeholder="بحث سريع..."
-              className="w-full bg-slate-800/90 border border-slate-700 rounded-lg pr-9 pl-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-sky-500 transition"
-            />
-          </div>
-
-          {/* Ejar Status Badge (Tablet & Desktop) */}
-          <div className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium">
-            <Shield className="w-3.5 h-3.5" />
-            <span>إيجار نشط</span>
-          </div>
+          <NavigationSearch />
 
           {/* Change Password Button in Header */}
           <button
             onClick={openChangePasswordModal}
+            data-mobile-secondary="true"
             title="تغيير كلمة المرور الخاصة بحسابك"
             className="p-1.5 sm:p-2 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-sky-400 transition"
           >
@@ -174,6 +152,7 @@ export default function Header({
           {/* Lock Session Button */}
           <button
             onClick={lockSession}
+            data-mobile-secondary="true"
             title="قفل النظام وتسجيل الخروج"
             className="p-1.5 sm:p-2 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-amber-400 transition"
           >
@@ -337,3 +316,4 @@ export default function Header({
     </>
   );
 }
+

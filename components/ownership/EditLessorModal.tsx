@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import {useDraftForm} from '@/lib/drafts/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, UserCheck, CheckCircle2 } from 'lucide-react';
@@ -34,11 +34,12 @@ export default function EditLessorModal({
   const {
     register,
     handleSubmit,
+    clearDraft,
     reset,
     formState: { errors },
-  } = useForm<LessorInput>({
+  } = useDraftForm<LessorInput>('EditLessorModal:' + (lessor?.id || 'none'), {
     resolver: zodResolver(lessorSchema),
-  });
+  }, isOpen && !!lessor);
 
   useEffect(() => {
     if (lessor) {
@@ -64,7 +65,9 @@ export default function EditLessorModal({
         email: data.email || undefined,
       };
 
-      onSuccess(updated);
+      await onSuccess(updated);
+
+      clearDraft();
       onClose();
     } catch (err) {
       console.error(err);

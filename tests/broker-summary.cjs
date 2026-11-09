@@ -1,0 +1,18 @@
+const assert=require('assert/strict'),{loadTS}=require('./load-ts.cjs'),{fixture,migrate,actor,ids}=require('./fixtures/erp-db.cjs');
+const model=loadTS('lib/forms/broker-summary.ts');
+(async()=>{const db=await fixture();await migrate(db,'20261028131651_comprehensive_audit_trail.sql');await migrate(db,'20261028131709_broker_summary_v3.sql');
+ const form=model.summaryDefaults('2026-10-28');Object.assign(form.values,{agreement_number:'M-2026-1',representative:'Fixture Representative',broker_name:'Synthetic Broker',broker_national_id:'1234567890',fal_number:'1200000001',fal_expiry:'2028-10-28',mobile:'0501234567',start_date:'2026-10-28',end_date:'2026-11-28',broker_share:37.5,penalty_amount:1000});
+ model.brokerSummarySchema.parse(form);assert.equal(model.summaryComputed(form).company_share,62.5);assert.equal(model.summaryComputed(form).duration,32);
+ assert(!model.brokerSummarySchema.safeParse({...form,values:{...form.values,broker_national_id:'2234567890'}}).success);assert(!model.brokerSummarySchema.safeParse({...form,values:{...form.values,broker_share:101}}).success);assert(!model.brokerSummarySchema.safeParse({...form,values:{...form.values,fal_expiry:'2026-10-29'}}).success);
+ const request='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';await actor(db,'employee');
+ const issue=async(id,payload)=>(await db.query('select public.issue_broker_summary($1,$2) result',[id,payload])).rows[0].result;
+ const first=await issue(request,form);assert(first.number.startsWith('KC-M-2026-'));assert.equal((await issue(request,form)).number,first.number);
+ await assert.rejects(issue(request,{...form,values:{...form.values,penalty_amount:2000}}),/Retry content changed/);
+ await assert.rejects(db.query('select public.issue_standard_form($1,$2)',[request,form]),/current two-page/);
+ const other={kind:'KL',date:'2026-10-28',values:{}};assert.equal((await db.query('select public.issue_standard_form($1,$2) result',[request,other])).rows[0].result.kind,'KL');
+ await assert.rejects(db.query('select portal_private.issue_standard_form_pre_summary($1,$2)',[request,form]),/permission denied/);
+ await actor(db,'owner');await assert.rejects(issue('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',form),/Operational staff/);
+ await actor(db,'admin');const logs=(await db.query("select * from public.audit_logs where module='Broker Cooperation'")).rows;assert(logs.some(l=>l.action_type==='CREATE'));assert(!JSON.stringify(logs).includes('1234567890'));
+ await db.exec('reset role');const saved=(await db.query('select snapshot from portal_private.bill_forms where id=$1',[request])).rows[0].snapshot;assert.equal(saved.templateVersion,3);assert.equal(saved.form.values.broker_share,37.5);
+ console.log('PASS broker summary: reference v3 snapshot, national-ID/share/license validation, stable numbering/retries, old KC-M disabled in database, other forms preserved, actor gates and redacted audit.');await db.close();
+})().catch(e=>{console.error(e);process.exitCode=1;});

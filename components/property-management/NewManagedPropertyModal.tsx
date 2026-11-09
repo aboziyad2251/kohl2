@@ -1,5 +1,7 @@
 'use client';
+import {useDraftState,useDraftControls} from '@/lib/drafts/hooks';
 
+import { locationSchema } from '@/lib/property-location';
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { ManagedPropertyContract, ManagementFeeType, ManagementStatus } from '../../lib/types';
@@ -13,23 +15,25 @@ interface NewManagedPropertyModalProps {
 export default function NewManagedPropertyModal({ isOpen, onClose }: NewManagedPropertyModalProps) {
   const { addManagedProperty } = useData();
 
-  const [propertyName, setPropertyName] = useState('');
-  const [lessorName, setLessorName] = useState('');
-  const [lessorPhone, setLessorPhone] = useState('');
-  const [propertyType, setPropertyType] = useState<'Residential' | 'Commercial' | 'Mixed'>('Residential');
-  const [totalUnits, setTotalUnits] = useState(10);
-  const [occupiedUnits, setOccupiedUnits] = useState(8);
-  const [feeType, setFeeType] = useState<ManagementFeeType>('PERCENTAGE');
-  const [feeValue, setFeeValue] = useState(5.0);
-  const [annualRevenue, setAnnualRevenue] = useState(360000);
-  const [collectedRevenue, setCollectedRevenue] = useState(180000);
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(
-    new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0]
+  const [latitude,setLatitude]=useDraftState('NewManagedPropertyModal:latitude', ''),[longitude,setLongitude]=useDraftState('NewManagedPropertyModal:longitude', ''),[city,setCity]=useDraftState('NewManagedPropertyModal:city', ''),[address,setAddress]=useDraftState('NewManagedPropertyModal:address', ''),[saveError,setSaveError]=useState('');
+  const [propertyName, setPropertyName] = useDraftState('NewManagedPropertyModal:propertyName', '');
+  const [lessorName, setLessorName] = useDraftState('NewManagedPropertyModal:lessorName', '');
+  const [lessorPhone, setLessorPhone] = useDraftState('NewManagedPropertyModal:lessorPhone', '');
+  const [propertyType, setPropertyType] = useDraftState<'Residential' | 'Commercial' | 'Mixed'>('NewManagedPropertyModal:propertyType', 'Residential');
+  const [totalUnits, setTotalUnits] = useDraftState('NewManagedPropertyModal:totalUnits', 10);
+  const [occupiedUnits, setOccupiedUnits] = useDraftState('NewManagedPropertyModal:occupiedUnits', 8);
+  const [feeType, setFeeType] = useDraftState<ManagementFeeType>('NewManagedPropertyModal:feeType', 'PERCENTAGE');
+  const [feeValue, setFeeValue] = useDraftState('NewManagedPropertyModal:feeValue', 5.0);
+  const [annualRevenue, setAnnualRevenue] = useDraftState('NewManagedPropertyModal:annualRevenue', 360000);
+  const [collectedRevenue, setCollectedRevenue] = useDraftState('NewManagedPropertyModal:collectedRevenue', 180000);
+  const [startDate, setStartDate] = useDraftState('NewManagedPropertyModal:startDate', new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useDraftState(
+    'NewManagedPropertyModal:endDate', new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0]
   );
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useDraftState('NewManagedPropertyModal:notes', '');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const clearPageDraft=useDraftControls('NewManagedPropertyModal');
   if (!isOpen) return null;
 
   const calculatedVacant = Math.max(0, totalUnits - occupiedUnits);
@@ -46,6 +50,9 @@ export default function NewManagedPropertyModal({ isOpen, onClose }: NewManagedP
       return;
     }
 
+    const coordinates=latitude.trim() && longitude.trim() && locationSchema.safeParse({latitude:Number(latitude),longitude:Number(longitude)});
+    if(!coordinates || !coordinates.success){setSaveError('أدخل إحداثيات GPS صحيحة للعقار');return;}
+    setSaveError('');
     setIsSubmitting(true);
     try {
       const contractNumber = `PMC-2026-${Math.floor(100 + Math.random() * 900)}`;
@@ -53,6 +60,7 @@ export default function NewManagedPropertyModal({ isOpen, onClose }: NewManagedP
         id: crypto.randomUUID(),
         contract_number: contractNumber,
         property_name: propertyName.trim(),
+        ...coordinates.data,city:city.trim(),address:address.trim(),map_purposes:["MANAGEMENT"],map_visible:true,
         lessor_name: lessorName.trim(),
         lessor_phone: lessorPhone.trim(),
         property_type: propertyType,
@@ -72,9 +80,10 @@ export default function NewManagedPropertyModal({ isOpen, onClose }: NewManagedP
       };
 
       await addManagedProperty(newContract);
+      clearPageDraft();
       onClose();
     } catch (err) {
-      console.error('Error adding managed property:', err);
+      setSaveError(err instanceof Error ? err.message : 'تعذر حفظ عقد الإدارة');
     } finally {
       setIsSubmitting(false);
     }
@@ -104,6 +113,13 @@ export default function NewManagedPropertyModal({ isOpen, onClose }: NewManagedP
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+          {saveError&&<p role="alert" className="text-red-400">{saveError}</p>}
+          <fieldset className="grid grid-cols-1 sm:grid-cols-2 gap-3"><legend className="font-bold mb-2">موقع العقار في خريطة كحل</legend>
+            <label className="text-xs">المدينة<input required value={city} onChange={e=>setCity(e.target.value)} maxLength={100} className="portal-input"/></label>
+            <label className="text-xs">العنوان<input required value={address} onChange={e=>setAddress(e.target.value)} maxLength={1000} className="portal-input"/></label>
+            <label className="text-xs">خط العرض Latitude<input required type="number" step="any" min="-90" max="90" value={latitude} onChange={e=>setLatitude(e.target.value)} dir="ltr" className="portal-input"/></label>
+            <label className="text-xs">خط الطول Longitude<input required type="number" step="any" min="-180" max="180" value={longitude} onChange={e=>setLongitude(e.target.value)} dir="ltr" className="portal-input"/></label>
+          </fieldset>
           {/* Property Name & Type */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2 space-y-1.5">

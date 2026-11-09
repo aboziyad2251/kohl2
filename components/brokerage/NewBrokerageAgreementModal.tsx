@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import {useDraftForm} from '@/lib/drafts/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X, FileCheck, CheckCircle2, Percent } from 'lucide-react';
 import { brokerageAgreementSchema, BrokerageAgreementInput } from '@/lib/validations';
@@ -26,14 +26,15 @@ export default function NewBrokerageAgreementModal({
   const {
     register,
     handleSubmit,
+    clearDraft,
     reset,
     formState: { errors },
-  } = useForm<BrokerageAgreementInput>({
+  } = useDraftForm<BrokerageAgreementInput>('NewBrokerageAgreementModal', {
     resolver: zodResolver(brokerageAgreementSchema),
     defaultValues: {
       commission_rate: 2.5,
     },
-  });
+  }, isOpen);
 
   if (!isOpen) return null;
 
@@ -58,7 +59,9 @@ export default function NewBrokerageAgreementModal({
         created_at: new Date().toISOString(),
       };
 
-      onSuccess(newAgreement);
+      await onSuccess(newAgreement);
+
+      clearDraft();
       reset();
       onClose();
     } catch (err) {

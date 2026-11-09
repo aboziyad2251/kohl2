@@ -1,4 +1,7 @@
 'use client';
+import { useRouteTab } from '@/lib/navigation/useRouteTab';
+import {useLiveCrm} from '@/lib/crm/useLiveCrm';
+import {useDraftState,useDraftControls} from '@/lib/drafts/hooks';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -52,6 +55,7 @@ const STAGES: { key: CrmPipelineStage; label: string; color: string; bg: string;
 ];
 
 const LEAD_TYPE_LABELS: Record<CrmLeadType, string> = {
+  UNSPECIFIED: 'غير محدد — يحتاج متابعة',
   BUYER: 'مشتري عقار',
   SELLER: 'بائع / مالك',
   TENANT: 'مستأجر',
@@ -61,6 +65,7 @@ const LEAD_TYPE_LABELS: Record<CrmLeadType, string> = {
 
 export default function CrmPage() {
   const {
+    refreshCrm,
     crmLeads,
     crmDeals,
     crmActivities,
@@ -78,51 +83,53 @@ export default function CrmPage() {
     archiveProcessRecord,
   } = useData();
 
+  const refreshError=useLiveCrm(refreshCrm);
   const { currentUser, role, isExecutive, isEmployee } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'pipeline' | 'deals' | 'activities' | 'matcher'>('pipeline');
+  const [activeTab, setActiveTab] = useRouteTab('pipeline', ['pipeline', 'deals', 'activities', 'matcher'] as const);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('ALL');
   const [selectedDealForPrint, setSelectedDealForPrint] = useState<CrmDeal | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
 
   // Modals for creating entities
-  const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
-  const [isAddDealOpen, setIsAddDealOpen] = useState(false);
-  const [isAddActivityOpen, setIsAddActivityOpen] = useState(false);
+  const [isAddLeadOpen, setIsAddLeadOpen] = useDraftState("crm:lead:isAddLeadOpen", false);
+  const [isAddDealOpen, setIsAddDealOpen] = useDraftState("crm:deal:isAddDealOpen", false);
+  const [isAddActivityOpen, setIsAddActivityOpen] = useDraftState("crm:act:isAddActivityOpen", false);
 
   // New Lead Form State
-  const [leadName, setLeadName] = useState('');
-  const [leadPhone, setLeadPhone] = useState('');
-  const [leadEmail, setLeadEmail] = useState('');
-  const [leadType, setLeadType] = useState<CrmLeadType>('BUYER');
-  const [leadStage, setLeadStage] = useState<CrmPipelineStage>('NEW');
-  const [leadBudgetMin, setLeadBudgetMin] = useState(1000000);
-  const [leadBudgetMax, setLeadBudgetMax] = useState(2500000);
-  const [leadPropertyType, setLeadPropertyType] = useState('فيلا مودرن');
-  const [leadDistrict, setLeadDistrict] = useState('حي النرجس');
-  const [leadNotes, setLeadNotes] = useState('');
+  const [leadName, setLeadName] = useDraftState("crm:lead:leadName", '');
+  const [leadPhone, setLeadPhone] = useDraftState("crm:lead:leadPhone", '');
+  const [leadEmail, setLeadEmail] = useDraftState("crm:lead:leadEmail", '');
+  const [leadType, setLeadType] = useDraftState<CrmLeadType>("crm:lead:leadType", 'BUYER');
+  const [leadStage, setLeadStage] = useDraftState<CrmPipelineStage>("crm:lead:leadStage", 'NEW');
+  const [leadBudgetMin, setLeadBudgetMin] = useDraftState("crm:lead:leadBudgetMin", 1000000);
+  const [leadBudgetMax, setLeadBudgetMax] = useDraftState("crm:lead:leadBudgetMax", 2500000);
+  const [leadPropertyType, setLeadPropertyType] = useDraftState("crm:lead:leadPropertyType", 'فيلا مودرن');
+  const [leadDistrict, setLeadDistrict] = useDraftState("crm:lead:leadDistrict", 'حي النرجس');
+  const [leadNotes, setLeadNotes] = useDraftState("crm:lead:leadNotes", '');
 
   // New Deal Form State
-  const [dealTitle, setDealTitle] = useState('');
-  const [dealLeadId, setDealLeadId] = useState(crmLeads[0]?.id || '');
-  const [dealPropertyId, setDealPropertyId] = useState(properties[0]?.id || '');
-  const [dealValue, setDealValue] = useState(1500000);
-  const [dealCommissionRate, setDealCommissionRate] = useState(2.5);
-  const [dealExpectedDate, setDealExpectedDate] = useState(
-    new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]
+  const [dealTitle, setDealTitle] = useDraftState("crm:deal:dealTitle", '');
+  const [dealLeadId, setDealLeadId] = useDraftState("crm:deal:dealLeadId", crmLeads[0]?.id || '');
+  const [dealPropertyId, setDealPropertyId] = useDraftState("crm:deal:dealPropertyId", properties[0]?.id || '');
+  const [dealValue, setDealValue] = useDraftState("crm:deal:dealValue", 1500000);
+  const [dealCommissionRate, setDealCommissionRate] = useDraftState("crm:deal:dealCommissionRate", 2.5);
+  const [dealExpectedDate, setDealExpectedDate] = useDraftState(
+    "crm:deal:dealExpectedDate", new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]
   );
-  const [dealNotes, setDealNotes] = useState('');
+  const [dealNotes, setDealNotes] = useDraftState("crm:deal:dealNotes", '');
 
   // New Activity Form State
-  const [actTitle, setActTitle] = useState('');
-  const [actType, setActType] = useState<CrmActivity['activity_type']>('CALL');
-  const [actClientName, setActClientName] = useState(crmLeads[0]?.name || '');
-  const [actDate, setActDate] = useState(new Date().toISOString().split('T')[0]);
-  const [actNotes, setActNotes] = useState('');
+  const [actTitle, setActTitle] = useDraftState("crm:act:actTitle", '');
+  const [actType, setActType] = useDraftState<CrmActivity['activity_type']>("crm:act:actType", 'CALL');
+  const [actClientName, setActClientName] = useDraftState("crm:act:actClientName", crmLeads[0]?.name || '');
+  const [actDate, setActDate] = useDraftState("crm:act:actDate", new Date().toISOString().split('T')[0]);
+  const [actNotes, setActNotes] = useDraftState("crm:act:actNotes", '');
 
   // Role Filtering:
   // If Employee: can only see their own assigned leads/deals
+  const clearLeadDraft=useDraftControls('crm:lead:');const clearDealDraft=useDraftControls('crm:deal:');const clearActDraft=useDraftControls('crm:act:');
   const currentEmpId = currentUser.employee_id || 'emp-001';
 
   const myLeads = isEmployee
@@ -179,7 +186,7 @@ export default function CrmPage() {
     setIsAddLeadOpen(false);
     setLeadName('');
     setLeadPhone('');
-    setLeadNotes('');
+    setLeadNotes('');clearLeadDraft();
   };
 
   const handleCreateDeal = async (e: React.FormEvent) => {
@@ -214,7 +221,7 @@ export default function CrmPage() {
 
     await addCrmDeal(newDeal);
     setIsAddDealOpen(false);
-    setDealTitle('');
+    setDealTitle('');clearDealDraft();
   };
 
   const handleCreateActivity = async (e: React.FormEvent) => {
@@ -234,7 +241,7 @@ export default function CrmPage() {
     await addCrmActivity(newAct);
     setIsAddActivityOpen(false);
     setActTitle('');
-    setActNotes('');
+    setActNotes('');clearActDraft();
   };
 
   const handleBulkImportLeads = async (rows: any[]) => {
@@ -307,6 +314,7 @@ export default function CrmPage() {
         </div>
       </div>
 
+      <p role="status" className="mb-3 text-xs text-slate-400">{refreshError?'تعذّر التحديث التلقائي؛ ستتم إعادة المحاولة.':'تحديث تلقائي للعملاء والمكالمات والواتساب'}</p>
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl glass-panel flex flex-col justify-between space-y-3">
@@ -442,7 +450,7 @@ export default function CrmPage() {
                 className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-1 text-xs text-white"
               >
                 <option value="ALL">كافة العملاء</option>
-                <option value="BUYER">مشتري</option>
+                <option value="UNSPECIFIED">غير محدد</option><option value="BUYER">مشتري</option>
                 <option value="SELLER">بائع / مالك</option>
                 <option value="TENANT">مستأجر</option>
                 <option value="LANDLORD">مؤجر</option>
@@ -882,7 +890,7 @@ export default function CrmPage() {
                     onChange={(e) => setLeadType(e.target.value as any)}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white"
                   >
-                    <option value="BUYER">مشتري عقار</option>
+                    <option value="UNSPECIFIED">غير محدد</option><option value="BUYER">مشتري عقار</option>
                     <option value="SELLER">بائع / مالك</option>
                     <option value="TENANT">مستأجر</option>
                     <option value="LANDLORD">مؤجر</option>
@@ -1179,3 +1187,4 @@ export default function CrmPage() {
     </div>
   );
 }
+

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import {useDraftForm} from '@/lib/drafts/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Briefcase, CheckCircle2, Trash2 } from 'lucide-react';
@@ -51,13 +51,14 @@ export default function EditGeneralServiceModal({
   const {
     register,
     handleSubmit,
+    clearDraft,
     watch,
     setValue,
     reset,
     formState: { errors },
-  } = useForm<ServiceInput>({
+  } = useDraftForm<ServiceInput>('EditGeneralServiceModal:' + (service?.id || 'none'), {
     resolver: zodResolver(serviceSchema),
-  });
+  }, isOpen && !!service);
 
   useEffect(() => {
     if (service) {
@@ -108,7 +109,9 @@ export default function EditGeneralServiceModal({
         notes: data.notes || undefined,
       };
 
-      onSuccess(updated);
+      await onSuccess(updated);
+
+      clearDraft();
       onClose();
     } catch (err) {
       console.error(err);

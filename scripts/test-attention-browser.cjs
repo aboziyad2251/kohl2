@@ -17,7 +17,7 @@ async function prepare(browser, role, { empty = false, fail = false } = {}) {
     const jwt = [Buffer.from('{"alg":"HS256"}').toString('base64url'), Buffer.from(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600, sub: id })).toString('base64url'), 'fake-signature'].join('.');
     await context.addInitScript(({ id, jwt }) => {
         const session = { access_token: jwt, refresh_token: 'fake-refresh', token_type: 'bearer', expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id, email: 'qa@test.invalid', user_metadata: {} } };
-        ['sb-51-auth-token', 'sb-kohl-auth-token'].forEach(key => localStorage.setItem(key, JSON.stringify(session)));
+        ['sb-51-auth-token', 'sb-kohl-auth-token', 'sb-127-auth-token'].forEach(key => localStorage.setItem(key, JSON.stringify(session)));
     }, { id, jwt });
     const data = { ...fixture, role };
     if (role === 'BROKER') { data.dues = []; data.payments = []; data.properties = []; data.maintenance = []; }

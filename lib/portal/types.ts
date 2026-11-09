@@ -7,6 +7,8 @@ export const roleLabels: Record<UserRole, string> = {
     BROKER: 'وسيط', OWNER: 'مالك', TENANT: 'مستأجر',
 };
 export interface PortalProfile {
+    audit_viewer?: boolean;
+    kr_reports?: boolean;
     account: {
         id: string;
         name: string;

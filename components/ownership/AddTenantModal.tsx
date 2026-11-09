@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import {useDraftForm} from '@/lib/drafts/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, UserCheck, Plus, CheckCircle2 } from 'lucide-react';
@@ -34,14 +34,15 @@ export default function AddTenantModal({
   const {
     register,
     handleSubmit,
+    clearDraft,
     reset,
     formState: { errors },
-  } = useForm<TenantInput>({
+  } = useDraftForm<TenantInput>('AddTenantModal', {
     resolver: zodResolver(tenantSchema),
     defaultValues: {
       type: 'Individual',
     },
-  });
+  }, isOpen);
 
   if (!isOpen) return null;
 
@@ -58,7 +59,9 @@ export default function AddTenantModal({
         created_at: new Date().toISOString(),
       };
 
-      onSuccess(newTenant);
+      await onSuccess(newTenant);
+
+      clearDraft();
       reset();
       onClose();
     } catch (err) {

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import {useDraftForm} from '@/lib/drafts/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, FileSignature, CheckCircle2 } from 'lucide-react';
@@ -50,11 +50,12 @@ export default function EditContractModal({
   const {
     register,
     handleSubmit,
+    clearDraft,
     reset,
     formState: { errors },
-  } = useForm<ContractInput>({
+  } = useDraftForm<ContractInput>('EditContractModal:' + (contract?.id || 'none'), {
     resolver: zodResolver(contractSchema),
-  });
+  }, isOpen && !!contract);
 
   useEffect(() => {
     if (contract) {
@@ -109,7 +110,9 @@ export default function EditContractModal({
         lessor: prop?.lessor || contract.lessor,
       };
 
-      onSuccess(updated);
+      await onSuccess(updated);
+
+      clearDraft();
       onClose();
     } catch (err) {
       console.error(err);

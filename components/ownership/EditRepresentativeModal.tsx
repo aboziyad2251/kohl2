@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import {useDraftForm} from '@/lib/drafts/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, User, CheckCircle2 } from 'lucide-react';
@@ -36,11 +36,12 @@ export default function EditRepresentativeModal({
   const {
     register,
     handleSubmit,
+    clearDraft,
     reset,
     formState: { errors },
-  } = useForm<RepInput>({
+  } = useDraftForm<RepInput>('EditRepresentativeModal:' + (representative?.id || 'none'), {
     resolver: zodResolver(repSchema),
-  });
+  }, isOpen && !!representative);
 
   useEffect(() => {
     if (representative) {
@@ -70,7 +71,9 @@ export default function EditRepresentativeModal({
         status: data.status,
       };
 
-      onSuccess(updated);
+      await onSuccess(updated);
+
+      clearDraft();
       onClose();
     } catch (err) {
       console.error(err);

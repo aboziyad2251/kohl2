@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import {useDraftForm} from '@/lib/drafts/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Briefcase, CheckCircle2 } from 'lucide-react';
@@ -47,11 +47,12 @@ export default function NewGeneralServiceModal({
   const {
     register,
     handleSubmit,
+    clearDraft,
     watch,
     setValue,
     reset,
     formState: { errors },
-  } = useForm<ServiceInput>({
+  } = useDraftForm<ServiceInput>('NewGeneralServiceModal', {
     resolver: zodResolver(serviceSchema),
     defaultValues: {
       category: 'EJAR',
@@ -60,7 +61,7 @@ export default function NewGeneralServiceModal({
       cost_amount: 0,
       office_profit: 0,
     },
-  });
+  }, isOpen);
 
   if (!isOpen) return null;
 
@@ -97,7 +98,9 @@ export default function NewGeneralServiceModal({
         created_at: new Date().toISOString(),
       };
 
-      onSuccess(newService);
+      await onSuccess(newService);
+
+      clearDraft();
       reset();
       onClose();
     } catch (err) {

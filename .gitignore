@@ -1,3 +1,16 @@
+node_modules/
+.next/
+.env*
+!.env.example
+.private/
+*.log
+*.tsbuildinfo
+backups/
+coverage/
+playwright-report/
+test-results/
+
+# Local operator private files and verification artifacts
 # dependencies
 /node_modules
 /.pnp

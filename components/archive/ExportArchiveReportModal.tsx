@@ -1,4 +1,5 @@
 'use client';
+import { auditedPrint } from '@/lib/audit/client';
 
 import React from 'react';
 import { ArchivedDocument } from '@/lib/types';
@@ -39,7 +40,7 @@ export default function ExportArchiveReportModal({
   if (!isOpen) return null;
 
   const handlePrint = () => {
-    window.print();
+    void auditedPrint();
   };
 
   return (

@@ -1,0 +1,10 @@
+[Unit]
+Description=Check Kohl KR report schedule every minute (Riyadh time enforced by app)
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+Persistent=true
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target

@@ -1,4 +1,5 @@
 'use client';
+import {useDraftState,useDraftControls} from '@/lib/drafts/hooks';
 
 import React, { useState } from 'react';
 import { useData } from '@/context/DataContext';
@@ -31,7 +32,7 @@ export default function GeneralServicesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
-  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [isNewModalOpen, setIsNewModalOpen] = useDraftState('ui:isNewModalOpen', false);
   const [editingService, setEditingService] = useState<GeneralService | null>(null);
   const [printingService, setPrintingService] = useState<GeneralService | null>(null);
 

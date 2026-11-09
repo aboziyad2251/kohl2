@@ -1,7 +1,7 @@
 'use client';
 import { useAttention } from '@/context/AttentionContext';
 import AttentionPanel from './AttentionPanel';
-export default function ExecutiveAttention() {
+export default function ExecutiveAttention({ initialFilter = 'all' }: { initialFilter?: string }) {
     const attention = useAttention();
     if (!attention) return null;
     const { data, loading, error, refresh, updatedAt } = attention;
@@ -16,7 +16,7 @@ export default function ExecutiveAttention() {
             ['طلبات صيانة مفتوحة', data.metrics.openMaintenance, 'باستثناء المغلقة والملغاة'],
             ['عمولات لم تصرف', `${data.metrics.unpaidCommission.toLocaleString('ar-SA', { minimumFractionDigits: 2 })} ر.س`, 'للعقود المؤكد إغلاقها'],
             ['إجمالي التنبيهات', data.items.length, 'مرتبة حسب الأولوية'],
-        ].map(([label, value, hint]) => <div key={label} className="portal-card"><h3 className="text-sm">{label}</h3><p className="text-xl sm:text-2xl font-bold my-2 break-words">{value}</p><p className="text-xs text-[#5d7d64]">{hint}</p></div>)}</div><AttentionPanel data={data}/></>}
+        ].map(([label, value, hint]) => <div key={label} className="portal-card"><h3 className="text-sm">{label}</h3><p className="text-xl sm:text-2xl font-bold my-2 break-words">{value}</p><p className="text-xs text-[#5d7d64]">{hint}</p></div>)}</div><AttentionPanel data={data} initialFilter={initialFilter}/></>}
         {updatedAt && !error && <p className="text-xs text-[#5d7d64]">آخر تحديث: {updatedAt.toLocaleTimeString('ar-SA', { timeZone: 'Asia/Riyadh' })} · تتحدث التنبيهات كل دقيقة أثناء الاستخدام.</p>}
     </section>;
 }

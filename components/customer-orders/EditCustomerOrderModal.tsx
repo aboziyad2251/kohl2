@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import {useDraftForm} from '@/lib/drafts/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { customerOrderSchema, CustomerOrderInput } from '../../lib/validations';
 import { useData } from '../../context/DataContext';
@@ -35,13 +35,14 @@ export default function EditCustomerOrderModal({ isOpen, onClose, order }: EditC
   const {
     register,
     handleSubmit,
+    clearDraft,
     setValue,
     watch,
     reset,
     formState: { errors },
-  } = useForm<CustomerOrderInput>({
+  } = useDraftForm<CustomerOrderInput>('EditCustomerOrderModal:' + (order?.id || 'none'), {
     resolver: zodResolver(customerOrderSchema),
-  });
+  }, isOpen && !!order);
 
   const selectedCategory = watch('category');
 
@@ -80,6 +81,7 @@ export default function EditCustomerOrderModal({ isOpen, onClose, order }: EditC
       };
 
       await updateCustomerOrder(updatedOrder);
+      clearDraft();
       onClose();
     } catch (err) {
       console.error('Error updating customer order:', err);

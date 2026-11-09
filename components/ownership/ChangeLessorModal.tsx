@@ -1,7 +1,8 @@
 'use client';
+import {useDraftState,useDraftControls} from '@/lib/drafts/hooks';
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import {useDraftForm} from '@/lib/drafts/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X, ArrowRightLeft, ShieldAlert, FileText, CheckCircle2 } from 'lucide-react';
 import { changeLessorSchema, ChangeLessorInput } from '@/lib/validations';
@@ -25,17 +26,18 @@ export default function ChangeLessorModal({
   auditLogs,
   onSuccess,
 }: ChangeLessorModalProps) {
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
+  const [selectedPropertyId, setSelectedPropertyId] = useDraftState<string>('ChangeLessorModal:selectedPropertyId', '');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     register,
     handleSubmit,
+    clearDraft,
     reset,
     formState: { errors },
-  } = useForm<ChangeLessorInput>({
+  } = useDraftForm<ChangeLessorInput>('ChangeLessorModal', {
     resolver: zodResolver(changeLessorSchema),
-  });
+  }, isOpen);
 
   if (!isOpen) return null;
 
@@ -55,7 +57,9 @@ export default function ChangeLessorModal({
         notes: data.notes,
       });
 
-      onSuccess(result.updatedProperties, result.updatedAuditLogs);
+      await onSuccess(result.updatedProperties, result.updatedAuditLogs);
+
+      clearDraft();
       reset();
       onClose();
     } catch (err: any) {

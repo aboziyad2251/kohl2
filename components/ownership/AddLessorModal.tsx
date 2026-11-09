@@ -1,4 +1,5 @@
 'use client';
+import {useDraftState,useDraftControls} from '@/lib/drafts/hooks';
 
 import React, { useState } from 'react';
 import { UserPlus, X } from 'lucide-react';
@@ -12,11 +13,12 @@ interface AddLessorModalProps {
 }
 
 export default function AddLessorModal({ isOpen, onClose, onSubmit }: AddLessorModalProps) {
-  const [name, setName] = useState('');
-  const [nationalIdOrCr, setNationalIdOrCr] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
+  const [name, setName] = useDraftState('AddLessorModal:name', '');
+  const [nationalIdOrCr, setNationalIdOrCr] = useDraftState('AddLessorModal:nationalIdOrCr', '');
+  const [phone, setPhone] = useDraftState('AddLessorModal:phone', '');
+  const [email, setEmail] = useDraftState('AddLessorModal:email', '');
 
+  const clearPageDraft=useDraftControls('AddLessorModal');
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -37,6 +39,7 @@ export default function AddLessorModal({ isOpen, onClose, onSubmit }: AddLessorM
     setNationalIdOrCr('');
     setPhone('');
     setEmail('');
+    clearPageDraft();
     onClose();
   };
 

@@ -1,4 +1,6 @@
 'use client';
+import { runAuditedExport } from '@/lib/audit/client';
+import {useDraftState,useDraftControls} from '@/lib/drafts/hooks';
 
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
@@ -41,7 +43,7 @@ export default function CustomerOrdersPage() {
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<'ALL' | CustomerOrderCategory>('ALL');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<'ALL' | CustomerOrderStatus>('ALL');
 
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useDraftState('ui:isAddModalOpen', false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<CustomerOrder | null>(null);
   const [viewingOrder, setViewingOrder] = useState<CustomerOrder | null>(null);
@@ -131,7 +133,7 @@ export default function CustomerOrdersPage() {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'طلبات العملاء');
 
     const fileName = `طلبات_العملاء_العقارية_${new Date().toISOString().split('T')[0]}.xlsx`;
-    XLSX.writeFile(workbook, fileName);
+    void runAuditedExport(fileName,()=>XLSX.writeFile(workbook,fileName));
   };
 
   const getStatusBadge = (status: CustomerOrderStatus) => {

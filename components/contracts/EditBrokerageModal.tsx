@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import {useDraftForm} from '@/lib/drafts/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Handshake, CheckCircle2 } from 'lucide-react';
@@ -41,11 +41,12 @@ export default function EditBrokerageModal({
   const {
     register,
     handleSubmit,
+    clearDraft,
     reset,
     formState: { errors },
-  } = useForm<BrokerageInput>({
+  } = useDraftForm<BrokerageInput>('EditBrokerageModal:' + (agreement?.id || 'none'), {
     resolver: zodResolver(brokerageSchema),
-  });
+  }, isOpen && !!agreement);
 
   useEffect(() => {
     if (agreement) {
@@ -82,7 +83,9 @@ export default function EditBrokerageModal({
         lessor: prop?.lessor || agreement.lessor,
       };
 
-      onSuccess(updated);
+      await onSuccess(updated);
+
+      clearDraft();
       onClose();
     } catch (err) {
       console.error(err);
