@@ -1,3 +1,26 @@
+# Latest release — broker payout requests live, 9 November 2026
+
+Resume from `origin/codex/role-portals`. Read `docs/broker-payout-requests.md` first. The user approved isolated SQL testing, then explicitly approved production migration/deployment after successful tests. The feature is live: brokers request their own full eligible commission and track pending/approved/rejected requests; active Admin/CEO users approve/reject in Portal management → Commissions & payout requests. Approval does not transfer money or mark a commission paid.
+
+- Current main `kohl_crm_app`: `sha256:14c18128ae6221523b4a1804be05f994dc389e7967e13764a47d9e055e14373a` (`kohl-payout-main:20261109`). Current broker frontend: `sha256:b15b68eb3d5127fadc97a2bc8273e1b004ff4073a8202696194912c414dab46f` (`kohl-payout-broker:20261109`). Account frontend remains `sha256:9952da12bfb361d57f29e90c7b7f2ea2ebe25dd11a8b89d7aa5d628f74702850`.
+- Exactly migration `20261109003906` is now applied. The private request table has RLS/no direct client grants; authenticated JWT-scoped RPC enforces private active roles, own-broker records and server amounts. Live anonymous RPC and API denial passed. There is no generic Supabase migration ledger on this deployment; private release receipts record the applied version/hash. Inspect actual objects/checkpoints and never blindly apply all historical SQL.
+- Source/image stage `/home/debian/projects/kohl-payout-release-20261109`; private backup `/home/debian/backups/kohl-payout-20261109T110335Z`. Preserve the old stopped main/broker containers named with suffix `_before_payout_20261109T110335Z`, all current images and the full pre-change PostgreSQL backup. The old source directory remains untouched.
+- Validation passed: build/typecheck and 78-route/six-category gate; mocked API checks; PGlite eligibility/ownership/decision tests; native PostgreSQL 17 multi-session duplicate/retry/competing-decision races; exact-image and live fixture browser workflows; grouped navigation/themes/mobile/role regression; exact-image seven-role password suite. Actual banking or a real production commission request was not simulated. Auth container, SMTP/Google settings, runtime environments and proxy configuration were preserved.
+- Live TestSprite anonymous payout/API/portal guard passed all six steps, run `5210219b-0834-4768-8705-122f4650bbb5`; dashboard is linked in the release document. Own-password links are now deployed in the main/broker UI as well.
+- The local manager/broker review windows use a shared in-memory simulation on `http://127.0.0.1:3123`. They are independent of production. Refresh a live tab to load the new release. Future releases should build from reconciled Git and keep the broker/account asset boundaries; do not use the historical source stages or root `deploy.sh`.
+
+---
+
+# Historical preparation — broker payout requests, 9 November 2026
+
+The user accepted the unified local navigation/pages/broker review, then requested broker commission payout requests with Admin/CEO approval and own-broker visibility. Read `docs/broker-payout-requests.md` for the concrete local draft, SQL proposal and acceptance gaps. This is not a deployed release; the latest published source remains `38ca3ef` and production images remain unchanged.
+
+The draft adds a private request table/RPC proposal, JWT-scoped API, bilingual request/history and executive decision UI. Build, TypeScript, route/category baseline, mocked payout API and existing mocked regression checks passed. The user explicitly approved isolated testing only. The proposed migration and its SQL acceptance passed on disposable PGlite, including broker isolation, role/direct-read/deactivation denial, eligibility, duplicates/replay, rejection/resubmission, stale approvals and no financial mutations. No production migration was run; real PostgreSQL concurrency verification remains pending. Browser acceptance code is prepared but not run: automatic approval review rejected starting the test server because its usage limit prevented review; this was not an action-safety rejection. Resolve that execution block rather than bypassing it.
+
+The received isolated-test permission must not be treated as production migration/deployment approval. Do not push/publish this draft as verified before database/UI acceptance. Existing `scripts/start-local-review.cjs` now prepares an in-memory payout simulation on local port 3122; such a simulation is not SQL/RLS verification. Keep source reconciliation and the current three-frontend deployment boundaries intact.
+
+---
+
 # Latest checkpoint — production source reconciled, 9 November 2026
 
 Resume from `origin/codex/role-portals`. Read `docs/source-reconciliation.md` first. The complete source for the preserved main image has been recovered from the original `kohl-crm-cloud` commit `bab4aaa37d557e06d2d2a4dee1f847f959e944d5` and combined with the broker redesign and verified password recovery updates. The release checkpoint's 359 source blobs matched its recorded GitHub blob hashes without drift. This supersedes the older warning that the GitHub application source lacks the restored navigation/pages.

@@ -1,3 +1,5 @@
+> Follow-up on 9 November 2026: the broker payout release replaced the main/broker images and deployed their own-password links. SMTP and the isolated account frontend remain unchanged. See `broker-payout-requests.md` and the latest handoff for current image IDs. This document records the earlier recovery cutover.
+
 # Password recovery release — 9 November 2026
 
 ## Deployment

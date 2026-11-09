@@ -28,6 +28,7 @@ async function prepare(browser, role, { empty = false, fail = false } = {}) {
         if (url.pathname === '/api/portal/me') return json({ account: { id, name: 'مستخدم تجريبي', role, history_only: false, phone: '0500000000' }, owners: [], leases: [], broker_contracts: [], email: 'qa@test.invalid' });
         if (url.pathname === '/api/portal/attention') return fail ? route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Unavailable"}' }) : json(exportsObject.attentionSummary(data, id));
         if (url.pathname === '/api/portal/dashboard') return json(data);
+        if (url.pathname === '/api/portal/payout-requests') return json({requests:[],total:0,page:0,eligible_contract_ids:role==='BROKER'?data.commissions.filter(c=>c.closed_at&&c.status!=='paid'&&c.amount>0).map(c=>c.contract_id):[]});
         if (url.pathname.startsWith('/rest/v1/')) return json([]);
         if (url.pathname.startsWith('/auth/v1/')) return json({ id, email: 'qa@test.invalid' });
         if (url.origin !== new URL(base).origin) return route.abort();

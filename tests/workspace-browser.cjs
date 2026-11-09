@@ -17,11 +17,11 @@ async function contextFor(browser, role = 'ADMIN', width=1440, accountId=id){
   const payload=Buffer.from(JSON.stringify({sub:accountId,aud:'authenticated',exp:Math.floor(Date.now()/1000)+3600,role:'authenticated'})).toString('base64url');
   const session={access_token:`eyJhbGciOiJIUzI1NiJ9.${payload}.fixture`,refresh_token:'fixture-refresh',expires_at:Math.floor(Date.now()/1000)+3600,expires_in:3600,token_type:'bearer',user};
   const context=await browser.newContext({viewport:{width,height:1000},locale:'ar-SA'});
-  await context.addInitScript(({session})=>{ if (!localStorage.getItem('sb-127-auth-token')) localStorage.setItem('sb-127-auth-token',JSON.stringify(session)); },{session});
+  await context.addInitScript(({session})=>{ for(const key of ['sb-127-auth-token','sb-kohl-auth-token']) if(!localStorage.getItem(key)) localStorage.setItem(key,JSON.stringify(session)); },{session});
   await context.route('**/*',async route=>{
     const url=new URL(route.request().url());
     const json=data=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data)});
-    if(url.port==='54321'){
+    if(url.pathname.startsWith('/auth/v1/')||url.pathname.startsWith('/rest/v1/')){
       if(url.pathname.startsWith('/auth/v1/')) return json(url.pathname.endsWith('/user')?user:session);
       if(url.pathname.includes('/rpc/portal_me')) return json(profile());
       return json([]);
@@ -33,6 +33,7 @@ async function contextFor(browser, role = 'ADMIN', width=1440, accountId=id){
     if(url.pathname==='/api/portal/me')return json(profile());
     if(url.pathname==='/api/portal/attention')return json(attention);
     if(url.pathname==='/api/portal/dashboard')return json({...portal,role:state.role});
+    if(url.pathname==='/api/portal/payout-requests')return json({requests:[],total:0,page:0,eligible_contract_ids:[]});
     if(url.pathname==='/api/workspace/dashboard-metrics')return json({documentation:{total:0,documented:0,percentage:0},agencies:{active:0,expired:0,expiring:0,message:'لا توجد وكالات نشطة',tone:'amber'},ejar:{state:'UNLINKED',linked:0,pending:0,total:0,label:'غير مرتبط بإيجار'},activeContracts:0,totalProperties:1,activeBrokerage:0});
   if(url.pathname==='/api/workspace/agenda')return json({tasks:[],limited:false});
     if(url.pathname==='/api/workspace/calendar')return json({events:[{id:'fixture',source:'crm',date:today,title:'موعد تجريبي',href:'/crm?tab=activities'}],warnings:[]});

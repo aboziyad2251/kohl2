@@ -51,3 +51,11 @@ jobs:
           node tests/broker-summary.cjs
           node tests/property-upsert.cjs
           node tests/property-upsert-db.cjs
+          node tests/payout-requests.cjs
+          node tests/payout-requests-db.cjs
+
+      - name: PostgreSQL payout concurrency (isolated)
+        if: matrix.node == 22
+        run: |
+          docker pull postgres@sha256:3540c0362c809df084ffac0ae69fe794515f9de92692f02178bcdce0ef0302ac
+          python3 scripts/test-payout-postgres.py

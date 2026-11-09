@@ -1,0 +1,36 @@
+'use client';
+import {useCallback,useEffect,useRef,useState} from 'react';
+import {portalRequest} from '@/lib/portal/client';
+import type {Commission} from '@/lib/portal/workflows';
+import type {PayoutPage} from '@/lib/portal/payout-requests';
+export default function PayoutRequests({en,executive,commissions,money}:{en:boolean;executive:boolean;commissions:Commission[];money:(n:number)=>string}){
+ const t=(ar:string,eng:string)=>en?eng:ar;
+ const [data,setData]=useState<PayoutPage|null>(null),[page,setPage]=useState(0),[status,setStatus]=useState('all'),[contract,setContract]=useState(''),[note,setNote]=useState(''),[reasons,setReasons]=useState<Record<string,string>>({}),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState(''),[message,setMessage]=useState('');
+ const sequence=useRef(0),sending=useRef(false),ids=useRef<Record<string,string>>({});
+ const load=useCallback(async()=>{const serial=++sequence.current;setLoading(true);try{const result=await portalRequest<PayoutPage>(`/api/portal/payout-requests?page=${page}&status=${status}`);if(serial===sequence.current){setData(result);setError('');}}catch(e){if(serial===sequence.current){setData(null);setError(e instanceof Error?e.message:'Unable to load requests');}}finally{if(serial===sequence.current)setLoading(false);}},[page,status]);
+ useEffect(()=>{void load();const refresh=()=>{if(document.visibilityState==='visible')void load();};const timer=setInterval(refresh,15000);document.addEventListener('visibilitychange',refresh);return()=>{sequence.current++;clearInterval(timer);document.removeEventListener('visibilitychange',refresh);};},[load]);
+ async function action(body:{operation:string;contract_id?:string;[key:string]:unknown}){if(sending.current)return; sending.current=true;setBusy(true);setError('');setMessage('');try{await portalRequest('/api/portal/payout-requests',{method:'POST',body:JSON.stringify(body)});setMessage(t('تم تحديث الطلب','Request updated'));if(body.contract_id){delete ids.current[body.contract_id];setContract('');}setNote('');await load();}catch(e){setError(e instanceof Error?e.message:'Unable to update request');}finally{sending.current=false;setBusy(false);}}
+ const labels={pending:t('بانتظار الاعتماد','Pending approval'),approved:t('معتمد','Approved'),rejected:t('مرفوض','Rejected')};
+ const eligible=commissions.filter(c=>data?.eligible_contract_ids.includes(c.contract_id));
+ return <section className="portal-card space-y-4" aria-label={t('طلبات صرف العمولة','Commission payout requests')}>
+  <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-bold">{executive?t('اعتماد طلبات صرف العمولات','Review commission payout requests'):t('طلبات صرف عمولاتي','My commission payout requests')}</h2><button type="button" className="portal-button" disabled={busy||loading} onClick={()=>void load()}>{t('تحديث','Refresh')}</button></div>
+  <p className="text-sm">{t('اعتماد الطلب لا يسجل تحويلًا ماليًا. المبلغ يُحسب من العمولة المسجلة عند الطلب ويُراجع قبل الاعتماد.','Approval does not record a money transfer. The amount is calculated from the recorded commission and checked again before approval.')}</p>
+  {!executive&&data&&<form className="space-y-3" onSubmit={e=>{e.preventDefault();if(!contract||!eligible.some(c=>c.contract_id===contract))return;ids.current[contract]??=crypto.randomUUID();void action({operation:'SUBMIT',request_id:ids.current[contract],contract_id:contract,note});}}>
+   <label className="block">{t('العمولة المستحقة','Eligible commission')}<select aria-label={t('العمولة المستحقة','Eligible commission')} className="portal-input w-full" required value={contract} disabled={busy||loading} onChange={e=>setContract(e.target.value)}><option value="">{t('اختر العقد','Select contract')}</option>{eligible.map(c=><option key={c.contract_id} value={c.contract_id}>{c.number} — {money(c.amount)}</option>)}</select></label>
+   <label className="block">{t('ملاحظة الطلب (اختياري)','Request note (optional)')}<textarea className="portal-input w-full" maxLength={1000} value={note} disabled={busy} onChange={e=>setNote(e.target.value)}/></label>
+   <button className="portal-button" disabled={busy||loading||!contract||!eligible.some(c=>c.contract_id===contract)}>{t('طلب صرف العمولة','Request commission payout')}</button>
+   {!eligible.length&&<p>{t('لا توجد عمولة مغلقة مؤهلة بلا طلب قائم.','No closed eligible commission without an existing request.')}</p>}
+  </form>}
+  <label className="block">{t('حالة الطلب','Request status')}<select aria-label={t('حالة الطلب','Request status')} className="portal-input mx-2" value={status} disabled={busy} onChange={e=>{setStatus(e.target.value);setPage(0);}}><option value="all">{t('الكل','All')}</option>{Object.entries(labels).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
+  {loading&&<p role="status">{t('جارٍ تحميل الطلبات…','Loading requests…')}</p>}{error&&<p role="alert">{error}</p>}{message&&<p role="status">{message}</p>}
+  {!loading&&data?.requests.length===0&&<p>{t('لا توجد طلبات مطابقة.','No matching requests.')}</p>}
+  {!loading&&data?.requests.map(r=><article className="rounded-xl border border-current/20 p-4 space-y-3" key={r.id}>
+   <div className="flex flex-wrap justify-between gap-2"><h3 className="font-bold">{r.contract_number}{executive&&` · ${r.broker_name}`}</h3><strong>{labels[r.status]}</strong></div>
+   <p>{money(r.amount)} · {new Date(r.created_at).toLocaleString(en?'en-SA':'ar-SA',{timeZone:'Asia/Riyadh'})}</p><p className="text-xs break-all">{t('رقم الطلب','Request ID')}: {r.id}</p>{r.note&&<p>{r.note}</p>}
+   {r.decision_note&&<p>{t('ملاحظة القرار','Decision note')}: {r.decision_note}</p>}
+   {executive&&r.status==='pending'&&<div className="space-y-2"><label className="block">{t('ملاحظة القرار / سبب الرفض','Decision note / rejection reason')}<textarea className="portal-input w-full" maxLength={1000} value={reasons[r.id]||''} disabled={busy} onChange={e=>setReasons({...reasons,[r.id]:e.target.value})}/></label><div className="flex gap-3"><button className="portal-button" disabled={busy} onClick={()=>void action({operation:'DECIDE',request_id:r.id,status:'approved',note:reasons[r.id]||''})}>{t('اعتماد الطلب','Approve request')}</button><button className="portal-button" disabled={busy||!reasons[r.id]?.trim()} onClick={()=>void action({operation:'DECIDE',request_id:r.id,status:'rejected',note:reasons[r.id]||''})}>{t('رفض الطلب','Reject request')}</button></div></div>}
+   <details><summary>{t('سجل الطلب','Request history')}</summary>{r.history.map((event,i)=><p key={i}>{labels[event.status as keyof typeof labels]||event.status} · {event.actor_name} · {new Date(event.at).toLocaleString(en?'en-SA':'ar-SA',{timeZone:'Asia/Riyadh'})}{event.note&&` · ${event.note}`}</p>)}</details>
+  </article>)}
+  {data&&<div className="flex gap-4 items-center"><button disabled={busy||loading||page===0} onClick={()=>setPage(page-1)}>{t('السابق','Previous')}</button><span>{page+1} · {data.total} {t('طلب','requests')}</span><button disabled={busy||loading||(page+1)*50>=data.total} onClick={()=>setPage(page+1)}>{t('التالي','Next')}</button></div>}
+ </section>;
+}

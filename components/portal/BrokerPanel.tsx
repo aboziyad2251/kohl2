@@ -4,6 +4,7 @@ import { brokerPerformance,kpiPerformance,periodRange } from '@/lib/portal/calcu
 import Chart from './PortalChart';
 import Badge,{statusNames} from './StatusBadge';
 import WorkflowForm from './WorkflowForm';
+import PayoutRequests from './PayoutRequests';
 import { Building2, CalendarDays, CheckCircle2, FileCheck, Target, Wallet } from 'lucide-react';
 export default function BrokerPanel({data,en,executive,save,money}:{data:PortalDashboard;en:boolean;executive:boolean;save:(body:unknown)=>Promise<boolean>;money:(n:number)=>string}){
  const t=(ar:string,english:string)=>en?english:ar,range=periodRange(data.today,'monthly'),monthly=brokerPerformance(data.commissions,range.start,range.end);
@@ -11,6 +12,7 @@ export default function BrokerPanel({data,en,executive,save,money}:{data:PortalD
  const awaiting=data.commissions.filter(c=>c.closed_at&&c.status!=='paid').reduce((sum,c)=>sum+Math.round(c.amount*100),0)/100;
  const stats=[{label:t('العقود الناجحة هذا الشهر','Closed contracts this month'),value:monthly.count,icon:FileCheck,color:'sky'}, {label:t('العمولة المكتسبة هذا الشهر','Commission earned this month'),value:money(monthly.commission),icon:Wallet,color:'emerald'}, {label:t('العمولات المصروفة · جميع الفترات','Paid commissions · all periods'),value:money(paid),icon:CheckCircle2,color:'violet'}, {label:t('عمولات مغلقة بانتظار الصرف · جميع الفترات','Closed commissions awaiting payout · all periods'),value:money(awaiting),icon:CalendarDays,color:'amber'}];
  return <div className="broker-panel space-y-6">
+ <PayoutRequests en={en} executive={executive} commissions={data.commissions} money={money}/>
  <section className="broker-welcome"><div className="broker-eyebrow"><Building2 size={16}/>{t('مساحة أعمالك العقارية','YOUR BROKER WORKSPACE')}</div><h2>{t('كل صفقة تقرّبك من هدفك','Every deal brings you closer to your goal')}</h2><p>{t('تابع عقودك وعمولاتك وتقدمك في مكان واحد.','Your contracts, commissions and progress, together in one place.')}</p><span className="broker-period"><CalendarDays size={15}/><span dir="ltr">{range.start} — {range.end}</span></span></section>
  <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">{stats.map(({label,value,icon:Icon,color})=><section className="portal-card broker-stat" key={label}><span className={`broker-icon broker-icon-${color}`}><Icon size={21}/></span><h3>{label}</h3><p className="broker-stat-value">{value}</p></section>)}</div>
  <div className="grid xl:grid-cols-[1.4fr_1fr] gap-5 items-start"><div className="space-y-5">
