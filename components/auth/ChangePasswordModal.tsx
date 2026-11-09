@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { KeyRound, Eye, EyeOff, ShieldCheck, AlertCircle, X, Check, Lock } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { UserRole } from '@/lib/types';
@@ -236,6 +237,7 @@ export default function ChangePasswordModal() {
               </div>
             )}
 
+            <Link href="/auth/set-password" onClick={closeChangePasswordModal} className="block text-sm text-sky-400 underline">دخلت باستخدام Google؟ يمكنك تعيين كلمة مرور لحسابك هنا.</Link>
             {/* Buttons */}
             <div className="flex items-center justify-end gap-2.5 pt-3">
               <button

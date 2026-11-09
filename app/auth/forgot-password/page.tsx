@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/context/AuthContext';
 export default function ForgotPassword() {
+    const auth = useAuth();
     const [en, setEn] = useState(false), [email, setEmail] = useState(''), [enabled, setEnabled] = useState<boolean | null>(null), [google, setGoogle] = useState(false), [busy, setBusy] = useState(false), [sent, setSent] = useState(false), [error, setError] = useState('');
     const t = (ar: string, english: string) => en ? english : ar;
     useEffect(() => {
@@ -20,6 +21,7 @@ export default function ForgotPassword() {
             } catch { setError(t('تعذر إرسال الطلب. حاول لاحقاً أو تواصل مع المسؤول.', 'Unable to send the request. Try later or contact your administrator.')); }
             finally { setBusy(false); }
         }}><p>{t('أدخل البريد المستخدم لحسابك المعتمد.', 'Enter the email used for your approved account.')}</p><label className="block">{t('البريد الإلكتروني', 'Email')}<input className="portal-input" type="email" autoComplete="email" required maxLength={254} value={email} onChange={event => setEmail(event.target.value)}/></label>{error && <p role="alert">{error}</p>}<button className="portal-button w-full" disabled={busy}>{busy ? t('جارٍ الإرسال…', 'Sending…') : t('إرسال رابط الاستعادة', 'Send recovery link')}</button></form>}
-        <Link className="block underline" href="/login">{t('العودة لتسجيل الدخول', 'Back to login')}</Link>
+        {auth.authenticated && <a className="block underline" href="/auth/set-password">{t('تغيير كلمة مرور حسابي الحالي', 'Change my current account password')}</a>}
+        <a className="block underline" href="/login">{t('العودة لتسجيل الدخول', 'Back to login')}</a>
     </section></main>;
 }

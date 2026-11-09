@@ -1,4 +1,26 @@
-# Latest recovery — grouped navigation and broker frontend, 9 November 2026
+# Latest checkpoint — password recovery live, 9 November 2026
+
+Resume from `origin/codex/role-portals`. Read `docs/password-recovery-release.md` and `docs/navigation-restoration.md` before adding features. This checkpoint supersedes historical SMTP/recovery-disabled notes below.
+
+- Password recovery is enabled for every approved account role using the existing HestiaCP SMTP mailbox on port 587 with verified STARTTLS. SMTP authentication succeeded locally and from the VPS; the user confirmed inbox delivery, then successfully opened a real recovery link, saved a new password and signed in with it. Google/password login remain enabled; public signup, SMS and authenticator MFA remain disabled. No paid provider or migration was introduced.
+- Public entry: `/login` → forgot password, or `/auth/forgot-password`. Password setup: `/auth/set-password`. The public `/api/auth/providers` currently returns `google=true, recovery=true`.
+- Main application: `kohl_crm_app`, image `sha256:4128d746c87f15ff345a57de78be75b83c0551da0b368f202250484eb8c874d3`. Grouped navigation and newer internal pages are preserved.
+- Broker frontend: `kohl_broker_frontend`, image `sha256:223b615202c1e8553c15b60c59d75e3079acd72f28c0f1a256ef4544960a76a6`. Exact `/portal` plus `/__broker_ui/_next/static/` only.
+- Account frontend: `kohl_account_frontend`, image `sha256:9952da12bfb361d57f29e90c7b7f2ea2ebe25dd11a8b89d7aa5d628f74702850`. Exact recovery/setup/provider routes plus `/__account_ui/_next/static/` only. Both frontends are credential-free and use the internal proxy network `kohl_external_portal`; business APIs stay on the main application. Cross-build navigation uses full document loads.
+- SMTP configuration is persisted privately in the existing Supabase Compose `.env`. Auth image, Google settings, signup restrictions and all non-SMTP environment values were preserved and verified. SMTP checkpoint: `/home/debian/backups/kohl-smtp-20261109T000539Z`; proxy checkpoint: `/home/debian/backups/kohl-account-20261109T001123Z`. These private checkpoints contain secrets and must never be copied into Git.
+- Validation passed: TypeScript, exact production-image build, synthetic browser checks for seven roles, inactive/unapproved/signed-out guards, invalid recovery links, one-time implicit token initialization and bilingual generic recovery requests. The same synthetic checks passed live. TestSprite public recovery navigation/invalid-link test passed six steps; pinned receipts are in the release document. Real recovery success was confirmed by the user.
+
+## Before the next feature
+
+**This GitHub checkout is older than the restored main image. Do not rebuild/deploy the main application from it or run `deploy.sh`.** The latest read-only VPS inspection still found live source at `1883b16` with 150 dirty/untracked entries. Preserve those deployed edits, all current images, and private overrides. Reconcile the complete source and route manifest before a future main-app build; the retired whole-app broker release path must stay disabled. A GitHub push here publishes the reviewed source delta and handoff, not a reconstructed copy of the complete running main release.
+
+The source changes in ChangePasswordModal and PortalDashboard add direct own-password links but remain **unpublished UI drafts**: neither preserved main nor broker frontend was rebuilt for those links. Login-based recovery and the isolated account pages are fully deployed. Review/test those draft links in the correct frontend before releasing them.
+
+The standard-forms migration/release notes below are historical checkpoints; inspect production state and obtain the required migration approval before any schema changes. For the next feature, first identify whether it belongs in main, broker or account frontend and read its current release document. Keep all SMTP/OAuth credentials, private inputs, real tokens and raw production data out of Git. This publication does not redeploy production or alter accounts.
+
+---
+
+# Previous checkpoint — grouped navigation and broker frontend, 9 November 2026
 
 Read `docs/navigation-restoration.md` first. The user selected restoring the complete previous release, then safely reapplying the broker design. Main `kohl_crm_app` is restored to image `sha256:4128d746c87f15ff345a57de78be75b83c0551da0b368f202250484eb8c874d3` (`kohl-main:nav-restored-20261109`), preserving six grouped categories, search/favorites/mobile navigation and all 32 page-manifest entries. Recovery checkpoint `/home/debian/backups/kohl-nav-restore-20261108T230403Z`.
 

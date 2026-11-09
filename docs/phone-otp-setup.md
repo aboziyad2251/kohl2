@@ -4,7 +4,11 @@ The user requested phone-number login by sent token and subsequently required th
 
 Existing Google/password sign-in remains available without introducing an SMS service. Supabase supports authenticator-app TOTP MFA without SMS charges, but it is an additional factor after primary sign-in, not a code delivered to a phone number. Discuss that different flow with the user before implementing it. Do not advertise free production SMS delivery or represent limited trial credit as permanently free. See [Unifonic SMS pricing](https://docs.unifonic.com/articles/products-documentation/how-sms-is-charged-by-unifonic/a/definitions) and [Supabase TOTP](https://supabase.com/docs/guides/auth/auth-mfa/totp).
 
-Live readiness was inspected without printing secrets: self-hosted `supabase/gotrue:v2.189.0`, `GOTRUE_EXTERNAL_PHONE_ENABLED=false`, `GOTRUE_DISABLE_SIGNUP=true`, no configured SMS provider or credential values. This release does not enable phone auth or change any account. Existing password and Google sign-in remain available; email recovery remains disabled until SMTP delivery is verified.
+The user explicitly selected **keep existing Google and password login**. Both methods were subsequently verified with a real approved broker in the live browser, including routing to the broker portal. SMS and authenticator-app MFA remain disabled.
+
+For the user's follow-up about free SMS: [Google Identity Platform pricing](https://cloud.google.com/identity-platform/pricing) stated during that research that the first ten SMS sent per day were not billed, but [Firebase phone-auth limits](https://firebase.google.com/docs/auth/limits) require the billing-enabled Blaze plan. This is a limited no-charge allowance within a paid-capable service, not a guarantee of zero charges or a native SMS provider for the current Supabase setup. [Twilio trial units](https://www.twilio.com/docs/api/errors/60628) expire or run out. No provider, account, billing or authentication integration was changed after this research.
+
+Live readiness was inspected without printing secrets: self-hosted `supabase/gotrue:v2.189.0`, `GOTRUE_EXTERNAL_PHONE_ENABLED=false`, `GOTRUE_DISABLE_SIGNUP=true`, no configured SMS provider or credential values. This release does not enable phone auth or change any account. Existing password and Google sign-in remain available. Email recovery was subsequently enabled and verified on 9 November 2026; see `password-recovery-release.md` for the current state.
 
 ## Historical paid SMS setup — on hold under the free-service requirement
 
