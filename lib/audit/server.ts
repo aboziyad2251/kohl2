@@ -5,6 +5,7 @@ import { NextRequest } from 'next/server';
 import { adminClient, requireIdentity, PortalError } from '@/lib/portal/server';
 import { auditContext } from './context';
 export const actions=['LOGIN','LOGOUT','CREATE','UPDATE','DELETE','EXPORT','FORM_SUBMIT'] as const;
+export const AUDIT_SKIP_HEADER='x-kohl-audit-skip';
 export function requestMetadata(req:NextRequest){
  const candidate=process.env.AUDIT_TRUST_PROXY==='true'?req.headers.get('x-forwarded-for')?.split(',')[0].trim():undefined;
  return {requestId:randomUUID(),ip:candidate&&isIP(candidate)?candidate:undefined,agent:req.headers.get('user-agent')?.slice(0,1000)};
@@ -17,6 +18,7 @@ export async function recordAudit(action:typeof actions[number],module:string,de
 export function withAudit<T extends (...args:any[])=>Promise<Response>>(handler:T):T{
  return (async(...args:Parameters<T>)=>{const req=args[0] as NextRequest;return auditContext.run(requestMetadata(req),async()=>{
   let response:Response;try{response=await handler(...args);}catch(error){await recordAudit('FORM_SUBMIT',auditModule(new URL(req.url).pathname),{source:'api',method:req.method,path:new URL(req.url).pathname,outcome:'ERROR'}).catch(()=>console.error('[audit] request logging unavailable'));throw error;}
+  if(response.ok&&response.headers.get(AUDIT_SKIP_HEADER)==='1'){response.headers.delete(AUDIT_SKIP_HEADER);return response;}
   // No bodies, credentials, query strings or response payloads enter request metadata.
   try{await recordAudit(req.method==='GET'||response.headers.get('content-disposition')?.includes('attachment')?'EXPORT':req.method==='DELETE'?'DELETE':['PUT','PATCH'].includes(req.method)?'UPDATE':'FORM_SUBMIT',auditModule(new URL(req.url).pathname),{source:'api',method:req.method,path:new URL(req.url).pathname,status:response.status,outcome:response.ok?'SUCCESS':'FAILURE'});}catch{console.error('[audit] request logging unavailable; database mutation triggers remain atomic');}
   return response;
