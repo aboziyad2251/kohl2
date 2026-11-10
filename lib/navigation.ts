@@ -19,6 +19,8 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
+  { id: 'leasing', group: 'customers', label: 'التأجير ومتابعة العملاء', title: 'التأجير ومتابعة العملاء', href: '/leasing', moduleKey: 'leasing', icon: 'contracts', keywords: 'يومي شهري سنوي حجوزات متابعة مؤشرات' },
+  { id: 'internal-finance', group: 'finance', label: 'المالية الداخلية', title: 'المالية الداخلية', href: '/financials/internal', moduleKey: 'internal-finance', icon: 'earnings', keywords: 'تحصيل مصروفات أمانات محاسب' },
   { id: 'dashboard', group: 'home', label: 'لوحة التحكم', title: 'لوحة التحكم القيادية', href: '/dashboard', moduleKey: 'dashboard', icon: 'dashboard' },
   { id: 'today', group: 'home', label: 'أعمال اليوم', title: 'أعمال اليوم والتنبيهات', href: '/today', moduleKey: 'portal-management', icon: 'today', keywords: 'تنبيهات متابعة اعتمادات متأخرات' },
   { id: 'calendar', group: 'home', label: 'التقويم والمواعيد', title: 'التقويم والمواعيد', href: '/calendar', moduleKey: 'dashboard', icon: 'calendar' },

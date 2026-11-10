@@ -18,6 +18,28 @@ def api(method,path,body=None):
  conn=Engine('localhost',timeout=60);conn.request(method,'/v1.41'+path,json.dumps(body) if body is not None else None,{'Content-Type':'application/json'});response=conn.getresponse();data=response.read();conn.close()
  assert response.status<300,'Docker operation failed ('+str(response.status)+'): '+str(json.loads(data).get('message','Unknown error'))[:400]
  return json.loads(data) if data else None
+def prepare_hatif_runtime(old, env_path=pathlib.Path('/home/debian/.config/kohl/hatif.env')):
+ """Validate before stopping containers. Return a copy; preserve rollback input."""
+ values={}
+ for line in env_path.read_text(encoding='utf-8').splitlines():
+  line=line.strip()
+  if not line or line.startswith('#'):continue
+  if '=' not in line:raise RuntimeError('Invalid Hatif environment file')
+  key,value=(part.strip() for part in line.split('=',1))
+  if not key.startswith('HATIF_'):continue
+  if len(value)>=2 and value[0]==value[-1] and value[0] in ('"',"'"):value=value[1:-1]
+  if key in values:raise RuntimeError('Duplicate Hatif setting: '+key)
+  if '\x00' in value:raise RuntimeError('Invalid Hatif setting: '+key)
+  values[key]=value
+ for key in ('HATIF_CLIENT_ID','HATIF_CLIENT_SECRET','HATIF_WEBHOOK_SECRET'):
+  if not values.get(key):raise RuntimeError('Missing Hatif setting: '+key)
+ secret=values['HATIF_WEBHOOK_SECRET']
+ if len(secret)<20 or '•' in secret:raise RuntimeError('Invalid Hatif webhook secret')
+ values['HATIF_ENABLED']='true'
+ candidate=copy.deepcopy(old)
+ candidate['Config']['Env']=[item for item in old['Config'].get('Env',[]) if item.split('=',1)[0] not in values]+[key+'='+value for key,value in values.items()]
+ return candidate
+
 def create(name,old,new_image,preview=False):
  if preview:
   network='kohl_broker_ui_review'

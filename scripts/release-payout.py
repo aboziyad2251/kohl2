@@ -63,6 +63,8 @@ elif sys.argv[1]=='deploy':
  auth_before=inspect('supabase-auth')['Id']
  proxy_before=subprocess.check_output(['docker','exec','nginx_proxy_manager','cat','/data/nginx/proxy_host/8.conf'])
  old=inspect('kohl_crm_app');broker=inspect('kohl_broker_frontend');account=inspect('kohl_account_frontend')
+ # Validate the persistent Hatif file before migration, backup or container stop.
+ main_candidate=runtime['prepare_hatif_runtime'](old)
  assert old['Image']==built['previous_main'] and broker['Image']=='sha256:223b615202c1e8553c15b60c59d75e3079acd72f28c0f1a256ef4544960a76a6'
  stamp=datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
  backup=pathlib.Path('/home/debian/backups')/('kohl-payout-'+stamp);backup.mkdir(mode=0o700)
@@ -81,7 +83,7 @@ elif sys.argv[1]=='deploy':
  checks=db("select json_build_object('rls',(select relrowsecurity from pg_class where oid='portal_private.broker_payout_requests'::regclass),'raw_read_denied',not has_table_privilege('authenticated','portal_private.broker_payout_requests','SELECT'),'anon_execute_denied',not has_function_privilege('anon','public.broker_payout_requests(text,jsonb)','EXECUTE'),'authenticated_execute',has_function_privilege('authenticated','public.broker_payout_requests(text,jsonb)','EXECUTE'))")
  assert all(json.loads(checks).values())
  (backup/'migration.json').write_text(json.dumps({'version':'20261109003906','sha256':hashlib.sha256(migration.encode()).hexdigest(),'checks':json.loads(checks)}))
- originals={'kohl_crm_app':old,'kohl_broker_frontend':broker};swapped=[]
+ originals={'kohl_crm_app':main_candidate,'kohl_broker_frontend':broker};swapped=[]
  try:
   for name,kind in [('kohl_crm_app','main'),('kohl_broker_frontend','broker')]:
    previous=name+'_before_payout_'+stamp

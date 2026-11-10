@@ -1,3 +1,17 @@
+# Work in progress — leasing/internal finance, 10 November 2026
+
+Source candidate on `codex/leasing-internal-finance`, based on latest reconciled
+`codex/role-portals` including KR audit-noise fix. Read `docs/leasing-internal-finance.md`.
+New main-app leasing and internal finance workspaces, private candidate migration,
+scoped RPC, tests and persistent Hatif preflight are prepared for review.
+No production migration/deployment was performed. User confirmed mixed collection
+holders (company/owner/platform) and executive approvals. This is the first functional
+slice; the document lists remaining attachments, payment schedules and integrations.
+Keep the live main/broker/account deployment and Hatif settings intact. Never rerun
+historical payout migrations/scripts to ship this candidate.
+
+---
+
 # Latest release — broker payout requests live, 9 November 2026
 
 Resume from `origin/codex/role-portals`. Read `docs/broker-payout-requests.md` first. The user approved isolated SQL testing, then explicitly approved production migration/deployment after successful tests. The feature is live: brokers request their own full eligible commission and track pending/approved/rejected requests; active Admin/CEO users approve/reject in Portal management → Commissions & payout requests. Approval does not transfer money or mark a commission paid.

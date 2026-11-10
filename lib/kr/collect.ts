@@ -40,6 +40,17 @@ export async function collectReport(client:SupabaseClient, day:string) {
   if(observed.length) content.communications.totalCalls=content.calls.length;
   warnings.push('سجل هاتف الحالي لا يحفظ كل مؤشرات الاتجاه والانتظار والتسليم؛ استورد ملخص هاتف الموثق لاستكمالها.');
   content.operationalNotes = [];
+  if(process.env.KOHL_OPERATIONS_KR_ENABLED==='true') {
+    const {data:operations,error}=await client.rpc('operations_kr_summary',{day});
+    if(error||!operations) warnings.push('تعذر تحميل ملخص التأجير والمالية الداخلية؛ لا تعد البيانات المفقودة صفراً.');
+    else {
+      sources.push('Kohl · leasing/internal finance');
+      content.operationalNotes.push(`التأجير: ${operations.cases} طلب جديد؛ ${operations.followups_done} متابعة منجزة من ${operations.followups_due} مستحقة.`);
+      content.operationalNotes.push(`المالية الداخلية: تحصيل معتمد ${operations.received} ريال؛ مصروفات ${operations.expenses} ريال؛ تأمين مستلم ${operations.deposits} ريال؛ ${operations.pending} حركات بانتظار المراجعة.`);
+      content.operationalNotes.push('ملخص المالية الداخلية مستقل عن financial_transactions؛ لا تجمع المصدرين قبل المطابقة. التحصيل ليس صافي إيراد المكتب.');
+    }
+  }
+
   content.contacts=leads.map(l=>({contact:[l.name,l.phone].filter(Boolean).join(' · '),category:l.kr_category||'غير مصنف',temperature:l.kr_temperature||'غير مصنف',need:l.notes||'',next:'',rentalRequest:l.lead_type==='TENANT',pipelineValue:l.lead_type==='TENANT'&&Number(l.budget_max)>0?Number(l.budget_max):null}));
   content.communications.uniqueContacts=new Set([...leads.map(l=>l.id),...observed.map(a=>a.lead_id).filter(Boolean)]).size;
   content.summary.achievements=content.tasks.filter(t=>t.status==='منجز').map(t=>t.task);
