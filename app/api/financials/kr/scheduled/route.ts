@@ -1,4 +1,4 @@
-import { withAudit } from '@/lib/audit/server';
+import { withAudit, AUDIT_SKIP_HEADER } from '@/lib/audit/server';
 import { NextRequest } from 'next/server';
 import { timingSafeEqual } from 'crypto';
 import { adminClient, apiError, json, PortalError } from '@/lib/portal/server';
@@ -12,7 +12,7 @@ async function POSTHandler(req:NextRequest){try{
  if(!secret||secret.length<32)throw new PortalError(503,'جدولة KR غير مجهزة');
  if(!received||Buffer.byteLength(received)!==Buffer.byteLength(secret)||!timingSafeEqual(Buffer.from(received),Buffer.from(secret)))throw new PortalError(401,'Unauthorized');
  const ready=await krWorkflow(null,'SCHEDULE_READY');
- if(!ready.ready)return json({skipped:true});
+ if(!ready.ready){const res=json({skipped:true});res.headers.set(AUDIT_SKIP_HEADER,'1');return res;}
  const now=new Date();
  const day=riyadhDay(now),snapshot=await collectReport(adminClient(),day);
  // Return no report/customer contents to the scheduler or its logs.
