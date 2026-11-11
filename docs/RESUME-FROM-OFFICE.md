@@ -13,6 +13,19 @@ Both candidate migrations remain undeployed. Continue from PR #2; the document l
 Keep the live main/broker/account deployment and Hatif settings intact. Never rerun
 historical payout migrations/scripts to ship this candidate.
 
+
+Server acceptance checkpoint (11 November): operator supplied successful restore
+receipt for revised PT409 candidates and exact-image API acceptance for source
+`e3a3eb7e9f3a2b09811d8c7e3d17c705ff68e040`, image
+`sha256:fc2208da1baee389905f1febd4212a11f69be03f45767ceed3e872272a472506`.
+Reviewed-document requests returned 409 in 271/277 ms; accountant ZIP,
+employee isolation and deactivation passed with synthetic data. GitHub run
+43051486852 also passed. Production remains unchanged.
+Next: run prepare-operations-release.py with the latest private restore receipt;
+it only validates and saves private runtime/plan snapshots. No apply dispatcher
+is prepared yet. A fresh DB backup, reviewed cutover/rollback procedure and explicit
+release approval remain required. Historical scripts must not be used.
+
 ---
 
 # Latest release — broker payout requests live, 9 November 2026
