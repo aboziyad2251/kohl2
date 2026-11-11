@@ -89,17 +89,26 @@ def main():
                 headers['Content-Type']=raw_type
             elif body is not None:
                 headers['Content-Type']='application/json'
-            request={'url':host+path,'method':method,'headers':headers,
+            # Exact app calls include several service round-trips under test CPU limits.
+            timeout_ms=30000 if path.startswith('/api/') else 5000
+            request={'timeout_ms':timeout_ms,'url':host+path,'method':method,'headers':headers,
                      'body':base64.b64encode(raw).decode() if raw is not None else (json.dumps(body) if body is not None else None),
                      'binary':raw is not None}
             js="""let s='';process.stdin.on('data',c=>s+=c);process.stdin.on('end',async()=>{
+const started=Date.now();
 try{const q=JSON.parse(s);const r=await fetch(q.url,{method:q.method,headers:q.headers,
-body:q.body===null?undefined:q.binary?Buffer.from(q.body,'base64'):q.body,signal:AbortSignal.timeout(5000)});
-console.log(JSON.stringify({status:r.status,body:Buffer.from(await r.arrayBuffer()).toString('base64')}));}
-catch(e){console.log(JSON.stringify({status:0,body:''}));}});"""
+body:q.body===null?undefined:q.binary?Buffer.from(q.body,'base64'):q.body,signal:AbortSignal.timeout(q.timeout_ms)});
+console.log(JSON.stringify({status:r.status,body:Buffer.from(await r.arrayBuffer()).toString('base64'),elapsed_ms:Date.now()-started}));}
+catch(e){console.log(JSON.stringify({status:0,body:'',elapsed_ms:Date.now()-started,transport_error:e.name}));}});"""
             result = run(['docker','exec','-i',names['runner'],'node','-e',js],
-                         input=json.dumps(request).encode(),stdout=subprocess.PIPE,timeout=12)
+                         input=json.dumps(request).encode(),stdout=subprocess.PIPE,timeout=timeout_ms/1000+7)
             data=json.loads(result.stdout)
+            if path.startswith('/api/'):
+                failure=data.get('transport_error')
+                safe_failure=failure if failure in ('TimeoutError','AbortError','TypeError') else 'unknown'
+                print('APP HTTP: '+method+' '+path.split('?')[0]+' status='+str(data['status'])
+                      +' elapsed_ms='+str(data.get('elapsed_ms','unknown'))
+                      +(' transport='+safe_failure if data['status']==0 else ''),flush=True)
             return data['status'],base64.b64decode(data['body'])
         def require(result, expected=200):
             status, body=result
