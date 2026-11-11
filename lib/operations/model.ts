@@ -365,3 +365,20 @@ export function recommendations(w: Workspace, from: string, to: string) {
       : null,
   ].filter(Boolean) as string[];
 }
+
+// Calendar-day differences use Riyadh's date, not the browser's timezone.
+// Daily stays need departure coordination; monthly/annual terms need renewal review.
+export function termAlerts(cases: Case[], now = new Date()) {
+  const today = Date.parse(riyadhDate(now) + "T00:00:00Z");
+  const windows = { DAILY: 3, MONTHLY: 7, ANNUAL: 30 };
+  return cases.flatMap((item) => {
+    if (item.stage !== "CONFIRMED" || !item.end_date) return [];
+    const end = Date.parse(item.end_date + "T00:00:00Z");
+    if (!Number.isFinite(end)) return [];
+    const days = Math.round((end - today) / 86400000);
+    if (days > windows[item.kind]) return [];
+    return [{ item, days, action: item.kind === "DAILY"
+      ? "تنسيق المغادرة أو التمديد"
+      : "متابعة التجديد أو الإخلاء" }];
+  }).sort((a, b) => a.days - b.days || a.item.id.localeCompare(b.item.id));
+}

@@ -67,7 +67,7 @@ async function noOverflow(page){assert(await page.evaluate(()=>document.document
 
 const caseId='aaaaaaaa-aaaa-4aaa-8aaa-000000000001';
 const writes=[];
-const data={documents:[],role:'ADMIN',captured_at:new Date().toISOString(),cases:[{id:caseId,lead_id:id,customer_name:'عميل تجريبي',phone:'0500000000',assignee_id:id,assignee_name:'موظف تجريبي',kind:'DAILY',source:'هاتف',need:'وحدة لمدة ليلتين',stage:'CONFIRMED',qualified_at:new Date().toISOString(),unit_id:id,start_date:today,end_date:'2027-12-01',amount:1000,beneficiary:'OWNER',contract_id:null,version:2,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}],followups:[{id,case_id:caseId,title:'متابعة عرض الوحدة',due_at:new Date(Date.now()-3600000).toISOString(),completed_at:null,note:'',blocked_by:'NONE',assignee_id:id}],units:[{id,property_id:id,property_name:'عقار تجريبي',code:'101',readiness:'READY',note:'اعتمدت الجاهزية'}],entries:[],dues:[{id:'aaaaaaaa-aaaa-4aaa-8aaa-000000000010',sequence:1,case_id:caseId,amount:1000,due_date:today,voided:false}],leads:[{id,name:'عميل تجريبي',phone:'0500000000',source:'HATIF'}],properties:[{id,property_name:'عقار تجريبي'}],staff:[{id,name:'موظف تجريبي'}],contracts:[],history:[]};
+const data={documents:[],role:'ADMIN',captured_at:new Date().toISOString(),cases:[{id:caseId,lead_id:id,customer_name:'عميل تجريبي',phone:'0500000000',assignee_id:id,assignee_name:'موظف تجريبي',kind:'DAILY',source:'هاتف',need:'وحدة لمدة ليلتين',stage:'CONFIRMED',qualified_at:new Date().toISOString(),unit_id:id,start_date:today,end_date:today,amount:1000,beneficiary:'OWNER',contract_id:null,version:2,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}],followups:[{id,case_id:caseId,title:'متابعة عرض الوحدة',due_at:new Date(Date.now()-3600000).toISOString(),completed_at:null,note:'',blocked_by:'NONE',assignee_id:id}],units:[{id,property_id:id,property_name:'عقار تجريبي',code:'101',readiness:'READY',note:'اعتمدت الجاهزية'}],entries:[],dues:[{id:'aaaaaaaa-aaaa-4aaa-8aaa-000000000010',sequence:1,case_id:caseId,amount:1000,due_date:today,voided:false}],leads:[{id,name:'عميل تجريبي',phone:'0500000000',source:'HATIF'}],properties:[{id,property_name:'عقار تجريبي'}],staff:[{id,name:'موظف تجريبي'}],contracts:[],history:[]};
 (async()=>{
  fs.mkdirSync(output,{recursive:true});
  const browser=await chromium.launch({executablePath:process.env.KOHL_CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
@@ -76,6 +76,11 @@ const data={documents:[],role:'ADMIN',captured_at:new Date().toISOString(),cases
   let context=await contextFor(browser),page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
   await ready(page,'/leasing');await page.getByRole('heading',{name:'التأجير ومتابعة العملاء',exact:true,level:1}).waitFor();await noOverflow(page);
   await page.screenshot({path:output+'/leasing-desktop.png',fullPage:true});
+  await page.getByRole('heading',{name:'انتهاء المدة والتجديد',exact:true}).waitFor();
+  await page.getByRole('button',{name:'إضافة متابعة للمدة',exact:true}).click();
+  assert.equal(await page.locator('[role=dialog] select[name=case_id]').inputValue(),caseId);
+  assert.equal(await page.getByLabel('الإجراء المطلوب',{exact:true}).inputValue(),'تنسيق المغادرة أو التمديد');
+  await page.keyboard.press('Escape');
   await page.getByRole('button',{name:'طلبات التأجير',exact:true}).click();
   await page.getByRole('button',{name:'طلب تأجير جديد',exact:true}).click();
   await page.getByLabel('العميل الموجود').selectOption(id);await page.getByLabel('نوع التأجير').selectOption('MONTHLY');

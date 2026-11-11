@@ -19,6 +19,7 @@ import {
   entryKinds,
   metrics,
   recommendations,
+  termAlerts,
   riyadhDate,
   operationAction,
 } from "@/lib/operations/model";
@@ -561,6 +562,34 @@ export default function OperationsWorkspace({
                     {labels[c.kind]}
                   </p>
                 ))}
+              <section aria-label="تنبيهات انتهاء المدة">
+                <h2>انتهاء المدة والتجديد</h2>
+                <p className="ops-help">
+                  اليومي خلال 3 أيام، والشهري خلال 7 أيام، والسنوي خلال 30 يوماً،
+                  مع الحالات التي انتهت مدتها. التنبيه لا يجدد الحجز تلقائياً؛
+                  سجّل نتيجة التواصل وراجع الإدارة.
+                </p>
+                {termAlerts(w.cases).map(({ item, days, action }) => (
+                  <article className="portal-card ops-row" key={item.id}>
+                    <div>
+                      <h3>{item.customer_name} · {labels[item.kind]}</h3>
+                      <p>{item.end_date} · {days < 0
+                        ? `انتهت المدة منذ ${-days} يوم`
+                        : days === 0 ? "تنتهي المدة اليوم" : `متبقي ${days} يوم`}</p>
+                      <p>{action} · {item.assignee_name}</p>
+                      {w.followups.some(f => f.case_id === item.id && !f.completed_at) && (
+                        <span className="ops-badge">توجد متابعة مفتوحة لهذا الطلب</span>
+                      )}
+                    </div>
+                    <button className="ops-link" onClick={() => open("followup", item)}>
+                      إضافة متابعة للمدة
+                    </button>
+                  </article>
+                ))}
+                {!termAlerts(w.cases).length && (
+                  <p className="ops-empty">لا توجد مدد تحتاج تنبيهاً حالياً.</p>
+                )}
+              </section>
               <p className="ops-help">
                 المكالمات والرسائل متاحة في{" "}
                 <Link href="/crm?tab=activities" className="ops-link">
@@ -1111,8 +1140,12 @@ export default function OperationsWorkspace({
                         name="case_id"
                         label="طلب التأجير"
                         items={caseItems}
+                        value={form.item?.id}
                       />
-                      <Input name="title" label="الإجراء المطلوب" />
+                      <Input name="title" label="الإجراء المطلوب"
+                        value={form.item ? ((form.item as Case).kind === "DAILY"
+                          ? "تنسيق المغادرة أو التمديد" : "متابعة التجديد أو الإخلاء") : ""}
+                      />
                       <Input
                         name="due_at"
                         label="الموعد بتوقيت الرياض"

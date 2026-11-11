@@ -7,6 +7,8 @@ scoped RPC, tests and persistent Hatif preflight are prepared for review.
 No production migration/deployment was performed. User confirmed mixed collection
 holders (company/owner/platform) and executive approvals. This is the first functional
 slice plus installment schedules, private attachments and accountant ZIP exports.
+Term-end alerts now use Riyadh dates with visible 3/7/30-day windows and prefilled follow-ups.
+Local build, boundary tests and desktop/mobile browser checks passed; earlier commit a401a74 passed GitHub CI.
 Both candidate migrations remain undeployed. Continue from PR #2; the document lists remaining integration and release checks.
 Keep the live main/broker/account deployment and Hatif settings intact. Never rerun
 historical payout migrations/scripts to ship this candidate.

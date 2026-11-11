@@ -10,6 +10,17 @@ assert(!model.periodSchema.safeParse({from:'2026-02-30',to:'2026-03-01'}).succes
 const w={cases:[],dues:[{case_id:id,amount:100,due_date:'2026-11-10',voided:false}],followups:[{due_at:'2026-11-10T09:00:00Z',completed_at:'2026-11-10T10:00:00Z',blocked_by:'MANAGEMENT'}],units:[],entries:[{...base,status:'APPROVED',amount:60},{...base,status:'APPROVED',kind:'DEPOSIT_IN',amount:300},{...base,status:'PENDING',amount:40}]};
 const m=model.metrics(w,'2026-11-10','2026-11-10',new Date('2026-11-10T12:00:00Z'));
 assert.equal(m.received,60);assert.equal(m.depositsIn,300);assert.equal(m.outstanding[0].balance,40);assert.equal(m.followupRate,0);assert.equal(m.blocked,1);
+const term=(id,kind,end_date,stage='CONFIRMED')=>({id,kind,end_date,stage});
+const alerts=model.termAlerts([
+ term('daily','DAILY','2026-11-14'),term('late','MONTHLY','2026-11-09'),
+ term('annual','ANNUAL','2026-12-11'),term('monthly','MONTHLY','2026-11-18'),
+ term('too-far','DAILY','2026-11-15'),term('cancelled','ANNUAL','2026-11-11','CANCELLED'),
+ term('missing','MONTHLY',null),term('annual-far','ANNUAL','2026-12-12')
+],new Date('2026-11-10T21:05:00Z'));
+assert.deepEqual(alerts.map(a=>a.item.id),['late','daily','monthly','annual']);
+assert.equal(alerts[0].days,-2);
+assert.equal(alerts[1].action,'تنسيق المغادرة أو التمديد');
+assert.equal(model.termAlerts([term('today','DAILY','2026-11-11')],new Date('2026-11-10T21:05:00Z'))[0].days,0);
 let role='EMPLOYEE',rpcPayload;
 const mocks={'@/lib/audit/server':{withAudit:f=>f},'@/lib/portal/server':{requireIdentity:async()=>({profile:{account:{role}},client:{rpc:async(name,args)=>{rpcPayload={name,...args};return {data:{saved:true},error:null};}}}),PortalError:class extends Error{constructor(status,message){super(message);this.status=status;}},json:data=>Response.json(data),apiError:e=>Response.json({error:e.message},{status:e.status||400})}};
 const route=loadTS('app/api/operations/route.ts',mocks);
