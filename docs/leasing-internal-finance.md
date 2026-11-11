@@ -141,3 +141,30 @@ approval tests, document API failure/recovery tests, real XLSX/ZIP archive integ
 checks and synthetic desktop/mobile browser flows (schedule, upload, approval and
 downloads). Production Storage/Auth integration remains unverified. The branch is
 reviewed in https://github.com/aboziyad2251/kohl2/pull/2; no production changes.
+
+## Offline restore rehearsal tooling — 11 November 2026
+
+The server operator reported that candidate image
+`sha256:67885302ad2cabf226ce35aeaee3830283f55446f5319473ccce3a21ae515b46`
+built from application commit `13a546d` passed anonymous API rejection checks,
+and that isolated PostgreSQL concurrency tests passed. A private database backup
+was created and its archive listing checked; restore acceptance is still pending.
+
+`tests/operations-restore.py IMAGE_ID` creates synthetic data with the installed
+Supabase extensions, dumps/restores it in network-disabled temporary containers,
+applies both candidate migrations, and checks database privileges. It requires the
+already available Supabase PostgreSQL image. No production database is accessed.
+Run this before the real-backup rehearsal. Local command-boundary tests passed;
+full Supabase image acceptance could not run in the agent environment because
+Docker ran out of disk while pulling the image. Do not report it as passed.
+
+After synthetic acceptance, `scripts/rehearse-operations-restore.py --backup PATH`
+reads role attributes/memberships (not passwords) from production in a read-only
+transaction, restores the backup in an isolated temporary cluster using the exact
+reviewed database image, and applies only the two hash-verified candidate migrations.
+It bypasses the image's startup scripts, copies no production runtime configuration
+or volumes, publishes no ports, and removes its temporary container/volume.
+Diagnostic logs and receipts stay private beside the backup; never paste the logs.
+Role login is disabled in the rehearsal; database privilege checks are not a full
+Auth, PostgREST or Storage HTTP integration test. Encrypted Vault value recovery and
+Storage object-file recovery are also outside this database archive test.
