@@ -1,5 +1,6 @@
 """Approved disposable PostgreSQL concurrency checks; never connects to a live DB."""
 import concurrent.futures, json, pathlib, subprocess, time
+from postgres_test_runtime import wait_for_postgres
 name = 'kohl_payout_isolated_20261109'
 root = pathlib.Path(__file__).parent
 def process(sql, app='payout-test'):
@@ -44,9 +45,7 @@ try:
     info=json.loads(subprocess.check_output(['docker','inspect',name]))[0]
     assert info['HostConfig']['NetworkMode']=='none' and not info['HostConfig'].get('PortBindings')
     assert not any(m['Type']=='bind' for m in info['Mounts'])
-    for _ in range(60):
-        if subprocess.run(['docker','exec',name,'pg_isready','-h','127.0.0.1','-U','postgres'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0:break
-        time.sleep(.25)
+    wait_for_postgres(name)
     sql("""create role anon; create role authenticated; create schema auth;create schema portal_private;
     create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
     grant usage on schema public,auth,portal_private to authenticated,anon;

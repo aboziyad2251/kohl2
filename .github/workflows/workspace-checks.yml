@@ -59,8 +59,9 @@ jobs:
           node tests/operations-archive.cjs
           node tests/operations-db.cjs
           python3 tests/hatif-runtime.py
+          python3 -B tests/postgres-test-runtime.py
 
-      - name: PostgreSQL payout concurrency (isolated)
+      - name: PostgreSQL payout and leasing concurrency (isolated)
         if: matrix.node == 22
         run: |
           docker pull postgres@sha256:3540c0362c809df084ffac0ae69fe794515f9de92692f02178bcdce0ef0302ac

@@ -1,5 +1,6 @@
 """Approved disposable PostgreSQL concurrency checks; never connects to a live DB."""
 import concurrent.futures, json, pathlib, subprocess, time
+from postgres_test_runtime import wait_for_postgres
 name = 'kohl_operations_isolated_20261110'
 root = pathlib.Path(__file__).parent
 def process(sql, app='payout-test'):
@@ -42,9 +43,7 @@ created=False
 try:
  subprocess.run(['docker','run','-d','--pull','never','--name',name,'--network','none','--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/var/lib/postgresql/data:rw,size=256m','-e','POSTGRES_HOST_AUTH_METHOD=trust','postgres@sha256:3540c0362c809df084ffac0ae69fe794515f9de92692f02178bcdce0ef0302ac'],check=True,stdout=subprocess.DEVNULL)
  created=True
- for _ in range(60):
-  if subprocess.run(['docker','exec',name,'pg_isready','-U','postgres'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0:break
-  time.sleep(.25)
+ wait_for_postgres(name)
  sql("""create role anon;create role authenticated;create role service_role;create schema auth;create schema portal_private;
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
  create table portal_private.accounts(user_id uuid primary key,full_name text,role text,is_active boolean,employee_id uuid);
