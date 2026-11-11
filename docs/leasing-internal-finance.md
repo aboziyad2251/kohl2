@@ -168,3 +168,23 @@ Diagnostic logs and receipts stay private beside the backup; never paste the log
 Role login is disabled in the rehearsal; database privilege checks are not a full
 Auth, PostgREST or Storage HTTP integration test. Encrypted Vault value recovery and
 Storage object-file recovery are also outside this database archive test.
+
+## Synthetic service HTTP acceptance
+
+The operator reported successful real-backup restore, both candidate migrations
+and SQL privilege checks in the disposable database; production remained unchanged.
+The next tool, `python3 -B scripts/test-operations-services.py`, uses the exact
+server image IDs for Auth, PostgREST, Storage and PostgreSQL. It creates a new
+internal Docker network, synthetic database/users, generated test credentials and
+tmpfs file storage. No production containers, mounts, configuration, backups or
+secrets are accessed. It requires 2 GiB available RAM, publishes no host ports,
+and removes its own containers/anonymous volumes/network on exit. Diagnostics
+stay private in a new temporary directory; do not share raw logs.
+
+The script tests real password login and token validation, JWT-scoped finance RPC,
+service-authorized document reservation/upload/finalization/download and denial
+of direct authenticated/public file access. The exact application image is used
+only as the Node HTTP test runner; this is not acceptance of the application's
+own document routes or browser login flow. Syntax and mocked orchestration
+isolation tests passed locally. Actual service startup/HTTP acceptance remains
+pending the server run and must not be described as passed.
