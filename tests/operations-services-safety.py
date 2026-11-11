@@ -12,7 +12,7 @@ spec=importlib.util.spec_from_file_location('services',Path(__file__).resolve().
 mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
 
 class Safety(unittest.TestCase):
-    def test_complete_flow_is_isolated(self):
+    def exercise(self, invalid_status):
         commands=[];uploads={};state={}
         uid='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
         def fake(args,**kw):
@@ -24,7 +24,7 @@ class Safety(unittest.TestCase):
                 if '/admin/users' in url:result={'id':uid}
                 elif '/token?' in url:result={'access_token':'fixture-token'}
                 elif url.endswith('/user'):
-                    status=401 if q['headers']['Authorization']=='Bearer invalid-token' else 200;result={'id':uid}
+                    status=invalid_status if q['headers']['Authorization']=='Bearer invalid-token' else 200;result={'id':uid}
                 elif '/rpc/kohl_operations' in url:
                     if body['operation']=='ENTRY_CREATE':state['entry']=body['payload']['id']
                     else:result={'entries':[{'id':state['entry']}]}
@@ -45,7 +45,11 @@ class Safety(unittest.TestCase):
                 if 'ANON_KEY' in values:state['anon']=values['ANON_KEY']
             return subprocess.CompletedProcess(args,0,out)
         with patch.object(mod.subprocess,'run',side_effect=fake),patch.object(mod.restore,'query',return_value='') as queries,patch.object(mod.time,'sleep'),patch('sys.stdout',new_callable=io.StringIO):
-            mod.main()
+            if invalid_status in (401,403):
+                mod.main()
+            else:
+                with self.assertRaises(SystemExit):
+                    mod.main()
         self.assertNotIn('CREATE FUNCTION auth.uid',queries.call_args_list[0].args[1])
         self.assertEqual(queries.call_args_list[1].args[1],mod.AUTH_HELPERS)
         creates=[c for c in commands if c[:2]==['docker','create']]
@@ -57,5 +61,15 @@ class Safety(unittest.TestCase):
         self.assertEqual(len([c for c in commands if c[:3]==['docker','rm','-f']]),5)
         self.assertNotIn('supabase-db',str(commands))
         self.assertNotIn('/home/debian',str(commands))
+
+    def test_complete_flow_is_isolated(self):
+        for status in (401,403):
+            with self.subTest(status=status):
+                self.exercise(status)
+
+    def test_success_or_server_failure_is_not_auth_denial(self):
+        for status in (200,500,0):
+            with self.subTest(status=status):
+                self.exercise(status)
 
 if __name__=='__main__':unittest.main()

@@ -99,7 +99,9 @@ catch(e){console.log(JSON.stringify({status:0,body:''}));}});"""
         def require(result, expected=200):
             status, body=result
             if status != expected:
-                log.write(b'HTTP result: '+str(status).encode()+b' '+body+b'\n')
+                log.write(b'\nHTTP result: '+str(status).encode()+b' '+body+b'\n')
+                log.flush()
+                print('HTTP STATUS: expected '+str(expected)+', received '+str(status), flush=True)
                 raise RuntimeError('HTTP assertion failed')
             return json.loads(body) if body else None
         def wait_http(host,path):
@@ -179,15 +181,21 @@ GRANT ALL ON ALL TABLES IN SCHEMA storage TO service_role;
             for filename in restore.MIGRATIONS:
                 sql((ROOT/'supabase/migrations'/filename).read_text())
             time.sleep(2)
-            stage='real password login'
+            stage='create synthetic auth user'
             user=require(http('http://auth:9999','/admin/users',service,'POST',{
                 'email':'review@example.invalid','password':password,'email_confirm':True}))
-            uid=user['id']
+            uid=str(uuid.UUID(user['id']))
+            stage='password sign-in'
             login=require(http('http://auth:9999','/token?grant_type=password',None,'POST',{
                 'email':'review@example.invalid','password':password}))
             access=login['access_token']
+            stage='validate signed-in identity'
             assert require(http('http://auth:9999','/user',access))['id']==uid
-            assert http('http://auth:9999','/user','invalid-token')[0]==401
+            stage='reject invalid auth token'
+            invalid_status=http('http://auth:9999','/user','invalid-token')[0]
+            print('INVALID TOKEN HTTP STATUS: '+str(invalid_status),flush=True)
+            if invalid_status not in (401,403):
+                raise RuntimeError('Invalid token was not explicitly denied')
             print('REAL AUTH LOGIN OK',flush=True)
             sql(f"INSERT INTO portal_private.accounts VALUES('{uid}','Synthetic administrator','ADMIN',true,null);")
             stage='JWT-scoped finance RPC'
@@ -213,8 +221,9 @@ GRANT ALL ON ALL TABLES IN SCHEMA storage TO service_role;
             assert result[0] in (401,403)
             print('PRIVATE STORAGE UPLOAD/DOWNLOAD AND DIRECT ACCESS DENIAL OK',flush=True)
             print('SERVICES TEST PASSED (synthetic data); exact application HTTP flow remains separate.',flush=True)
-        except Exception:
+        except Exception as exc:
             print('STOP: services test failed at '+stage)
+            print('Failure type: '+type(exc).__name__)
             for name in created:
                 subprocess.run(['docker','logs','--tail','80',name],stdout=log,stderr=log)
             print('Private diagnostics: '+str(folder/'private.log')+'; do not paste raw logs.')
