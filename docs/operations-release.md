@@ -1,10 +1,18 @@
 # Leasing/internal-finance release procedure
 
-Prepared 12 November 2026 (Riyadh). This procedure has not deployed production.
-The operator's last successful preparation used
-`/home/debian/backups/kohl-operations-plan-zgq5zzee`.
-The current main, broker and account containers must still match that private plan;
-the dispatcher stops if any runtime or Hatif setting changed.
+Deployed with explicit user approval on 12 November 2026 (Riyadh), according to
+the operator's successful dispatcher output. The dry run passed before apply;
+the fresh backup listing, atomic migrations, cutover and health checks completed.
+Hatif and broker/account services were reported preserved. Real user sign-in and
+business-flow acceptance are still pending.
+
+Private release directory:
+`/home/debian/backups/kohl-operations-plan-zgq5zzee/release-20261111T232901Z`.
+Keep its backup, receipts and the retained original main container. **Do not rerun
+apply or create a new plan to repeat these migrations.** The preparation/apply
+commands below document the completed release; the recovery section remains
+available if needed. This checkpoint records operator output, not an independent
+cloud-to-production inspection.
 
 ## Reviewed scope
 
@@ -24,7 +32,7 @@ The operator previously reported successful real-backup restoration, exact-image
 Auth/REST/Storage application acceptance, and preparation. These are recorded
 receipts from 11 November, not fresh observations from this cloud workspace.
 
-## Next server action: read-only dry run
+## Completed: read-only dry run
 
 Run from the operator's existing VPS terminal:
 
@@ -46,7 +54,7 @@ backup data or private logs. A rejected plan requires inspection, not deletion o
 receipts or blind retry. A new preparation is appropriate only after explaining
 and reviewing any changed runtime.
 
-## Apply after specific release approval
+## Completed: apply after specific release approval
 
 The dry run must pass and the user must approve these two additive migrations and
 this exact main image. A command-line image argument records the operator's intent;
@@ -122,8 +130,8 @@ Hatif runtime tests and relevant existing application regressions are also run.
 This is not an actual Docker cutover rehearsal or a new production verification.
 TestSprite is not installed in this cloud environment; its additional service tests
 are unverified. Install/configure its CLI with `testsprite setup` if those are needed.
-The server dry run, actual apply, and real user sign-in/business-flow confirmation
-remain outstanding. Do not report the feature as live until those steps finish.
+The server dry run and actual apply subsequently passed according to operator output.
+Real user sign-in/business-flow confirmation remains outstanding.
 
 Local results for this tooling update: 13 dispatcher test methods (including
 failure/lost-response subcases), release-plan and Hatif runtime tests, combined
