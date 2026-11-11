@@ -44,8 +44,10 @@ class Safety(unittest.TestCase):
                 values=dict(line.split('=',1) for line in envpath.read_text().splitlines())
                 if 'ANON_KEY' in values:state['anon']=values['ANON_KEY']
             return subprocess.CompletedProcess(args,0,out)
-        with patch.object(mod.subprocess,'run',side_effect=fake),patch.object(mod.restore,'query',return_value=''),patch.object(mod.time,'sleep'),patch('sys.stdout',new_callable=io.StringIO):
+        with patch.object(mod.subprocess,'run',side_effect=fake),patch.object(mod.restore,'query',return_value='') as queries,patch.object(mod.time,'sleep'),patch('sys.stdout',new_callable=io.StringIO):
             mod.main()
+        self.assertNotIn('CREATE FUNCTION auth.uid',queries.call_args_list[0].args[1])
+        self.assertEqual(queries.call_args_list[1].args[1],mod.AUTH_HELPERS)
         creates=[c for c in commands if c[:2]==['docker','create']]
         self.assertEqual(len(creates),5)
         self.assertTrue(any(c[:4]==['docker','network','create','--internal'] for c in commands))

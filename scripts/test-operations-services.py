@@ -35,6 +35,17 @@ def token(secret, role):
     body = header+'.'+payload
     return body+'.'+b64(hmac.new(secret.encode(),body.encode(),hashlib.sha256).digest())
 
+# Installed only after GoTrue migrations, under the function owner's role.
+# Support modern PostgREST claims in this synthetic fixture.
+AUTH_HELPERS = """
+BEGIN;
+SET LOCAL ROLE supabase_auth_admin;
+CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT coalesce(nullif(current_setting('request.jwt.claim.sub',true),''),nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'sub')::uuid $$;
+CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'role' $$;
+CREATE OR REPLACE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claims',true),'')::jsonb $$;
+COMMIT;
+"""
+
 def main():
     os.umask(0o077)
     available = next(int(x.split()[1])*1024 for x in Path('/proc/meminfo').read_text().splitlines() if x.startswith('MemAvailable:'))
@@ -131,9 +142,6 @@ CREATE EXTENSION pgcrypto WITH SCHEMA extensions;
 CREATE EXTENSION "uuid-ossp" WITH SCHEMA extensions;
 GRANT USAGE ON SCHEMA public,auth,extensions TO anon,authenticated,service_role,supabase_auth_admin,supabase_storage_admin;
 GRANT ALL ON SCHEMA storage TO supabase_storage_admin;
-CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT coalesce(nullif(current_setting('request.jwt.claim.sub',true),''),nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'sub')::uuid $$;
-CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'role' $$;
-CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claims',true),'')::jsonb $$;
 """)
             start('runner',extra=['--entrypoint','node'],command=['-e','setInterval(()=>{},60000)'])
             stage='auth startup'
@@ -146,6 +154,8 @@ CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS $$ SELECT nullif
                 'GOTRUE_EXTERNAL_EMAIL_ENABLED':'true','GOTRUE_MAILER_AUTOCONFIRM':'true',
             })
             wait_http('http://auth:9999','/health')
+            stage='auth helper compatibility'
+            sql(AUTH_HELPERS)
             stage='rest and storage startup'
             start('rest',{'PGRST_DB_URI':f'postgres://authenticator:{password}@db:5432/postgres',
                 'PGRST_DB_SCHEMAS':'public,storage','PGRST_DB_ANON_ROLE':'anon','PGRST_JWT_SECRET':secret})

@@ -32,6 +32,19 @@ try:
         JOIN pg_roles m ON m.oid=a.member
         WHERE r.rolname='fixture group' AND m.rolname='fixture_user'""") == 't'
     assert sql("SELECT NOT rolcanlogin AND NOT rolinherit FROM pg_roles WHERE rolname='fixture_user'") == 't'
+    spec2=importlib.util.spec_from_file_location('services',mod.ROOT/'scripts/test-operations-services.py')
+    services=importlib.util.module_from_spec(spec2);spec2.loader.exec_module(services)
+    sql("CREATE ROLE supabase_auth_admin; CREATE SCHEMA auth AUTHORIZATION supabase_auth_admin;")
+    sql("""SET ROLE supabase_auth_admin;
+        CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+        CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$SELECT nullif(current_setting('request.jwt.claim.role',true),'')$$;
+        RESET ROLE;""")
+    sql(services.AUTH_HELPERS)
+    assert sql("SELECT bool_and(pg_get_userbyid(proowner)='supabase_auth_admin') FROM pg_proc WHERE pronamespace='auth'::regnamespace")=='t'
+    assert sql("SELECT rolsuper OR rolbypassrls FROM pg_roles WHERE rolname='supabase_auth_admin'")=='f'
+    assert sql("""SET request.jwt.claims='{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","role":"authenticated"}';
+        SELECT auth.uid()::text || ':' || auth.role();""")=='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa:authenticated'
+    print('PASS: Auth helper replacement preserves owner without elevated privileges and reads JWT claims')
     print('PASS: PostgreSQL 17 role export/replay preserves TRUE/FALSE options and quoted role names')
 finally:
     if created:
