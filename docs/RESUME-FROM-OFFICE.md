@@ -1,4 +1,74 @@
-# Latest release — broker payout requests live, 9 November 2026
+# Current release — leasing/internal finance deployed, 12 November 2026 (Riyadh)
+
+The user explicitly approved the two reviewed migrations and the tested main-app
+image after the server dry run passed. The operator then supplied `RELEASE OK`:
+fresh backup archive listing checked, both migrations committed, main switched,
+Hatif preserved, broker/account unchanged. This is operator-reported execution,
+not a separate direct production inspection from the cloud workspace.
+
+- Continue from `codex/leasing-internal-finance`, PR #2. Dispatcher commit `442ff7d`
+  passed local checks and GitHub CI run `43119381385` on Node 20 and 22.
+- Running main image reported by the successful exact-image dispatcher:
+  `sha256:fc2208da1baee389905f1febd4212a11f69be03f45767ceed3e872272a472506`,
+  application source `e3a3eb7e9f3a2b09811d8c7e3d17c705ff68e040`.
+- Applied together: `20261110143135_leasing_internal_finance.sql` and
+  `20261110215449_operations_private_documents.sql`. Do not reapply them.
+- Private release directory:
+  `/home/debian/backups/kohl-operations-plan-zgq5zzee/release-20261111T232901Z`
+  (12 November, 02:29 Riyadh). Preserve its backup and receipts; never share
+  private logs, runtime snapshots or database archives.
+- Retain the original main container and its image for rollback. Its restart
+  policy was disabled by the dispatcher; explicit recovery restores it. Broker
+  and account image IDs remain those in the previous release checkpoint below.
+- Successful dispatcher completion means internal/public login and anonymous API
+  checks passed. Real user sign-in and business-flow confirmation remain pending.
+
+Next: have the user sign in and confirm `/leasing` and `/financials/internal`
+load under the expected permissions. Do not invent real financial entries to test.
+Read `docs/operations-release.md` for recovery; do not repeat apply or historical
+release scripts. Application rollback retains the additive schema and new data;
+never automatically restore an older database dump. No new phase is authorized.
+
+---
+
+# Historical preparation — leasing/internal finance, 11 November 2026
+
+Source candidate on `codex/leasing-internal-finance`, based on latest reconciled
+`codex/role-portals` including KR audit-noise fix. Read `docs/leasing-internal-finance.md`.
+New main-app leasing and internal finance workspaces, private candidate migration,
+scoped RPC, tests and persistent Hatif preflight are prepared for review.
+No production migration/deployment was performed. User confirmed mixed collection
+holders (company/owner/platform) and executive approvals. This is the first functional
+slice plus installment schedules, private attachments and accountant ZIP exports.
+Term-end alerts now use Riyadh dates with visible 3/7/30-day windows and prefilled follow-ups.
+Local build, boundary tests and desktop/mobile browser checks passed; earlier commit a401a74 passed GitHub CI.
+Both candidate migrations remain undeployed. Continue from PR #2; the document lists remaining integration and release checks.
+Keep the live main/broker/account deployment and Hatif settings intact. Never rerun
+historical payout migrations/scripts to ship this candidate.
+
+
+Server acceptance checkpoint (11 November): operator supplied successful restore
+receipt for revised PT409 candidates and exact-image API acceptance for source
+`e3a3eb7e9f3a2b09811d8c7e3d17c705ff68e040`, image
+`sha256:fc2208da1baee389905f1febd4212a11f69be03f45767ceed3e872272a472506`.
+Reviewed-document requests returned 409 in 271/277 ms; accountant ZIP,
+employee isolation and deactivation passed with synthetic data. GitHub run
+43051486852 also passed. Production remains unchanged.
+Next checkpoint (12 November, Riyadh): the operator's preparation succeeded;
+latest private plan is `/home/debian/backups/kohl-operations-plan-zgq5zzee`.
+The interrupted release dispatcher was recovered from the previous chat and
+hardened with a host-wide lock, pinned SQL hashes, repeated Hatif/runtime checks,
+atomic migrations, durable attempt receipts and explicit application recovery.
+Read `docs/operations-release.md`. Next server step is the read-only dry run in
+that document; actual deployment still requires specific release approval.
+No production access, migration or cutover was performed in the resumed cloud work.
+Application image and candidate SQL remain unchanged. The original app container
+and additive schema/data are retained on application rollback; never restore an
+older production dump automatically.
+
+---
+
+# Previous release — broker payout requests live, 9 November 2026
 
 Resume from `origin/codex/role-portals`. Read `docs/broker-payout-requests.md` first. The user approved isolated SQL testing, then explicitly approved production migration/deployment after successful tests. The feature is live: brokers request their own full eligible commission and track pending/approved/rejected requests; active Admin/CEO users approve/reject in Portal management → Commissions & payout requests. Approval does not transfer money or mark a commission paid.
 
