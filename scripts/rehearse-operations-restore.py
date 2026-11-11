@@ -34,7 +34,10 @@ SELECT format('CREATE ROLE %I WITH NOLOGIN %s %s %s %s %s;',
  CASE WHEN rolbypassrls THEN 'BYPASSRLS' ELSE 'NOBYPASSRLS' END)
 FROM pg_roles WHERE rolname !~ '^pg_' AND rolname <> 'postgres';
 SELECT format('GRANT %I TO %I WITH ADMIN %s, INHERIT %s, SET %s;',
- r.rolname, m.rolname, a.admin_option, a.inherit_option, a.set_option)
+ r.rolname, m.rolname,
+ CASE WHEN a.admin_option THEN 'TRUE' ELSE 'FALSE' END,
+ CASE WHEN a.inherit_option THEN 'TRUE' ELSE 'FALSE' END,
+ CASE WHEN a.set_option THEN 'TRUE' ELSE 'FALSE' END)
 FROM pg_auth_members a
 JOIN pg_roles r ON r.oid=a.roleid JOIN pg_roles m ON m.oid=a.member;
 ROLLBACK;
