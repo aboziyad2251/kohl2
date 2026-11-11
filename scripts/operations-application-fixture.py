@@ -50,8 +50,24 @@ GRANT SELECT ON portal_private.accounts,portal_private.tenant_lease_links,portal
     stage('application approval and immutable documents')
     require(http(base,'/api/operations',access,'POST',{'operation':'ENTRY_DECIDE','id':entry,
         'status':'APPROVED','note':'Fixture review'}))
-    assert http(base,'/api/operations/documents',access,'POST',raw=form,
-        raw_type='multipart/form-data; boundary='+boundary)[0]==409
+    stage('application approved state verification')
+    workspace=require(http(base,'/api/operations',access))
+    approved=next(e for e in workspace['entries'] if e['id']==entry)
+    if approved['status']!='APPROVED':
+        raise RuntimeError('Entry did not remain approved')
+    stage('application reviewed document rejection')
+    response=http(base,'/api/operations/documents',access,'POST',raw=form,
+        raw_type='multipart/form-data; boundary='+boundary)
+    print('REVIEWED DOCUMENT HTTP STATUS: '+str(response[0]),flush=True)
+    require(response,expected=409)
+    # Also reject a different document, not just a duplicate of an existing file.
+    stage('application new document rejection after approval')
+    response=http(base,'/api/operations/documents',access,'POST',
+        raw=form.replace(b'Application route fixture',b'Changed fixture content'),
+        raw_type='multipart/form-data; boundary='+boundary)
+    print('NEW REVIEWED DOCUMENT HTTP STATUS: '+str(response[0]),flush=True)
+    require(response,expected=409)
+    assert http(base,'/api/operations/documents?id='+did,access)==(200,content)
     stage('application accountant archive')
     report=str(uuid.uuid4())
     require(http(base,'/api/operations/export',access,'POST',{'id':report,'from':'2026-11-11','to':'2026-11-11'}))

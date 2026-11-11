@@ -27,9 +27,10 @@ class Driver(unittest.TestCase):
                 elif bearer=='employee' and state['inactive']:status=403
                 elif method=='POST' and body['operation']=='ENTRY_CREATE':state['entry']=body['id']
                 elif method=='POST' and body['operation']=='ENTRY_DECIDE':state['approved']=True
+                elif method=='GET':data={'entries':[{'id':state.get('entry'),'status':'APPROVED' if state.get('approved') else 'PENDING'}]}
             elif path=='/api/operations/documents':
                 self.assertTrue(raw_type.startswith('multipart/form-data; boundary='))
-                self.assertIn(content,raw)
+                self.assertIn(b'%PDF-1.7',raw)
                 status=409 if state.get('approved') else 200;data={'id':did}
             elif path.startswith('/api/operations/documents?'):
                 if bearer=='employee':status=200 if broken_denial else 403
@@ -46,9 +47,9 @@ class Driver(unittest.TestCase):
             elif path=='/admin/users':data={'id':employee}
             elif path.startswith('/token?'):data={'access_token':'employee'}
             return status,json.dumps(data).encode()
-        def require(response):
+        def require(response, expected=200):
             status,body=response
-            self.assertEqual(status,200)
+            self.assertEqual(status,expected)
             return json.loads(body)
         with patch('sys.stdout',new_callable=io.StringIO):
             fixture.run(http,require,sql,'admin','fixture-password','service',root,lambda stage:None)
