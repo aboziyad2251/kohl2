@@ -22,7 +22,7 @@ MIGRATIONS = (
     '20261110143135_leasing_internal_finance.sql',
     '20261110215449_operations_private_documents.sql',
 )
-EXPECTED_HASHES = {'20261110143135_leasing_internal_finance.sql': '2e06978ae1d99008078a06ddc204de03141ba51f18fb2bb3618d7dd0dd7de973', '20261110215449_operations_private_documents.sql': '0d8991c38959904919e77293195ac0ec1ba94217b9b5f63c837167a7ba0ecd9a'}
+EXPECTED_HASHES = {'20261110143135_leasing_internal_finance.sql': 'd93b2e2be0e2cd6c9a3feb884dd2a53cfecb755035b97c65b8c3864c3a8aa522', '20261110215449_operations_private_documents.sql': 'ac943cebd65a7e3345182e9ec21fd8e4baeb7957051dd9adaa6f555e850400ff'}
 ROLE_SQL = """
 BEGIN READ ONLY;
 SET LOCAL statement_timeout='15s';

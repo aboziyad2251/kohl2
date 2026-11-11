@@ -9,6 +9,7 @@ import hmac
 import importlib.util
 import json
 import os
+import re
 from pathlib import Path
 import secrets
 import subprocess
@@ -50,7 +51,12 @@ COMMIT;
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--application",action="store_true",help="Also test the exact application image APIs")
+    parser.add_argument("--app-image",help="Exact sha256 image ID of a newly built candidate")
     args=parser.parse_args()
+    if args.app_image:
+        if not re.fullmatch(r'sha256:[0-9a-f]{64}',args.app_image):
+            raise SystemExit('STOP: --app-image requires an exact sha256 image ID')
+        IMAGES['runner']=args.app_image
     os.umask(0o077)
     available = next(int(x.split()[1])*1024 for x in Path('/proc/meminfo').read_text().splitlines() if x.startswith('MemAvailable:'))
     if available < 2*1024**3:

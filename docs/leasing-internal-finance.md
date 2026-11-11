@@ -212,3 +212,24 @@ a real browser sign-in test or full replica of the production gateway.
 Driver assertions and existing isolation tests pass locally; the server run of
 this additional mode remains pending. No production cutover is authorized by
 running the rehearsal.
+
+
+## Deliberate conflicts must not use serialization SQLSTATE
+
+The exact-image test exposed a request that never returned when adding a document
+to an approved entry. Candidate SQL had used 40001 for deliberate business-state
+rejection. Hasql's retrying transaction handling treats 40001 as retryable;
+repeating a permanent rejection cannot resolve it. All deliberate conflicts in
+the two undeployed operations candidates now use PT409, with application mapping
+to HTTP 409. Native PostgreSQL serialization failures retain their actual codes
+and are not intercepted. Tests retain locking/overcollection/document immutability
+assertions and now assert the non-retryable code.
+
+Both candidate migration hashes changed; the previous restore receipt does not
+validate this revision. Rerun the restore rehearsal against the same private backup
+before any cutover. The application error mapping also changed, so rebuild the
+image and run exact-image acceptance with its new ID:
+`python3 -B scripts/build-operations-review.py --test`.
+This build helper reads only public build settings from the running main container,
+performs no deployment and invokes only the isolated synthetic test. Its source
+checkout must be clean and contain no real environment files.

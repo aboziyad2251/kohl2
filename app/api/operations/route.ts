@@ -32,7 +32,7 @@ async function perform(req: NextRequest, write: boolean) {
           ? 503
           : error.code === "42501"
             ? 403
-            : ["23505", "40001"].includes(error.code)
+            : ["23505", "PT409", "40001"].includes(error.code)
               ? 409
               : 400,
         missing

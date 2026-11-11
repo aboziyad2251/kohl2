@@ -35,7 +35,7 @@ begin
  select * into entry from portal_private.internal_entries where id=entry_key for update;
  if not found or (acct.role='EMPLOYEE' and entry.created_by<>actor) then raise insufficient_privilege; end if;
  if operation='RESERVE' then
-  if entry.status<>'PENDING' then raise exception 'Reviewed entry documents are immutable' using errcode='40001'; end if;
+  if entry.status<>'PENDING' then raise exception 'Reviewed entry documents are immutable' using errcode='PT409'; end if;
   select * into doc from portal_private.operations_documents where entry_id=entry_key and sha256=payload->>'sha256';
   if found then
    if doc.status='READY' then return to_jsonb(doc); end if;
@@ -43,7 +43,7 @@ begin
     update portal_private.operations_documents set uploaded_by=actor,created_at=now() where id=doc.id returning * into doc;
     return to_jsonb(doc);
    end if;
-   raise exception 'Upload already reserved; retry after reservation timeout' using errcode='40001';
+   raise exception 'Upload already reserved; retry after reservation timeout' using errcode='PT409';
   end if;
   if (select count(*) from portal_private.operations_documents where entry_id=entry_key)>=10 then raise exception 'Document limit reached' using errcode='54000'; end if;
   ext:=case payload->>'mime' when 'application/pdf' then 'pdf' when 'image/jpeg' then 'jpg' when 'image/png' then 'png' when 'image/webp' then 'webp' end;
@@ -56,8 +56,8 @@ begin
  elsif operation='FINISH' then
   select * into doc from portal_private.operations_documents where id=target for update;
   if not found or doc.uploaded_by<>actor then raise insufficient_privilege; end if;
-  if entry.status<>'PENDING' or doc.status<>'UPLOADING' or doc.created_at<=now()-interval '15 minutes' then raise exception 'Upload is no longer valid' using errcode='40001'; end if;
-  if not exists(select 1 from storage.objects where bucket_id='kohl-finance-documents' and name=doc.object_path) then raise exception 'Stored object missing' using errcode='40001'; end if;
+  if entry.status<>'PENDING' or doc.status<>'UPLOADING' or doc.created_at<=now()-interval '15 minutes' then raise exception 'Upload is no longer valid' using errcode='PT409'; end if;
+  if not exists(select 1 from storage.objects where bucket_id='kohl-finance-documents' and name=doc.object_path) then raise exception 'Stored object missing' using errcode='PT409'; end if;
   update portal_private.operations_documents set status='READY' where id=target returning * into doc;
   insert into portal_private.operations_history(entity_id,case_id,actor,action,note,changes)
    values(entry.id,entry.case_id,actor,'DOCUMENT_ATTACHED',doc.filename,jsonb_build_object('document_id',doc.id,'sha256',doc.sha256));

@@ -21,11 +21,12 @@ assert.deepEqual(alerts.map(a=>a.item.id),['late','daily','monthly','annual']);
 assert.equal(alerts[0].days,-2);
 assert.equal(alerts[1].action,'تنسيق المغادرة أو التمديد');
 assert.equal(model.termAlerts([term('today','DAILY','2026-11-11')],new Date('2026-11-10T21:05:00Z'))[0].days,0);
-let role='EMPLOYEE',rpcPayload;
-const mocks={'@/lib/audit/server':{withAudit:f=>f},'@/lib/portal/server':{requireIdentity:async()=>({profile:{account:{role}},client:{rpc:async(name,args)=>{rpcPayload={name,...args};return {data:{saved:true},error:null};}}}),PortalError:class extends Error{constructor(status,message){super(message);this.status=status;}},json:data=>Response.json(data),apiError:e=>Response.json({error:e.message},{status:e.status||400})}};
+let role='EMPLOYEE',rpcPayload,rpcError=null;
+const mocks={'@/lib/audit/server':{withAudit:f=>f},'@/lib/portal/server':{requireIdentity:async()=>({profile:{account:{role}},client:{rpc:async(name,args)=>{rpcPayload={name,...args};return {data:{saved:true},error:rpcError};}}}),PortalError:class extends Error{constructor(status,message){super(message);this.status=status;}},json:data=>Response.json(data),apiError:e=>Response.json({error:e.message},{status:e.status||400})}};
 const route=loadTS('app/api/operations/route.ts',mocks);
 (async()=>{
  let res=await route.POST(new Request('http://test/api/operations',{method:'POST',body:JSON.stringify(base)}));assert.equal(res.status,200);assert.equal(rpcPayload.name,'kohl_operations');assert.equal(rpcPayload.payload.holder,'OWNER');
+ rpcError={code:'PT409'};res=await route.POST(new Request('http://test/api/operations',{method:'POST',body:JSON.stringify(base)}));assert.equal(res.status,409);rpcError=null;
  role='OWNER';res=await route.GET(new Request('http://test/api/operations'));assert.equal(res.status,403);
  role='EMPLOYEE';res=await route.POST(new Request('http://test/api/operations',{method:'POST',body:JSON.stringify({...base,actor:id})}));assert.equal(res.status,400);
 

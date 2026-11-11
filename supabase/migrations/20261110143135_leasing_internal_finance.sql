@@ -82,7 +82,7 @@ begin
    perform pg_advisory_xact_lock(hashtextextended(target::text,0));
    select * into prior from portal_private.operations_replays where id=target;
    if found then
-    if prior.actor<>who or prior.operation<>operation or prior.payload<>payload then raise exception 'Replay conflict' using errcode='40001'; end if;
+    if prior.actor<>who or prior.operation<>operation or prior.payload<>payload then raise exception 'Replay conflict' using errcode='PT409'; end if;
     return prior.result;
    end if;
   end if;
@@ -130,7 +130,7 @@ begin
  if operation in ('CASE_CREATE','FOLLOWUP_ADD','ENTRY_CREATE','INSTALLMENTS_SAVE') then
   select * into prior from portal_private.operations_replays where id=target;
   if found then
-   if prior.actor<>who or prior.operation<>operation or prior.payload<>payload then raise exception 'Replay conflict' using errcode='40001'; end if;
+   if prior.actor<>who or prior.operation<>operation or prior.payload<>payload then raise exception 'Replay conflict' using errcode='PT409'; end if;
    return prior.result;
   end if;
  end if;
@@ -146,8 +146,8 @@ begin
   if not executive then raise insufficient_privilege; end if;
   cid:=(payload->>'case_id')::uuid;
   select * into c from portal_private.leasing_cases where id=cid for update;
-  if not found or c.stage<>'CONFIRMED' or c.version is distinct from (payload->>'version')::integer then raise exception 'Stale case' using errcode='40001'; end if;
-  if exists(select 1 from portal_private.internal_entries where case_id=cid and kind in ('RECEIPT','REFUND')) then raise exception 'Schedule already has entries' using errcode='40001'; end if;
+  if not found or c.stage<>'CONFIRMED' or c.version is distinct from (payload->>'version')::integer then raise exception 'Stale case' using errcode='PT409'; end if;
+  if exists(select 1 from portal_private.internal_entries where case_id=cid and kind in ('RECEIPT','REFUND')) then raise exception 'Schedule already has entries' using errcode='PT409'; end if;
   if memo='' or jsonb_typeof(payload->'parts') is distinct from 'array' or jsonb_array_length(payload->'parts') not between 1 and 120 then raise invalid_parameter_value; end if;
   installment_total:=0;
   for part in select value from jsonb_array_elements(payload->'parts') loop
@@ -167,7 +167,7 @@ begin
  elsif operation='UNIT_SAVE' then
   if not executive then raise insufficient_privilege; end if;
   select * into u from portal_private.leasing_units where id=target for update;
-  if found and (u.property_id<>(payload->>'property_id')::uuid or u.code<>btrim(payload->>'code')) then raise exception 'Unit identity immutable' using errcode='40001'; end if;
+  if found and (u.property_id<>(payload->>'property_id')::uuid or u.code<>btrim(payload->>'code')) then raise exception 'Unit identity immutable' using errcode='PT409'; end if;
   insert into portal_private.leasing_units values(target,(payload->>'property_id')::uuid,btrim(payload->>'code'),payload->>'readiness',memo)
    on conflict(id) do update set readiness=excluded.readiness,note=excluded.note;
  elsif operation in ('CASE_UPDATE','FOLLOWUP_ADD','FOLLOWUP_DONE') then
@@ -179,24 +179,24 @@ begin
    insert into portal_private.leasing_followups(id,case_id,assignee_id,title,due_at) values(target,cid,c.assignee_id,btrim(payload->>'title'),(payload->>'due_at')::timestamptz);
   elsif operation='FOLLOWUP_DONE' then
    select * into f from portal_private.leasing_followups where id=target for update;
-   if f.completed_at is not null then raise exception 'Already completed' using errcode='40001'; end if;
+   if f.completed_at is not null then raise exception 'Already completed' using errcode='PT409'; end if;
    if memo='' then raise invalid_parameter_value; end if;
    update portal_private.leasing_followups set completed_at=now(),note=memo,blocked_by=payload->>'blocked_by' where id=target;
   else
-   if c.version is distinct from (payload->>'version')::integer then raise exception 'Stale case' using errcode='40001'; end if;
+   if c.version is distinct from (payload->>'version')::integer then raise exception 'Stale case' using errcode='PT409'; end if;
    desired:=payload->>'stage';
    if (payload->>'amount')::numeric<>round((payload->>'amount')::numeric,2) then raise invalid_parameter_value; end if;
    if desired is null or memo='' then raise invalid_parameter_value; end if;
-   if c.stage in ('LOST','CANCELLED') or (c.stage='CONFIRMED' and desired<>'CANCELLED') then raise exception 'Final case immutable' using errcode='40001'; end if;
+   if c.stage in ('LOST','CANCELLED') or (c.stage='CONFIRMED' and desired<>'CANCELLED') then raise exception 'Final case immutable' using errcode='PT409'; end if;
    if not executive and (desired in ('CONFIRMED','CANCELLED') or c.stage='CONFIRMED') then raise insufficient_privilege; end if;
    if desired='CONFIRMED' then
     select * into u from portal_private.leasing_units where id=(payload->>'unit_id')::uuid for update;
-    if not found or u.readiness<>'READY' then raise exception 'Unit not ready' using errcode='40001'; end if;
-    if exists(select 1 from portal_private.leasing_cases other where other.unit_id=u.id and other.id<>target and other.stage='CONFIRMED' and other.start_date<(payload->>'end_date')::date and other.end_date>(payload->>'start_date')::date) then raise exception 'Booking conflict' using errcode='40001'; end if;
+    if not found or u.readiness<>'READY' then raise exception 'Unit not ready' using errcode='PT409'; end if;
+    if exists(select 1 from portal_private.leasing_cases other where other.unit_id=u.id and other.id<>target and other.stage='CONFIRMED' and other.start_date<(payload->>'end_date')::date and other.end_date>(payload->>'start_date')::date) then raise exception 'Booking conflict' using errcode='PT409'; end if;
    end if;
    if desired='CANCELLED' then
     payload:=payload || jsonb_build_object('unit_id',c.unit_id,'start_date',c.start_date,'end_date',c.end_date,'amount',c.amount,'beneficiary',c.beneficiary,'contract_id',c.contract_id);
-    if exists(select 1 from portal_private.internal_entries where case_id=cid and status in ('PENDING','APPROVED')) then raise exception 'Resolve financial entries before cancellation' using errcode='40001'; end if;
+    if exists(select 1 from portal_private.internal_entries where case_id=cid and status in ('PENDING','APPROVED')) then raise exception 'Resolve financial entries before cancellation' using errcode='PT409'; end if;
     update portal_private.internal_dues set voided=true where case_id=cid;
    end if;
    update portal_private.leasing_cases set qualified_at=case when desired in ('QUALIFIED','OFFERED','VIEWING','CONFIRMED') then coalesce(qualified_at,now()) else qualified_at end,stage=desired,unit_id=(payload->>'unit_id')::uuid,start_date=(payload->>'start_date')::date,end_date=(payload->>'end_date')::date,amount=(payload->>'amount')::numeric,beneficiary=payload->>'beneficiary',contract_id=(payload->>'contract_id')::uuid,version=version+1,updated_at=now() where id=cid;
@@ -232,23 +232,23 @@ begin
   select * into e from portal_private.internal_entries where id=target for update;
   desired:=payload->>'status';
   if desired is null or desired not in ('APPROVED','REJECTED') or memo='' then raise invalid_parameter_value; end if;
-  if exists(select 1 from portal_private.operations_documents where entry_id=target and status='UPLOADING' and created_at>now()-interval '15 minutes') then raise exception 'Document upload in progress' using errcode='40001'; end if;
-  if e.status<>'PENDING' then raise exception 'Decision immutable' using errcode='40001'; end if;
+  if exists(select 1 from portal_private.operations_documents where entry_id=target and status='UPLOADING' and created_at>now()-interval '15 minutes') then raise exception 'Document upload in progress' using errcode='PT409'; end if;
+  if e.status<>'PENDING' then raise exception 'Decision immutable' using errcode='PT409'; end if;
   if desired='APPROVED' and cid is not null then
-   if c.stage<>'CONFIRMED' then raise exception 'Case is not confirmed' using errcode='40001'; end if;
+   if c.stage<>'CONFIRMED' then raise exception 'Case is not confirmed' using errcode='PT409'; end if;
    select coalesce(sum(case when kind='RECEIPT' then amount when kind='REFUND' then -amount else 0 end),0) into collected from portal_private.internal_entries where case_id=cid and status='APPROVED';
    if e.kind in ('RECEIPT','REFUND') then
     select coalesce(sum(case when kind='RECEIPT' then amount when kind='REFUND' then -amount else 0 end),0) into installment_total from portal_private.internal_entries where installment_id=e.installment_id and status='APPROVED';
-    if e.kind='RECEIPT' and installment_total+e.amount>(select amount from portal_private.internal_installments where id=e.installment_id) then raise exception 'Installment overpayment' using errcode='40001'; end if;
-    if e.kind='REFUND' and e.amount>coalesce((select sum(case when kind='RECEIPT' then amount when kind='REFUND' then -amount else 0 end) from portal_private.internal_entries where installment_id=e.installment_id and holder=e.holder and status='APPROVED'),0) then raise exception 'Installment refund exceeds receipt' using errcode='40001'; end if;
+    if e.kind='RECEIPT' and installment_total+e.amount>(select amount from portal_private.internal_installments where id=e.installment_id) then raise exception 'Installment overpayment' using errcode='PT409'; end if;
+    if e.kind='REFUND' and e.amount>coalesce((select sum(case when kind='RECEIPT' then amount when kind='REFUND' then -amount else 0 end) from portal_private.internal_entries where installment_id=e.installment_id and holder=e.holder and status='APPROVED'),0) then raise exception 'Installment refund exceeds receipt' using errcode='PT409'; end if;
    end if;
-   if e.kind='RECEIPT' and collected+e.amount>(select amount from portal_private.internal_dues where case_id=cid and not voided) then raise exception 'Overpayment' using errcode='40001'; end if;
-   if e.kind='REFUND' and e.amount>coalesce((select sum(case when kind='RECEIPT' then amount when kind='REFUND' then -amount when kind='OWNER_PAYMENT' then -amount else 0 end) from portal_private.internal_entries where case_id=cid and status='APPROVED' and holder=e.holder),0) then raise exception 'Refund exceeds available receipts' using errcode='40001'; end if;
-   if e.kind='DEPOSIT_OUT' and e.amount>coalesce((select sum(case when kind='DEPOSIT_IN' then amount when kind='DEPOSIT_OUT' then -amount else 0 end) from portal_private.internal_entries where case_id=cid and status='APPROVED' and holder=e.holder),0) then raise exception 'Deposit over-refund' using errcode='40001'; end if;
+   if e.kind='RECEIPT' and collected+e.amount>(select amount from portal_private.internal_dues where case_id=cid and not voided) then raise exception 'Overpayment' using errcode='PT409'; end if;
+   if e.kind='REFUND' and e.amount>coalesce((select sum(case when kind='RECEIPT' then amount when kind='REFUND' then -amount when kind='OWNER_PAYMENT' then -amount else 0 end) from portal_private.internal_entries where case_id=cid and status='APPROVED' and holder=e.holder),0) then raise exception 'Refund exceeds available receipts' using errcode='PT409'; end if;
+   if e.kind='DEPOSIT_OUT' and e.amount>coalesce((select sum(case when kind='DEPOSIT_IN' then amount when kind='DEPOSIT_OUT' then -amount else 0 end) from portal_private.internal_entries where case_id=cid and status='APPROVED' and holder=e.holder),0) then raise exception 'Deposit over-refund' using errcode='PT409'; end if;
    if e.kind='OWNER_PAYMENT' then
     if c.beneficiary<>'OWNER' or e.holder<>'COMPANY' then raise invalid_parameter_value; end if;
     select coalesce(sum(case when kind='RECEIPT' then amount when kind in ('REFUND','OWNER_PAYMENT') then -amount else 0 end),0) into balance from portal_private.internal_entries where case_id=cid and status='APPROVED' and holder='COMPANY';
-    if e.amount>balance then raise exception 'Owner payout exceeds available funds' using errcode='40001'; end if;
+    if e.amount>balance then raise exception 'Owner payout exceeds available funds' using errcode='PT409'; end if;
    end if;
   end if;
   update portal_private.internal_entries set status=desired,decision_note=memo,decided_by=who,decided_at=now() where id=target;

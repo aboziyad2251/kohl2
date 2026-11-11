@@ -24,7 +24,7 @@ async function documentRPC(actor: string, operation: string, payload: unknown) {
   });
   if (error)
     throw new PortalError(
-      error.code === "42501" ? 403 : error.code === "40001" ? 409 : 400,
+      error.code === "42501" ? 403 : ["PT409", "40001"].includes(error.code) ? 409 : 400,
       "تعذر الوصول إلى المستند؛ تحقق من صلاحية الحركة وحالتها.",
     );
   return data;
