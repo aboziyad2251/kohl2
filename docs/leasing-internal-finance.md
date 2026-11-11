@@ -196,3 +196,19 @@ now uses a uniquely named, labelled test volume, explicitly removed after its
 containers on success and failure. No existing/production bind mount is used.
 Mock orchestration tests check volume scope and cleanup ordering; the actual
 upload/download on the server remains pending the rerun.
+
+The operator subsequently reported successful real Auth login, JWT-scoped finance
+RPC and private file upload/download/direct-access denial, followed by complete
+test container/volume/network cleanup.
+
+`scripts/test-operations-services.py --application` now additionally runs the
+previously built exact app image's server behind a loopback-only test router to
+the isolated Auth/REST/Storage services. It exercises application entry creation,
+multipart upload, integrity-checked download, approval/document freeze, saved
+accountant ZIP, other-employee denial and deactivated-account denial.
+The real portal_me function is loaded from its historical migration, with minimal
+synthetic dependency tables and its reader role. This is HTTP API acceptance, not
+a real browser sign-in test or full replica of the production gateway.
+Driver assertions and existing isolation tests pass locally; the server run of
+this additional mode remains pending. No production cutover is authorized by
+running the rehearsal.

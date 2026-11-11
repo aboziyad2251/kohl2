@@ -2,6 +2,7 @@
 No production containers, volumes, configuration or backups are read or changed.
 Images must already be present. Logs remain private; only stage/status is printed.
 """
+import argparse
 import base64
 import hashlib
 import hmac
@@ -47,6 +48,9 @@ COMMIT;
 """
 
 def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--application",action="store_true",help="Also test the exact application image APIs")
+    args=parser.parse_args()
     os.umask(0o077)
     available = next(int(x.split()[1])*1024 for x in Path('/proc/meminfo').read_text().splitlines() if x.startswith('MemAvailable:'))
     if available < 2*1024**3:
@@ -78,11 +82,11 @@ def main():
             run(args,stdout=log); created.append(names[kind])
             run(['docker','start',names[kind]],stdout=log)
             envfile.unlink()
-        def http(host, path, bearer=None, method='GET', body=None, raw=None):
+        def http(host, path, bearer=None, method='GET', body=None, raw=None, raw_type='application/pdf'):
             headers = {}
             if bearer: headers['Authorization']='Bearer '+bearer
             if raw is not None:
-                headers['Content-Type']='application/pdf'
+                headers['Content-Type']=raw_type
             elif body is not None:
                 headers['Content-Type']='application/json'
             request={'url':host+path,'method':method,'headers':headers,
@@ -146,7 +150,15 @@ CREATE EXTENSION "uuid-ossp" WITH SCHEMA extensions;
 GRANT USAGE ON SCHEMA public,auth,extensions TO anon,authenticated,service_role,supabase_auth_admin,supabase_storage_admin;
 GRANT ALL ON SCHEMA storage TO supabase_storage_admin;
 """)
-            start('runner',extra=['--entrypoint','node'],command=['-e','setInterval(()=>{},60000)'])
+            runner_env={}
+            runner_code='setInterval(()=>{},60000)'
+            if args.application:
+                runner_env={'SUPABASE_SERVER_URL':'http://127.0.0.1:8080',
+                    'NEXT_PUBLIC_SUPABASE_URL':'http://127.0.0.1:8080','NEXT_PUBLIC_SUPABASE_ANON_KEY':anon,
+                    'SUPABASE_SERVICE_ROLE_KEY':service,'HOSTNAME':'0.0.0.0','PORT':'3000',
+                    'NEXT_TELEMETRY_DISABLED':'1'}
+                runner_code=(ROOT/'tests/fixtures/operations-gateway.cjs').read_text()
+            start('runner',runner_env,extra=['--entrypoint','node'],command=['-e',runner_code],memory='512m')
             stage='auth startup'
             start('auth',{
                 'GOTRUE_API_HOST':'0.0.0.0','GOTRUE_API_PORT':'9999','API_EXTERNAL_URL':'http://auth:9999',
@@ -225,7 +237,19 @@ GRANT ALL ON ALL TABLES IN SCHEMA storage TO service_role;
             result=http('http://rest:3000','/rpc/operations_document',access,'POST',{'actor':uid,'operation':'READ','payload':{'id':did}})
             assert result[0] in (401,403)
             print('PRIVATE STORAGE UPLOAD/DOWNLOAD AND DIRECT ACCESS DENIAL OK',flush=True)
-            print('SERVICES TEST PASSED (synthetic data); exact application HTTP flow remains separate.',flush=True)
+            print('SERVICES TEST PASSED (synthetic data).',flush=True)
+            if args.application:
+                stage='application readiness'
+                wait_http('http://127.0.0.1:3000','/login')
+                module_spec=importlib.util.spec_from_file_location('application_fixture',ROOT/'scripts/operations-application-fixture.py')
+                fixture=importlib.util.module_from_spec(module_spec);module_spec.loader.exec_module(fixture)
+                def application_stage(value):
+                    nonlocal stage
+                    stage=value
+                fixture.run(http,require,sql,access,password,service,ROOT,application_stage)
+                print('EXACT APPLICATION API TEST PASSED (synthetic data).',flush=True)
+            else:
+                print('Exact application HTTP flow not requested; use --application.',flush=True)
         except Exception as exc:
             print('STOP: services test failed at '+stage)
             print('Failure type: '+type(exc).__name__)
