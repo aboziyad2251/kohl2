@@ -60,7 +60,8 @@ def main():
     secret, password = secrets.token_hex(32), secrets.token_hex(24)
     anon, service = token(secret,'anon'), token(secret,'service_role')
     folder = Path(tempfile.mkdtemp(prefix='kohl-http-review-'))
-    created, network_created = [], False
+    created, network_created, volume_created = [], False, False
+    volume = network+'_files'
     stage = 'preflight'
     with (folder/'private.log').open('w+b') as log:
         def run(args, **kw):
@@ -161,12 +162,16 @@ GRANT ALL ON SCHEMA storage TO supabase_storage_admin;
             stage='rest and storage startup'
             start('rest',{'PGRST_DB_URI':f'postgres://authenticator:{password}@db:5432/postgres',
                 'PGRST_DB_SCHEMAS':'public,storage','PGRST_DB_ANON_ROLE':'anon','PGRST_JWT_SECRET':secret})
+            # File storage needs xattrs; tmpfs does not provide them on every host.
+            # Own a unique named volume, never a production bind mount.
+            run(['docker','volume','create','--label','kohl.purpose=isolated-http-test',volume],stdout=log)
+            volume_created=True
             start('storage',{'ANON_KEY':anon,'SERVICE_KEY':service,'AUTH_JWT_SECRET':secret,
                 'POSTGREST_URL':'http://rest:3000','DATABASE_URL':f'postgres://supabase_storage_admin:{password}@db:5432/postgres',
                 'STORAGE_BACKEND':'file','FILE_STORAGE_BACKEND_PATH':'/var/lib/storage',
                 'GLOBAL_S3_BUCKET':'review','TENANT_ID':'review','REGION':'local','FILE_SIZE_LIMIT':'5242880',
                 'ENABLE_IMAGE_TRANSFORMATION':'false'},
-                extra=['--tmpfs','/var/lib/storage:rw,mode=1777,size=64m'],memory='512m')
+                extra=['--mount','type=volume,source='+volume+',target=/var/lib/storage'],memory='512m')
             wait_http('http://storage:5000','/status')
             stage='candidate migrations'
             sql("""
@@ -232,13 +237,15 @@ GRANT ALL ON ALL TABLES IN SCHEMA storage TO service_role;
             failed=[]
             for name in reversed(created):
                 if subprocess.run(['docker','rm','-f','-v',name],stdout=log,stderr=log).returncode:failed.append(name)
+            if volume_created:
+                if subprocess.run(['docker','volume','rm',volume],stdout=log,stderr=log).returncode:failed.append(volume)
             if network_created:
                 if subprocess.run(['docker','network','rm',network],stdout=log,stderr=log).returncode:failed.append(network)
             for path in folder.glob('*.env'):path.unlink()
             if failed:
                 print('CLEANUP INCOMPLETE: '+', '.join(failed))
             else:
-                print('Temporary test containers/network removed; production unchanged.')
+                print('Temporary test containers/storage volume/network removed; production unchanged.')
 
 if __name__=='__main__':
     main()

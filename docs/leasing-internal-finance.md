@@ -176,7 +176,7 @@ and SQL privilege checks in the disposable database; production remained unchang
 The next tool, `python3 -B scripts/test-operations-services.py`, uses the exact
 server image IDs for Auth, PostgREST, Storage and PostgreSQL. It creates a new
 internal Docker network, synthetic database/users, generated test credentials and
-tmpfs file storage. No production containers, mounts, configuration, backups or
+a unique disposable Docker volume for file storage (xattrs required). No production containers, mounts, configuration, backups or
 secrets are accessed. It requires 2 GiB available RAM, publishes no host ports,
 and removes its own containers/anonymous volumes/network on exit. Diagnostics
 stay private in a new temporary directory; do not share raw logs.
@@ -188,3 +188,11 @@ only as the Node HTTP test runner; this is not acceptance of the application's
 own document routes or browser login flow. Syntax and mocked orchestration
 isolation tests passed locally. Actual service startup/HTTP acceptance remains
 pending the server run and must not be described as passed.
+
+
+The initial service run reached authenticated finance RPC successfully but the
+file upload failed because the host tmpfs lacked extended attributes. File storage
+now uses a uniquely named, labelled test volume, explicitly removed after its
+containers on success and failure. No existing/production bind mount is used.
+Mock orchestration tests check volume scope and cleanup ordering; the actual
+upload/download on the server remains pending the rerun.

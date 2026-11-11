@@ -57,8 +57,18 @@ class Safety(unittest.TestCase):
         self.assertTrue(any(c[:4]==['docker','network','create','--internal'] for c in commands))
         for c in creates:
             self.assertTrue(c[c.index('--network')+1].startswith('kohl_http_review_'))
-            self.assertNotIn('-p',c);self.assertNotIn('--volume',c);self.assertNotIn('--mount',c)
+            self.assertNotIn('-p',c);self.assertNotIn('--volume',c)
+            if '--mount' in c:
+                mount=c[c.index('--mount')+1]
+                self.assertEqual(mount,'type=volume,source='+c[c.index('--network')+1]+'_files,target=/var/lib/storage')
+                self.assertEqual(c[c.index('--network-alias')+1],'storage')
         self.assertEqual(len([c for c in commands if c[:3]==['docker','rm','-f']]),5)
+        volume_create=[c for c in commands if c[:3]==['docker','volume','create']]
+        self.assertEqual(len(volume_create),1)
+        volume=volume_create[0][-1]
+        self.assertTrue(volume.startswith('kohl_http_review_') and volume.endswith('_files'))
+        self.assertIn(['docker','volume','rm',volume],commands)
+        self.assertLess(max(i for i,c in enumerate(commands) if c[:3]==['docker','rm','-f']),commands.index(['docker','volume','rm',volume]))
         self.assertNotIn('supabase-db',str(commands))
         self.assertNotIn('/home/debian',str(commands))
 
