@@ -54,6 +54,9 @@ jobs:
           node tests/payout-requests.cjs
           node tests/payout-requests-db.cjs
           node tests/operations.cjs
+          node tests/operations-documents.cjs
+          node tests/operations-documents-api.cjs
+          node tests/operations-archive.cjs
           node tests/operations-db.cjs
           python3 tests/hatif-runtime.py
 

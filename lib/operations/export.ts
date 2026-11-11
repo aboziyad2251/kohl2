@@ -7,7 +7,7 @@ export type ExportSnapshot = {
   created_at: string;
   workspace: Workspace;
 };
-export async function downloadWorkbook(s: ExportSnapshot) {
+async function createWorkbook(s: ExportSnapshot) {
   const XLSX = await import("xlsx");
   const book = XLSX.utils.book_new();
   const add = (name: string, rows: Record<string, unknown>[]) =>
@@ -36,6 +36,7 @@ export async function downloadWorkbook(s: ExportSnapshot) {
       .filter((e) => inPeriod(e.date))
       .map((e) => ({
         "رقم العملية": e.id,
+        "معرف الدفعة": e.installment_id || "",
         "طلب التأجير": e.case_id || "",
         النوع: labels[e.kind],
         المبلغ: e.amount,
@@ -54,6 +55,7 @@ export async function downloadWorkbook(s: ExportSnapshot) {
       .filter((d) => d.due_date <= s.to)
       .map((d) => ({
         "طلب التأجير": d.case_id,
+        "رقم الدفعة": d.sequence || 1,
         المستحق: d.amount,
         "تاريخ الاستحقاق": d.due_date,
         "المتبقي في نهاية الفترة": d.balance,
@@ -88,7 +90,30 @@ export async function downloadWorkbook(s: ExportSnapshot) {
         الملاحظة: h.note,
       })),
   );
-  // Strings remain explicit XLSX strings, never formulas from untrusted references.
+  add(
+    "المستندات",
+    (s.workspace.documents || [])
+      .filter((d) =>
+        s.workspace.entries.some(
+          (e) => e.id === d.entry_id && inPeriod(e.date),
+        ),
+      )
+      .map((d) => ({
+        "رقم المستند": d.id,
+        الحركة: d.entry_id,
+        الاسم: d.filename,
+        "حجم الملف": d.size,
+        SHA256: d.sha256,
+      })),
+  );
+  return { XLSX, book };
+}
+export async function workbookBytes(s: ExportSnapshot): Promise<Uint8Array> {
+  const { XLSX, book } = await createWorkbook(s);
+  return new Uint8Array(XLSX.write(book, { type: "array", bookType: "xlsx" }));
+}
+export async function downloadWorkbook(s: ExportSnapshot) {
+  const { XLSX, book } = await createWorkbook(s);
   XLSX.writeFile(
     book,
     `kohl-operations-${s.from}-${s.to}-${s.id.slice(0, 8)}.xlsx`,

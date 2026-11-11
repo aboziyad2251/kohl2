@@ -64,11 +64,13 @@ try:
  results=race(f"select id from portal_private.leasing_units where id='{other}' for update",[command(admin,'CASE_UPDATE',confirm(c1)),command(ceo,'CASE_UPDATE',confirm(c2))])
  assert sorted(r[0]==0 for r in results)==[False,True],results
  winner=sql("select id from portal_private.leasing_cases where stage='CONFIRMED'")
- for rid,reference in ((r1,'BANK1'),(r2,'BANK2')):ok('ENTRY_CREATE',dict(id=rid,case_id=winner,kind='RECEIPT',amount=600,date='2026-11-10',holder='COMPANY',reference=reference,category='Rent',note=''))
+ ok('INSTALLMENTS_SAVE',dict(id=r3,case_id=winner,version=2,note='Split plan',parts=[dict(amount=600,due_date='2026-11-11'),dict(amount=400,due_date='2026-12-11')]))
+ first_installment=sql(f"select id from portal_private.internal_installments where case_id='{winner}' and sequence=1")
+ for rid,reference in ((r1,'BANK1'),(r2,'BANK2')):ok('ENTRY_CREATE',dict(id=rid,case_id=winner,installment_id=first_installment,kind='RECEIPT',amount=400,date='2026-11-10',holder='COMPANY',reference=reference,category='Rent',note=''))
  results=race(f"select id from portal_private.leasing_cases where id='{winner}' for update",[command(admin,'ENTRY_DECIDE',dict(id=r1,status='APPROVED',note='Matched')),command(ceo,'ENTRY_DECIDE',dict(id=r2,status='APPROVED',note='Matched'))])
  assert sorted(r[0]==0 for r in results)==[False,True],results
- assert sql("select sum(amount) from portal_private.internal_entries where status='APPROVED'")=='600.00'
+ assert sql("select sum(amount) from portal_private.internal_entries where status='APPROVED'")=='400.00'
  assert sql("select count(*) from portal_private.internal_dues")=='1'
- print('PostgreSQL 17 concurrency passed: overlapping bookings and competing partial collections serialize correctly')
+ print('PostgreSQL 17 concurrency passed: overlapping bookings and competing partial installment collections serialize correctly')
 finally:
  if created:subprocess.run(['docker','rm','-f',name],check=True,stdout=subprocess.DEVNULL)

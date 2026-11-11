@@ -31,12 +31,18 @@ async function contextFor(browser, role = 'ADMIN', width=1440, accountId=id){
       if(route.request().method()==='POST'){
         const p=route.request().postDataJSON();writes.push(p);
         if(p.operation==='CASE_CREATE') data.cases.unshift({id:p.id,lead_id:p.lead_id,customer_name:'عميل تجريبي',phone:'0500000000',assignee_id:id,assignee_name:'موظف تجريبي',kind:p.kind,source:p.source,need:p.need,stage:'NEW',unit_id:null,start_date:null,end_date:null,amount:null,beneficiary:null,contract_id:null,version:1,created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
+        if(p.operation==='INSTALLMENTS_SAVE'){data.dues=p.parts.map((part,i)=>({...part,id:'aaaaaaaa-aaaa-4aaa-8aaa-'+String(i+10).padStart(12,'0'),sequence:i+1,case_id:p.case_id,voided:false}));data.cases.find(c=>c.id===p.case_id).version++;}
         if(p.operation==='ENTRY_CREATE')data.entries.unshift({...p,status:'PENDING',created_by:id,created_at:new Date().toISOString(),decision_note:''});
         if(p.operation==='ENTRY_DECIDE'){const e=data.entries.find(e=>e.id===p.id);e.status=p.status;e.decision_note=p.note;}
         return json({saved:true});
       }
       return json({...data,role:state.role});
     }
+    if(url.pathname==='/api/operations/documents'){
+     if(route.request().method()==='POST'){data.documents.push({id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',entry_id:data.entries[0].id,filename:'receipt.pdf',mime:'application/pdf',size:16,sha256:'a'.repeat(64),created_at:new Date().toISOString()});return json({saved:true});}
+     return route.fulfill({status:200,contentType:'application/pdf',body:Buffer.from('%PDF-1.7\nfixture')});
+    }
+    if(url.pathname==='/api/operations/export/documents')return route.fulfill({status:200,contentType:'application/zip',body:Buffer.from('fixture-archive')});
     if(url.pathname==='/api/operations/export')return json({id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',from:today,to:today,created_at:new Date().toISOString(),workspace:data});
     if(url.pathname==='/api/audit/export'||url.pathname==='/api/auth/logout')return json({recorded:true});
     if(url.pathname==='/api/audit')return json({logs:[],total:0,page:0});
@@ -61,7 +67,7 @@ async function noOverflow(page){assert(await page.evaluate(()=>document.document
 
 const caseId='aaaaaaaa-aaaa-4aaa-8aaa-000000000001';
 const writes=[];
-const data={role:'ADMIN',captured_at:new Date().toISOString(),cases:[{id:caseId,lead_id:id,customer_name:'عميل تجريبي',phone:'0500000000',assignee_id:id,assignee_name:'موظف تجريبي',kind:'DAILY',source:'هاتف',need:'وحدة لمدة ليلتين',stage:'CONFIRMED',qualified_at:new Date().toISOString(),unit_id:id,start_date:today,end_date:'2027-12-01',amount:1000,beneficiary:'OWNER',contract_id:null,version:2,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}],followups:[{id,case_id:caseId,title:'متابعة عرض الوحدة',due_at:new Date(Date.now()-3600000).toISOString(),completed_at:null,note:'',blocked_by:'NONE',assignee_id:id}],units:[{id,property_id:id,property_name:'عقار تجريبي',code:'101',readiness:'READY',note:'اعتمدت الجاهزية'}],entries:[],dues:[{case_id:caseId,amount:1000,due_date:today,voided:false}],leads:[{id,name:'عميل تجريبي',phone:'0500000000',source:'HATIF'}],properties:[{id,property_name:'عقار تجريبي'}],staff:[{id,name:'موظف تجريبي'}],contracts:[],history:[]};
+const data={documents:[],role:'ADMIN',captured_at:new Date().toISOString(),cases:[{id:caseId,lead_id:id,customer_name:'عميل تجريبي',phone:'0500000000',assignee_id:id,assignee_name:'موظف تجريبي',kind:'DAILY',source:'هاتف',need:'وحدة لمدة ليلتين',stage:'CONFIRMED',qualified_at:new Date().toISOString(),unit_id:id,start_date:today,end_date:'2027-12-01',amount:1000,beneficiary:'OWNER',contract_id:null,version:2,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}],followups:[{id,case_id:caseId,title:'متابعة عرض الوحدة',due_at:new Date(Date.now()-3600000).toISOString(),completed_at:null,note:'',blocked_by:'NONE',assignee_id:id}],units:[{id,property_id:id,property_name:'عقار تجريبي',code:'101',readiness:'READY',note:'اعتمدت الجاهزية'}],entries:[],dues:[{id:'aaaaaaaa-aaaa-4aaa-8aaa-000000000010',sequence:1,case_id:caseId,amount:1000,due_date:today,voided:false}],leads:[{id,name:'عميل تجريبي',phone:'0500000000',source:'HATIF'}],properties:[{id,property_name:'عقار تجريبي'}],staff:[{id,name:'موظف تجريبي'}],contracts:[],history:[]};
 (async()=>{
  fs.mkdirSync(output,{recursive:true});
  const browser=await chromium.launch({executablePath:process.env.KOHL_CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
@@ -75,14 +81,20 @@ const data={role:'ADMIN',captured_at:new Date().toISOString(),cases:[{id:caseId,
   await page.getByLabel('العميل الموجود').selectOption(id);await page.getByLabel('نوع التأجير').selectOption('MONTHLY');
   await page.getByLabel('الاحتياج والميزانية').fill('شهري 3000 ريال');await page.getByLabel('الخطوة القادمة').fill('إرسال الخيارات');await page.getByLabel('موعد المتابعة بتوقيت الرياض').fill('2026-11-12T10:00');
   await page.getByRole('button',{name:'حفظ',exact:true}).click();await page.getByText('تم الحفظ.',{exact:true}).waitFor();assert(writes.some(p=>p.operation==='CASE_CREATE'&&p.kind==='MONTHLY'));
-  await ready(page,'/financials/internal');await page.getByRole('button',{name:'تسجيل حركة',exact:true}).click();
-  await page.getByLabel('طلب التأجير المؤكد (اختياري للمصروف العام)').selectOption(caseId);await page.getByLabel('نوع الحركة').selectOption('RECEIPT');await page.getByLabel('المبلغ بالريال').fill('500');await page.getByLabel('الجهة المستلمة / الدافعة').selectOption('PLATFORM');await page.getByLabel('مرجع التحويل أو المستند (فريد لدى الجهة)').fill('TEST-REF');await page.getByLabel('التصنيف',{exact:true}).fill('إيجار');await page.getByRole('button',{name:'حفظ',exact:true}).click();await page.getByText('تم الحفظ.',{exact:true}).waitFor();
+  await ready(page,'/financials/internal');
+  await page.getByRole('button',{name:'المستحقات',exact:true}).click();await page.locator('.ops-installments summary').click();
+  await page.getByLabel('مبلغ الدفعة 1',{exact:true}).fill('600');await page.getByRole('button',{name:'إضافة دفعة',exact:true}).click();await page.getByLabel('مبلغ الدفعة 2',{exact:true}).fill('400');await page.getByLabel('تاريخ الدفعة 2',{exact:true}).fill('2026-12-11');await page.getByLabel('سبب اعتماد الجدول').fill('دفعتان متفقتان');await page.getByRole('button',{name:'اعتماد جدول الدفعات'}).click();await page.getByText('تم الحفظ.',{exact:true}).waitFor();assert.equal(data.dues.length,2);
+  await page.screenshot({path:output+'/installments-desktop.png',fullPage:true});
+  await page.getByRole('button',{name:'الحركات والمراجعة',exact:true}).click();await page.getByRole('button',{name:'تسجيل حركة',exact:true}).click();
+  await page.getByLabel('طلب التأجير المؤكد (اختياري للمصروف العام)').selectOption(caseId);await page.getByLabel('نوع الحركة').selectOption('RECEIPT');await page.getByLabel('الدفعة المرتبطة').selectOption(data.dues[0].id);await page.getByLabel('المبلغ بالريال').fill('500');await page.getByLabel('الجهة المستلمة / الدافعة').selectOption('PLATFORM');await page.getByLabel('مرجع التحويل أو المستند (فريد لدى الجهة)').fill('TEST-REF');await page.getByLabel('التصنيف',{exact:true}).fill('إيجار');await page.getByRole('button',{name:'حفظ',exact:true}).click();await page.getByText('تم الحفظ.',{exact:true}).waitFor();
+  await page.locator('.ops-documents summary').click();await page.getByLabel('مستند الحركة').setInputFiles({name:'receipt.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.7\nfixture')});await page.getByRole('button',{name:'رفع المستند',exact:true}).click();await page.getByRole('button',{name:'receipt.pdf',exact:true}).waitFor();assert.equal(data.documents.length,1);
   await page.getByRole('button',{name:'مراجعة',exact:true}).click();await page.getByLabel('قرار المراجعة').selectOption('APPROVED');await page.getByLabel('نتيجة المطابقة أو سبب الرفض').fill('مطابق للكشف التجريبي');await page.getByRole('button',{name:'حفظ',exact:true}).click();await page.getByText('تم الحفظ.',{exact:true}).waitFor();assert.equal(data.entries[0].status,'APPROVED');
   await page.getByRole('button',{name:'تقرير المحاسب',exact:true}).click();const downloaded=page.waitForEvent('download');await page.getByRole('button',{name:'حفظ نسخة وتصدير Excel'}).click();assert((await downloaded).suggestedFilename().endsWith('.xlsx'));
+  const archive=page.waitForEvent('download');await page.getByRole('button',{name:'تنزيل حزمة المحاسب مع المرفقات'}).click();assert((await archive).suggestedFilename().endsWith('.zip'));
   await page.screenshot({path:output+'/finance-desktop.png',fullPage:true});await context.close();
   context=await contextFor(browser,'EMPLOYEE',390);page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));await ready(page,'/leasing');await noOverflow(page);await page.screenshot({path:output+'/leasing-mobile.png',fullPage:true});
   await ready(page,'/financials/internal');await page.getByRole('heading',{name:'المالية الداخلية',exact:true,level:1}).waitFor();assert.equal(await page.getByRole('button',{name:'مراجعة',exact:true}).count(),0);await noOverflow(page);await page.screenshot({path:output+'/finance-mobile.png',fullPage:true});await context.close();
   context=await contextFor(browser,'OWNER',390);page=await context.newPage();await page.goto(origin+'/leasing');await page.waitForURL('**/portal');await context.close();
-  assert.deepEqual(errors,[]);console.log('Operations browser passed: create request, financial review, Excel export, employee controls, external redirect, desktop/mobile');
+  assert.deepEqual(errors,[]);console.log('Operations browser passed: create request, installments, private documents, financial review, Excel/archive export, employee controls, external redirect, desktop/mobile');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1);});

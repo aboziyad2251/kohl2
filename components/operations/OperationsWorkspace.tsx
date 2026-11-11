@@ -24,6 +24,9 @@ import {
 } from "@/lib/operations/model";
 import { downloadWorkbook, type ExportSnapshot } from "@/lib/operations/export";
 import "./operations.css";
+import DocumentsPanel from "./DocumentsPanel";
+import InstallmentEditor from "./InstallmentEditor";
+import { saveDownload } from "@/lib/operations/client";
 const money = (v: number) =>
   new Intl.NumberFormat("ar-SA", { style: "currency", currency: "SAR" }).format(
     v,
@@ -70,12 +73,14 @@ function Options({
   items,
   value,
   optional = false,
+  onChange,
 }: {
   name: string;
   label: string;
   items: { id: string; name: string }[];
   value?: string;
   optional?: boolean;
+  onChange?: (value: string) => void;
 }) {
   return (
     <label className="ops-field">
@@ -85,6 +90,7 @@ function Options({
         name={name}
         defaultValue={value || ""}
         required={!optional}
+        onChange={(e) => onChange?.(e.target.value)}
       >
         <option value="">{optional ? "غير محدد" : "اختر"}</option>
         {items.map((i) => (
@@ -104,6 +110,8 @@ export default function OperationsWorkspace({
   mode: "leasing" | "finance";
 }) {
   const { currentUser, isExecutive } = useAuth();
+  const [entryCase, setEntryCase] = useState(""),
+    [entryKind, setEntryKind] = useState("");
   const [w, setW] = useState<Workspace | null>(null),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
@@ -185,6 +193,8 @@ export default function OperationsWorkspace({
     };
   }, [form?.id]);
   const open = (type: string, item?: Case | Unit) => {
+    setEntryCase("");
+    setEntryKind("");
     setForm({ type, id: crypto.randomUUID(), item });
     setError("");
     setNotice("");
@@ -276,6 +286,7 @@ export default function OperationsWorkspace({
         return await save({
           operation: "ENTRY_CREATE",
           id: form.id,
+          installment_id: nullable("installment_id"),
           case_id: nullable("case_id"),
           kind: get("kind"),
           amount: Number(get("amount")),
@@ -737,6 +748,14 @@ export default function OperationsWorkspace({
                       <p>{e.note}</p>
                       {e.decision_note && <p>المراجعة: {e.decision_note}</p>}
                     </div>
+                    <DocumentsPanel
+                      entryId={e.id}
+                      documents={(w.documents || []).filter(
+                        (d) => d.entry_id === e.id,
+                      )}
+                      editable={e.status === "PENDING"}
+                      onSaved={load}
+                    />
                     {isExecutive && e.status === "PENDING" && (
                       <button
                         className="ops-link"
@@ -765,6 +784,25 @@ export default function OperationsWorkspace({
                 </p>
               ) : (
                 <>
+                  <h2>جداول الدفعات</h2>
+                  <div className="ops-list">
+                    {w.cases
+                      .filter((c) => c.stage === "CONFIRMED")
+                      .map((c) => (
+                        <InstallmentEditor
+                          key={c.id + ":" + c.version}
+                          item={c}
+                          dues={w.dues.filter((d) => d.case_id === c.id)}
+                          busy={busy}
+                          locked={w.entries.some(
+                            (e) =>
+                              e.case_id === c.id &&
+                              ["RECEIPT", "REFUND"].includes(e.kind),
+                          )}
+                          onSave={save}
+                        />
+                      ))}
+                  </div>
                   <h2>المستحقات حتى نهاية الفترة</h2>
                   <div className="ops-list">
                     {m!.outstanding
@@ -772,10 +810,12 @@ export default function OperationsWorkspace({
                       .map((d) => (
                         <article
                           className="portal-card ops-row"
-                          key={d.case_id}
+                          key={d.id || d.case_id}
                         >
                           <div>
-                            <h3>{caseName(d.case_id)}</h3>
+                            <h3>
+                              {caseName(d.case_id)} · الدفعة {d.sequence || 1}
+                            </h3>
                             <p>
                               الاستحقاق: {d.due_date} · الإجمالي:{" "}
                               {money(Number(d.amount))}
@@ -804,9 +844,9 @@ export default function OperationsWorkspace({
                     </button>
                   </div>
                   <p>
-                    يحتوي التقرير على الحركات وحالات مراجعتها والمستحقات وطلبات
-                    التأجير. المستندات تُسلّم وفق المراجع المسجلة؛ رفع المرفقات
-                    وتجميعها سيُستكمل في المرحلة التالية.
+                    يتضمن التقرير الحركات والدفعات ومراجع المستندات. احفظ نسخة
+                    ثم نزّل حزمة المحاسب التي تضم Excel والمرفقات الخاصة كما
+                    كانت عند حفظها.
                   </p>
                   {!!w.exports?.length && (
                     <div className="ops-list">
@@ -834,6 +874,31 @@ export default function OperationsWorkspace({
                         onClick={() => void downloadWorkbook(exported)}
                       >
                         تنزيل نفس النسخة
+                      </button>
+                      <button
+                        className="portal-button"
+                        disabled={busy}
+                        onClick={async () => {
+                          setBusy(true);
+                          setError("");
+                          try {
+                            await saveDownload(
+                              "/api/operations/export/documents?id=" +
+                                exported.id,
+                              `kohl-accountant-${exported.id}.zip`,
+                            );
+                          } catch (e) {
+                            setError(
+                              e instanceof Error
+                                ? e.message
+                                : "تعذر تنزيل الحزمة",
+                            );
+                          } finally {
+                            setBusy(false);
+                          }
+                        }}
+                      >
+                        تنزيل حزمة المحاسب مع المرفقات
                       </button>
                       <button
                         className="ops-link"
@@ -1117,14 +1182,35 @@ export default function OperationsWorkspace({
                             "CONFIRMED",
                         )}
                         optional={isExecutive}
+                        onChange={setEntryCase}
                       />
                       <Options
                         name="kind"
                         label="نوع الحركة"
+                        onChange={setEntryKind}
                         items={options(
                           isExecutive ? entryKinds : ["RECEIPT", "DEPOSIT_IN"],
                         )}
                       />
+                      {["RECEIPT", "REFUND"].includes(entryKind) && (
+                        <Options
+                          key={entryCase}
+                          name="installment_id"
+                          label="الدفعة المرتبطة"
+                          items={w.dues
+                            .filter((d) => d.case_id === entryCase && !d.voided)
+                            .map((d) => ({
+                              id: d.id || "",
+                              name: `دفعة ${d.sequence || 1} · ${d.due_date} · ${money(Number(d.amount))}`,
+                            }))}
+                          value={
+                            w.dues.filter((d) => d.case_id === entryCase)
+                              .length === 1
+                              ? w.dues.find((d) => d.case_id === entryCase)?.id
+                              : undefined
+                          }
+                        />
+                      )}
                       <Input
                         name="amount"
                         label="المبلغ بالريال"

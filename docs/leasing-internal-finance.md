@@ -19,7 +19,7 @@
 - متابعة محددة بتاريخ الرياض ونتيجة موثقة. عرض الوصول والمغادرة اليوم.
 - وحدات ثابتة الهوية مرتبطة بالعقارات. الجاهزية للإدارة؛ التأكيد يحتاج وحدة جاهزة.
 - فترات الحجز نصف مفتوحة: تاريخ البداية مشمول والمغادرة غير مشمولة، وينطبق ذلك على جميع المدد. يجب الاتفاق مع التشغيل على تحويل نهاية العقد الشاملة إلى مغادرة غير مشمولة عند الإدخال.
-- منع تداخل تأكيدين على الوحدة نفسها بقفل قاعدة البيانات. إنشاء مستحق واحد عند التأكيد. ربط اختياري بعقد موجود، لا إنشاء عقد إيجار قانوني أو تحديثه آلياً.
+- منع تداخل تأكيدين على الوحدة نفسها بقفل قاعدة البيانات. إنشاء مستحق وجدول بدفعة واحدة عند التأكيد، مع تقسيمه إدارياً إلى دفعات مجموعها يساوي الإيجار قبل تسجيل أي تحصيل أو رد. ربط اختياري بعقد موجود، لا إنشاء عقد إيجار قانوني أو تحديثه آلياً.
 - `/financials/internal`: مستحقات، تحصيل جزئي، مصروفات، تأمينات، رد تحصيل وصرف مبالغ للمالك. جهة التحصيل مستقلة عن صاحب استحقاق الإيجار.
 - الموظف يقدم التحصيل/استلام التأمين لطلبه المؤكد؛ الإدارة وحدها تسجل بقية الأنواع وتعتمد/ترفض. يرى الموظف فقط الحركات التي قدمها، مع بيان أنها ليست إجمالي الشركة.
 - لا تتجاوز التحصيلات المعتمدة المستحق؛ رد التأمين لا يتجاوز المستلم لدى نفس الجهة؛ صرف المالك ورد التحصيل يتحققان من الرصيد المتاح المسجل. لا تنفيذ لتحويلات بنكية.
@@ -28,6 +28,14 @@
 - تقارير Excel بحركات الفترة والمستحقات والتأجير والتدقيق، وملخص قابل للطباعة إلى PDF. تحفظ نسخة غير قابلة للتغيير ويمكن إعادة تنزيل آخر 50 نسخة من الشاشة. التاريخ المالي هو تاريخ العملية؛ الاعتماد المعروض كما كان عند حفظ النسخة.
 - ملخص KR اختياري عبر `KOHL_OPERATIONS_KR_ENABLED=true` بعد تطبيق الترحيل. يضيف ملاحظات مستقلة ولا يجمع المالية الداخلية مع `financial_transactions` لتجنب احتساب العملية مرتين.
 - لا حذف أو إعادة هيكلة للجداول القديمة، ولا تغيير لربط هاتف أو بيانات الحسابات.
+
+## الدفعات والمستندات — 11 نوفمبر 2026
+
+- جدول حتى 120 دفعة بتواريخ ومبالغ دقيقة. التحصيل والرد مرتبطان بالدفعة، ويمنع تجاوز رصيدها حتى مع طلبين متزامنين.
+- PDF وPNG وJPEG وWebP حتى 5 ميغابايت للمستند و10 مستندات للحركة. التخزين خاص والتنزيل مصرح من الخادم؛ لا روابط عامة.
+- رفع المستندات للحركات المنتظرة فقط، وتتجمد المرفقات عند اعتماد الحركة أو رفضها. الموظف يصل لمرفقات حركاته فقط.
+- حزمة ZIP للمحاسب تضم Excel والمرفقات الموجودة عند حفظ التقرير وبيان تحقق SHA-256. الحد 200 ملف و50 ميغابايت؛ فقدان ملف أو تغيره يوقف التنزيل بالكامل.
+- استعادة رفع انقطع بعد تخزين الملف دون استبداله، ومنع حذف مستند مكتمل عند فقدان استجابة الخادم. قد تحتاج الملفات اليتيمة الناتجة عن فشل تنظيف التخزين إلى صيانة منفصلة.
 
 ## المؤشرات وحدودها
 
@@ -39,16 +47,17 @@
 
 ## ما يبقى من الخطة الكبيرة
 
-1. رفع المستندات إلى التخزين الخاص وتجميع مرفقات المحاسب؛ النسخة الحالية تحفظ مرجع المستند ومكانه فقط. لا تضع روابط عامة لمستندات خاصة.
+1. مراجعة التكامل مع Auth/PostgREST/Storage الحقيقي في بيئة معزولة قبل النشر؛ اختبارات التخزين الحالية تستخدم محاكاة API واختبارات صلاحيات SQL.
 2. اعتماد التصنيفات والمعالجة الضريبية وقالب التصدير مع المحاسب، ومطابقة السجلات القديمة قبل ترحيل أرصدتها. هذه مساحة تشغيلية وليست دفتر أستاذ أو إقراراً ضريبياً.
-3. جداول دفعات متعددة بدلاً من مستحق واحد، ومسارات تسوية/إلغاء محاسبي متقدمة، وصرف عمولات مرتبط بالحركات. واجهة العمولات الحالية تبقى المرجع؛ لم يُنشأ بديل لها.
+3. مسارات تسوية/إلغاء محاسبي متقدمة، وصرف عمولات مرتبط بالحركات. واجهة العمولات الحالية تبقى المرجع؛ لم يُنشأ بديل لها.
 4. إعداد ساعات الدوام وأهداف المؤشرات ومراجعة العوائق، وتنبيهات التجديد، وتحسين البحث والترقيم للحجم الكبير.
 5. تكامل قنوات الحجز وقراءة الفواتير آلياً، وقياس سرعة الرد من بيانات هاتف الموثقة. لا ربط Airbnb مباشر في هذه النسخة.
 6. توسيع ملخص PDF اليومي ليشمل التفاصيل والمرفقات؛ التقرير الكامل الآن في Excel والملخص ضمن KR عند تفعيله.
 
 ## Database and security
 
-The CLI-created candidate is `supabase/migrations/20261110143135_leasing_internal_finance.sql`.
+The first CLI-created candidate is `supabase/migrations/20261110143135_leasing_internal_finance.sql`.
+Apply it before the second candidate, `20261110215449_operations_private_documents.sql`. Neither migration has been deployed; the first candidate was extended in this branch, not patched on production.
 It introduces private tables with RLS and no direct anon/authenticated grants. The existing
 project pattern of a narrow SECURITY DEFINER RPC is retained with an empty search path,
 `auth.uid()` identity, active private account authorization, strict operation/key validation,
@@ -87,6 +96,9 @@ npx tsc --noEmit
 node scripts/check-release-baseline.cjs
 node tests/operations.cjs
 node tests/operations-db.cjs
+node tests/operations-documents.cjs
+node tests/operations-documents-api.cjs
+node tests/operations-archive.cjs
 python3 tests/hatif-runtime.py
 # Requires isolated Docker PostgreSQL image, never production:
 python3 scripts/test-operations-postgres.py
@@ -111,3 +123,12 @@ Excel download, employee controls and external-redirect browser checks. Existing
 navigation, KR, audit, payout API and payout DB regressions also passed. Screenshots were visually
 reviewed at 1440px and 390px. All data synthetic; no real bank transfer, customer write, deployed
 Auth/PostgREST integration, production migration, production rollout or remote CI result is claimed.
+
+## Recorded local results — 11 November 2026
+
+The extended candidate passes build, TypeScript, the 78-route baseline, PGlite
+installment/document authorization tests, real PostgreSQL concurrent installment
+approval tests, document API failure/recovery tests, real XLSX/ZIP archive integrity
+checks and synthetic desktop/mobile browser flows (schedule, upload, approval and
+downloads). Production Storage/Auth integration remains unverified. The branch is
+reviewed in https://github.com/aboziyad2251/kohl2/pull/2; no production changes.

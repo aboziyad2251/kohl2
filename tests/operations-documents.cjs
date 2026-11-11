@@ -1,0 +1,12 @@
+const assert=require('assert/strict'),fs=require('fs'),{spawnSync}=require('child_process'),{loadTS}=require('./load-ts.cjs');
+const {inspectDocument,documentFilename,DOCUMENT_LIMIT}=loadTS('lib/operations/documents.ts');
+assert.equal(inspectDocument('application/pdf',Buffer.from('%PDF-1.7\nfixture')),'pdf');
+assert.equal(inspectDocument('application/pdf',Buffer.from('<html>')),null);
+assert.equal(inspectDocument('text/html',Buffer.from('%PDF-1.7\n')),null);
+assert.equal(inspectDocument('image/png',new Uint8Array(DOCUMENT_LIMIT+1)),null);
+assert(!documentFilename('../../bad\nname.pdf').includes('/'));
+const {storedZip}=loadTS('lib/operations/zip.ts');
+const file='/tmp/kohl-documents-fixture.zip';fs.writeFileSync(file,storedZip([{name:'manifest.json',bytes:Buffer.from('{"fixture":true}')},{name:'documents/test.pdf',bytes:Buffer.from('%PDF-1.7\nfixture')}]));
+const result=spawnSync('python3',['-c',"import zipfile,sys; z=zipfile.ZipFile(sys.argv[1]); assert z.testzip() is None; assert z.read('manifest.json')==b'{\"fixture\":true}'; assert len(z.namelist())==2",file],{encoding:'utf8'});assert.equal(result.status,0,result.stderr);fs.unlinkSync(file);
+assert.throws(()=>storedZip([{name:'../escape',bytes:Buffer.from('x')}]));
+console.log('Document signatures, limits, filenames and ZIP integrity passed');

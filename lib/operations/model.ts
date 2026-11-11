@@ -64,6 +64,19 @@ export const labels: Record<string, string> = {
 export const operationAction = z.discriminatedUnion("operation", [
   z
     .object({
+      operation: z.literal("INSTALLMENTS_SAVE"),
+      id,
+      case_id: id,
+      version: z.number().int().positive(),
+      note: short,
+      parts: z
+        .array(z.object({ amount, due_date: reportDate }).strict())
+        .min(1)
+        .max(120),
+    })
+    .strict(),
+  z
+    .object({
       operation: z.literal("CASE_CREATE"),
       id,
       lead_id: id,
@@ -121,6 +134,7 @@ export const operationAction = z.discriminatedUnion("operation", [
     .object({
       operation: z.literal("ENTRY_CREATE"),
       id,
+      installment_id: id.nullable().optional(),
       case_id: id.nullable(),
       kind: z.enum(entryKinds),
       amount,
@@ -181,6 +195,7 @@ export type Followup = {
   assignee_id: string;
 };
 export type Entry = {
+  installment_id?: string | null;
   id: string;
   case_id: string | null;
   kind: (typeof entryKinds)[number];
@@ -204,7 +219,17 @@ export type Unit = {
   readiness: string;
   note: string;
 };
+export type FinanceDocument = {
+  id: string;
+  entry_id: string;
+  filename: string;
+  mime: string;
+  size: number;
+  sha256: string;
+  created_at: string;
+};
 export type Workspace = {
+  documents?: FinanceDocument[];
   exports?: {
     id: string;
     period_from: string;
@@ -217,6 +242,8 @@ export type Workspace = {
   entries: Entry[];
   units: Unit[];
   dues: {
+    id?: string;
+    sequence?: number;
     case_id: string;
     amount: number;
     due_date: string;
@@ -274,6 +301,7 @@ export function metrics(
         .filter(
           (e) =>
             e.case_id === d.case_id &&
+            (!d.id || e.installment_id === d.id) &&
             e.status === "APPROVED" &&
             e.kind === "RECEIPT" &&
             e.date <= to,
@@ -283,6 +311,7 @@ export function metrics(
         .filter(
           (e) =>
             e.case_id === d.case_id &&
+            (!d.id || e.installment_id === d.id) &&
             e.status === "APPROVED" &&
             e.kind === "REFUND" &&
             e.date <= to,

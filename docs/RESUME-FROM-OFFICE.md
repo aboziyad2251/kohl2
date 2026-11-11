@@ -1,4 +1,4 @@
-# Work in progress — leasing/internal finance, 10 November 2026
+# Work in progress — leasing/internal finance, 11 November 2026
 
 Source candidate on `codex/leasing-internal-finance`, based on latest reconciled
 `codex/role-portals` including KR audit-noise fix. Read `docs/leasing-internal-finance.md`.
@@ -6,7 +6,8 @@ New main-app leasing and internal finance workspaces, private candidate migratio
 scoped RPC, tests and persistent Hatif preflight are prepared for review.
 No production migration/deployment was performed. User confirmed mixed collection
 holders (company/owner/platform) and executive approvals. This is the first functional
-slice; the document lists remaining attachments, payment schedules and integrations.
+slice plus installment schedules, private attachments and accountant ZIP exports.
+Both candidate migrations remain undeployed. Continue from PR #2; the document lists remaining integration and release checks.
 Keep the live main/broker/account deployment and Hatif settings intact. Never rerun
 historical payout migrations/scripts to ship this candidate.
 
