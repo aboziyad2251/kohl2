@@ -21,10 +21,17 @@ receipt for revised PT409 candidates and exact-image API acceptance for source
 Reviewed-document requests returned 409 in 271/277 ms; accountant ZIP,
 employee isolation and deactivation passed with synthetic data. GitHub run
 43051486852 also passed. Production remains unchanged.
-Next: run prepare-operations-release.py with the latest private restore receipt;
-it only validates and saves private runtime/plan snapshots. No apply dispatcher
-is prepared yet. A fresh DB backup, reviewed cutover/rollback procedure and explicit
-release approval remain required. Historical scripts must not be used.
+Next checkpoint (12 November, Riyadh): the operator's preparation succeeded;
+latest private plan is `/home/debian/backups/kohl-operations-plan-zgq5zzee`.
+The interrupted release dispatcher was recovered from the previous chat and
+hardened with a host-wide lock, pinned SQL hashes, repeated Hatif/runtime checks,
+atomic migrations, durable attempt receipts and explicit application recovery.
+Read `docs/operations-release.md`. Next server step is the read-only dry run in
+that document; actual deployment still requires specific release approval.
+No production access, migration or cutover was performed in the resumed cloud work.
+Application image and candidate SQL remain unchanged. The original app container
+and additive schema/data are retained on application rollback; never restore an
+older production dump automatically.
 
 ---
 

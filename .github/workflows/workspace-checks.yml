@@ -60,6 +60,9 @@ jobs:
           node tests/operations-db.cjs
           python3 tests/hatif-runtime.py
           python3 -B tests/postgres-test-runtime.py
+          python3 -B tests/operations-release-plan.py
+          python3 -B tests/operations-release-dispatcher.py
+          node tests/operations-release-transaction.cjs
 
       - name: PostgreSQL payout and leasing concurrency (isolated)
         if: matrix.node == 22
