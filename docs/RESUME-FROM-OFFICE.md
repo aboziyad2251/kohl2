@@ -32,7 +32,12 @@ never automatically restore an older database dump. The new phase is in progress
 on `codex/leasing-approval-chain`; read `docs/leasing-approval-chain.md`.
 The operator supplied verified active ADMIN and CEO account IDs privately; do not
 commit them. Local database/browser verification does not authorize production
-cutover. Exact-image service acceptance and a new release plan are still needed.
+cutover. On 13 November (Riyadh), the operator reported exact-image approval-chain
+HTTP acceptance passed and temporary services were removed. The image ID was not
+included in the pasted result. Use the new PREPARE_ONLY tool documented in
+`docs/leasing-approval-chain.md` to capture that ID, make a fresh private backup,
+rehearse the new migration offline, and preserve the validated Hatif runtime.
+A new cutover dispatcher still needs preparation and review. Do not reuse the old one.
 
 ---
 

@@ -62,6 +62,7 @@ jobs:
           python3 tests/hatif-runtime.py
           python3 -B tests/postgres-test-runtime.py
           python3 -B tests/operations-release-plan.py
+          python3 -B tests/approval-release-preparation.py
           python3 -B tests/operations-release-dispatcher.py
           node tests/operations-release-transaction.cjs
 
@@ -71,3 +72,4 @@ jobs:
           docker pull postgres@sha256:3540c0362c809df084ffac0ae69fe794515f9de92692f02178bcdce0ef0302ac
           python3 scripts/test-payout-postgres.py
           python3 scripts/test-operations-postgres.py
+          python3 -B tests/approval-release-preparation.py --integration
