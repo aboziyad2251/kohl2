@@ -25,6 +25,7 @@ import {
 } from "@/lib/operations/model";
 import { downloadWorkbook, type ExportSnapshot } from "@/lib/operations/export";
 import "./operations.css";
+import LeasingAssistant from "./LeasingAssistant";
 import DocumentsPanel from "./DocumentsPanel";
 import InstallmentEditor from "./InstallmentEditor";
 import { saveDownload } from "@/lib/operations/client";
@@ -129,6 +130,9 @@ export default function OperationsWorkspace({
       item?: Case | Unit;
     }>(),
     [exported, setExported] = useState<ExportSnapshot>();
+  useEffect(() => {
+    if (w?.workflow?.assistant_available && new URLSearchParams(window.location.search).get("view") === "assistant") setTab("assistant");
+  }, [w?.workflow?.assistant_available]);
   const generation = useRef(0),
     inflight = useRef(false);
   const load = useCallback(async () => {
@@ -201,7 +205,7 @@ export default function OperationsWorkspace({
     setNotice("");
   };
   async function save(input: unknown) {
-    if (inflight.current) return;
+    if (inflight.current) return false;
     inflight.current = true;
     setBusy(true);
     setError("");
@@ -214,12 +218,14 @@ export default function OperationsWorkspace({
       setForm(undefined);
       setNotice("تم الحفظ.");
       await load();
+      return true;
     } catch (e) {
       setError(
         e instanceof Error && e.name !== "ZodError"
           ? e.message
           : "راجع الحقول المطلوبة والتواريخ والمبالغ.",
       );
+      return false;
     } finally {
       inflight.current = false;
       setBusy(false);
@@ -309,7 +315,7 @@ export default function OperationsWorkspace({
     }
   }
   async function exportReport() {
-    if (inflight.current) return;
+    if (inflight.current) return false;
     inflight.current = true;
     setBusy(true);
     setError("");
@@ -364,6 +370,7 @@ export default function OperationsWorkspace({
           ["cases", "طلبات التأجير"],
           ["units", "الوحدات والتجهيز"],
           ["performance", "الأداء والتحسين"],
+          ...(w?.workflow?.assistant_available ? [["assistant", "أخصائي التأجير"]] : []),
         ]
       : [
           ["entries", "الحركات والمراجعة"],
@@ -506,6 +513,11 @@ export default function OperationsWorkspace({
                 : "تظهر فقط الحركات التي سجلتها؛ ليست إجمالي الشركة."}
             </p>
           )}
+          {tab === "assistant" && w.workflow?.assistant_available && (
+            <LeasingAssistant workspace={w} owner={currentUser.id} busy={busy}
+              onPlan={(id) => save({operation:"ASSISTANT_PLAN",id})}
+              onFollowup={(item) => open("followup", item)} />
+          )}
           {tab === "today" && (
             <>
               <div className="ops-section-head">
@@ -524,6 +536,7 @@ export default function OperationsWorkspace({
                     <article className="portal-card ops-row" key={f.id}>
                       <div>
                         <h3>{f.title}</h3>
+                        {f.origin === "LEASING_ASSISTANT" && <span className="ops-badge">مهمة أعدّها أخصائي التأجير الافتراضي</span>}
                         <p>
                           {caseName(f.case_id)} · {dateTime(f.due_at)}
                         </p>
@@ -765,7 +778,9 @@ export default function OperationsWorkspace({
                     <div>
                       <h3>
                         {labels[e.kind]} · {money(Number(e.amount))}{" "}
-                        <span className="ops-badge">{labels[e.status]}</span>
+                        <span className="ops-badge">{e.status === "PENDING" && w.workflow
+                          ? e.manager_reviewed_at ? "بانتظار اعتماد "+w.workflow.final_name : "بانتظار مراجعة "+w.workflow.manager_name
+                          : labels[e.status]}</span>
                       </h3>
                       <p>
                         {caseName(e.case_id)} · {e.date} · الجهة:{" "}
@@ -775,6 +790,7 @@ export default function OperationsWorkspace({
                         المرجع: {e.reference} · {e.category}
                       </p>
                       <p>{e.note}</p>
+                      {e.manager_reviewed_at && <p>مراجعة المدير: {e.manager_review_note} · {dateTime(e.manager_reviewed_at)}</p>}
                       {e.decision_note && <p>المراجعة: {e.decision_note}</p>}
                     </div>
                     <DocumentsPanel
@@ -782,10 +798,11 @@ export default function OperationsWorkspace({
                       documents={(w.documents || []).filter(
                         (d) => d.entry_id === e.id,
                       )}
-                      editable={e.status === "PENDING"}
+                      editable={e.status === "PENDING" && !e.manager_reviewed_at}
                       onSaved={load}
                     />
-                    {isExecutive && e.status === "PENDING" && (
+                    {isExecutive && e.status === "PENDING" && (!w.workflow ||
+                      (e.manager_reviewed_at ? currentUser.id === w.workflow.final_id : currentUser.id === w.workflow.manager_id)) && (
                       <button
                         className="ops-link"
                         onClick={() => setForm({ type: "decision", id: e.id })}
@@ -828,7 +845,7 @@ export default function OperationsWorkspace({
                               e.case_id === c.id &&
                               ["RECEIPT", "REFUND"].includes(e.kind),
                           )}
-                          onSave={save}
+                          onSave={async (input) => { await save(input); }}
                         />
                       ))}
                   </div>
@@ -1282,12 +1299,14 @@ export default function OperationsWorkspace({
                       <Options
                         name="status"
                         label="قرار المراجعة"
-                        items={options(["APPROVED", "REJECTED"])}
+                        items={[
+                          {id:"APPROVED",name:w.workflow && currentUser.id === w.workflow.manager_id ? "مراجعة ورفع لسالم للاعتماد النهائي" : "اعتماد نهائي"},
+                          {id:"REJECTED",name:"رفض مع توضيح السبب"},
+                        ]}
                       />
                       <Input name="note" label="نتيجة المطابقة أو سبب الرفض" />
                       <p className="ops-help">
-                        اعتمد فقط بعد مراجعة البنك أو كشف الجهة والمستند. القرار
-                        نهائي ومسجل في التاريخ.
+                        مراجعة محمد ترفع الطلب لسالم وتجمد المرفقات، ولا تحتسب المبلغ معتمداً. الاعتماد المالي النهائي لسالم فقط.
                       </p>
                     </>
                   )}

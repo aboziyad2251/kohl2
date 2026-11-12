@@ -58,6 +58,7 @@ jobs:
           node tests/operations-documents-api.cjs
           node tests/operations-archive.cjs
           node tests/operations-db.cjs
+          node tests/operations-approval-chain.cjs
           python3 tests/hatif-runtime.py
           python3 -B tests/postgres-test-runtime.py
           python3 -B tests/operations-release-plan.py

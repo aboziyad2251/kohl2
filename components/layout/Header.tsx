@@ -18,6 +18,7 @@ import {
   Menu,
   X,
 } from 'lucide-react';
+import { portalRequest } from '@/lib/portal/client';
 import { useAuth } from '@/context/AuthContext';
 import { useLayout } from '@/context/LayoutContext';
 import { AppUser, UserRole } from '@/lib/types';
@@ -57,6 +58,18 @@ export default function Header({
   } = useAuth();
 
   const { toggleMobileNav, isMobileNavOpen } = useLayout();
+
+  const [assistantOwner, setAssistantOwner] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    setAssistantOwner(null);
+    if (currentUser.role === 'ADMIN') {
+      portalRequest<{assistant_available:boolean}>('/api/operations/workflow')
+        .then(data => { if (active && data.assistant_available) setAssistantOwner(currentUser.id); })
+        .catch(() => {});
+    }
+    return () => { active = false; };
+  }, [currentUser.id, currentUser.role]);
 
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
   const [selectedTargetUser, setSelectedTargetUser] = useState<AppUser | null>(null);
@@ -186,6 +199,12 @@ export default function Header({
                 }`}
               />
             </button>
+            {assistantOwner === currentUser.id && (
+              <a href="/leasing?view=assistant" className="block text-[11px] text-center mt-1 text-amber-600">
+                أخصائي التأجير · مساعد افتراضي
+              </a>
+            )}
+
 
             {/* User & Role Dropdown Menu */}
             {isSwitcherOpen && (

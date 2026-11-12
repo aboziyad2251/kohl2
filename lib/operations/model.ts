@@ -153,6 +153,7 @@ export const operationAction = z.discriminatedUnion("operation", [
       note: short,
     })
     .strict(),
+  z.object({ operation: z.literal("ASSISTANT_PLAN"), id }).strict(),
 ]);
 export const periodSchema = z
   .object({ from: reportDate, to: reportDate })
@@ -185,6 +186,7 @@ export type Case = {
   updated_at: string;
 };
 export type Followup = {
+  origin?: "HUMAN" | "LEASING_ASSISTANT";
   id: string;
   case_id: string;
   title: string;
@@ -195,6 +197,9 @@ export type Followup = {
   assignee_id: string;
 };
 export type Entry = {
+  manager_reviewed_at?: string | null;
+  manager_reviewed_by?: string | null;
+  manager_review_note?: string;
   installment_id?: string | null;
   id: string;
   case_id: string | null;
@@ -228,7 +233,12 @@ export type FinanceDocument = {
   sha256: string;
   created_at: string;
 };
+export type Workflow = {
+  manager_id: string; final_id: string; manager_name: string; final_name: string;
+  assistant_available: boolean;
+};
 export type Workspace = {
+  workflow?: Workflow;
   documents?: FinanceDocument[];
   exports?: {
     id: string;

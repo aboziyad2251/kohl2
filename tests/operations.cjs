@@ -3,6 +3,8 @@ const model=loadTS('lib/operations/model.ts');
 const id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const base={operation:'ENTRY_CREATE',id,case_id:id,kind:'RECEIPT',amount:10.01,date:'2026-11-10',holder:'OWNER',reference:'R',category:'Rent',note:''};
 assert(model.operationAction.safeParse(base).success);
+assert(model.operationAction.safeParse({operation:'ASSISTANT_PLAN',id}).success);
+assert(!model.operationAction.safeParse({operation:'ASSISTANT_PLAN',id,actor:id}).success);
 for(const amount of [0,-1,Infinity,0.001])assert(!model.operationAction.safeParse({...base,amount}).success);
 assert(!model.operationAction.safeParse({...base,actor:id}).success);
 assert(!model.periodSchema.safeParse({from:'2026-11-11',to:'2026-11-10'}).success);

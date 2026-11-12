@@ -21,13 +21,18 @@ not a separate direct production inspection from the cloud workspace.
   policy was disabled by the dispatcher; explicit recovery restores it. Broker
   and account image IDs remain those in the previous release checkpoint below.
 - Successful dispatcher completion means internal/public login and anonymous API
-  checks passed. Real user sign-in and business-flow confirmation remain pending.
+  checks passed. The user subsequently confirmed the release works.
 
-Next: have the user sign in and confirm `/leasing` and `/financials/internal`
-load under the expected permissions. Do not invent real financial entries to test.
+The user confirmed the deployed workspaces work and authorized the next phase:
+financial employee → designated manager → designated final approver, plus a
+temporary leasing assistant visible only in the designated manager account.
 Read `docs/operations-release.md` for recovery; do not repeat apply or historical
 release scripts. Application rollback retains the additive schema and new data;
-never automatically restore an older database dump. No new phase is authorized.
+never automatically restore an older database dump. The new phase is in progress
+on `codex/leasing-approval-chain`; read `docs/leasing-approval-chain.md`.
+The operator supplied verified active ADMIN and CEO account IDs privately; do not
+commit them. Local database/browser verification does not authorize production
+cutover. Exact-image service acceptance and a new release plan are still needed.
 
 ---
 

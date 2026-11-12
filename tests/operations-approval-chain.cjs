@@ -1,0 +1,88 @@
+const assert=require('assert/strict'),{fixture,migrate,actor,ids}=require('./fixtures/erp-db.cjs');
+const uuid=n=>'aaaaaaaa-aaaa-4aaa-8aaa-'+String(n).padStart(12,'0');
+(async()=>{
+ const db=await fixture();
+ try{
+  await db.exec(`
+ALTER TABLE portal_private.accounts ADD COLUMN employee_id uuid;
+UPDATE portal_private.accounts SET employee_id=user_id;
+UPDATE portal_private.accounts SET role='ADMIN' WHERE user_id='${ids.manager}';
+CREATE TABLE public.crm_leads(id uuid primary key,name text,phone text,source text,assigned_agent_id uuid);
+CREATE TABLE public.contracts(id uuid primary key,contract_number text);
+CREATE SCHEMA storage;
+CREATE TABLE storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
+CREATE TABLE storage.objects(id uuid default gen_random_uuid(),bucket_id text,name text);
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+INSERT INTO public.crm_leads VALUES('${uuid(1)}','Synthetic lead','0500000000','Fixture','${ids.employee}');
+`);
+  await migrate(db,'20261110143135_leasing_internal_finance.sql');
+  await migrate(db,'20261110215449_operations_private_documents.sql');
+  await db.query("SELECT set_config('kohl.workflow_manager',$1,false),set_config('kohl.workflow_final',$2,false)",[ids.admin,ids.ceo]);
+  await migrate(db,'20261112172325_operations_approval_chain.sql');
+  const call=async(op,p={})=>(await db.query('SELECT public.kohl_operations($1,$2) result',[op,p])).rows[0].result;
+  const denied=async(fn,code='42501')=>assert.rejects(fn,e=>e.code===code);
+  const expense={id:uuid(2),case_id:null,kind:'EXPENSE',amount:100,date:'2026-11-11',holder:'COMPANY',reference:'CHAIN',category:'Fixture',note:''};
+  const decision={id:expense.id,status:'APPROVED',note:'Reviewed fixture'};
+  await actor(db,'admin');await call('ENTRY_CREATE',expense);
+  assert.equal((await call('WORKFLOW_INFO')).assistant_available,true);
+  await denied(()=>db.query("SELECT portal_private.operations_core_v1('ENTRY_DECIDE',$1)",[decision]));
+  await actor(db,'ceo');await denied(()=>call('ENTRY_DECIDE',decision));
+  await actor(db,'manager');await denied(()=>call('ENTRY_DECIDE',decision));
+  assert.equal((await call('WORKFLOW_INFO')).assistant_available,false);
+  await actor(db,'employee');await denied(()=>call('ENTRY_DECIDE',decision));
+  await actor(db,'admin','service_role');
+  await db.query("SELECT public.operations_document($1,'RESERVE',$2)",[ids.admin,{id:uuid(5),entry_id:expense.id,filename:'fixture.pdf',mime:'application/pdf',size:10,sha256:'b'.repeat(64)}]);
+  await actor(db,'admin');await denied(()=>call('ENTRY_DECIDE',decision),'PT409');
+  await actor(db,'admin','service_role');await db.query("SELECT public.operations_document($1,'ABORT',$2)",[ids.admin,{id:uuid(5)}]);
+  await actor(db,'admin');await call('ENTRY_DECIDE',decision);
+  let entry=(await call('LIST')).entries.find(e=>e.id===expense.id);
+  assert.equal(entry.status,'PENDING');assert.equal(entry.manager_reviewed_by,ids.admin);assert(entry.manager_reviewed_at);
+  await denied(()=>call('ENTRY_DECIDE',decision));
+  await actor(db,'admin','service_role');
+  await denied(()=>db.query("SELECT public.operations_document($1,'RESERVE',$2)",[ids.admin,{id:uuid(3),entry_id:expense.id,filename:'fixture.pdf',mime:'application/pdf',size:10,sha256:'a'.repeat(64)}]),'PT409');
+  await denied(()=>db.query("SELECT portal_private.document_core_v1($1,'READ',$2)",[ids.admin,{id:uuid(3)}]));
+  await actor(db,'ceo');await call('ENTRY_DECIDE',decision);
+  entry=(await call('LIST')).entries.find(e=>e.id===expense.id);
+  assert.equal(entry.status,'APPROVED');assert.equal(entry.decided_by,ids.ceo);
+  await denied(()=>call('ENTRY_DECIDE',decision),'PT409');
+  await actor(db,'admin');await call('ENTRY_CREATE',{...expense,id:uuid(4),reference:'REJECT'});
+  await call('ENTRY_DECIDE',{id:uuid(4),status:'REJECTED',note:'Manager rejected'});
+  assert.equal((await call('LIST')).entries.find(e=>e.id===uuid(4)).status,'REJECTED');
+  await db.exec('RESET ROLE');
+  await db.exec(`INSERT INTO public.lessors(id,name) VALUES('${uuid(30)}','Fixture owner');
+   INSERT INTO public.properties(id,property_name,property_type,address,city,lessor_id) VALUES('${uuid(31)}','Fixture property','Residential','Fixture','Riyadh','${uuid(30)}');
+   INSERT INTO portal_private.leasing_units(id,property_id,code,readiness,note) VALUES('${uuid(32)}','${uuid(31)}','101','READY','Fixture');`);
+  for(const [id,owner] of [[uuid(10),ids.admin],[uuid(11),ids.employee]]){
+   await db.query(`INSERT INTO portal_private.leasing_cases(id,lead_id,assignee_id,kind,source,need,stage,start_date,end_date,amount,beneficiary,unit_id)
+     VALUES($1,$2,$3,'DAILY','Fixture','Fixture','CONFIRMED',current_date-1,current_date+1,100,'OWNER','${uuid(32)}')`,[id,uuid(1),owner]);
+  }
+  await actor(db,'employee');
+  await call('ENTRY_CREATE',{...expense,id:uuid(25),case_id:uuid(11),kind:'DEPOSIT_IN',reference:'EMPLOYEE-CHAIN'});
+  const employeeDecision={id:uuid(25),status:'APPROVED',note:'Employee submission reviewed'};
+  await denied(()=>call('ENTRY_DECIDE',employeeDecision));
+  await actor(db,'admin');await call('ENTRY_DECIDE',employeeDecision);
+  await actor(db,'employee');
+  assert.equal((await call('LIST')).entries.find(e=>e.id===uuid(25)).status,'PENDING');
+  await actor(db,'ceo');await call('ENTRY_DECIDE',employeeDecision);
+  await actor(db,'employee');
+  assert.equal((await call('LIST')).entries.find(e=>e.id===uuid(25)).status,'APPROVED');
+  await denied(()=>call('ASSISTANT_PLAN',{id:uuid(20)}));
+  await actor(db,'ceo');await denied(()=>call('ASSISTANT_PLAN',{id:uuid(20)}));
+  await actor(db,'manager');await denied(()=>call('ASSISTANT_PLAN',{id:uuid(20)}));
+  await actor(db,'admin');
+  const run=await call('ASSISTANT_PLAN',{id:uuid(20)});assert.equal(run.created,1);
+  assert.deepEqual(await call('ASSISTANT_PLAN',{id:uuid(20)}),run);
+  assert.equal((await call('ASSISTANT_PLAN',{id:uuid(21)})).created,0);
+  const tasks=(await call('LIST')).followups;
+  assert.equal(tasks.length,1);assert.equal(tasks[0].case_id,uuid(10));assert.equal(tasks[0].origin,'LEASING_ASSISTANT');assert.equal(tasks[0].completed_at,null);
+  await call('FOLLOWUP_DONE',{id:tasks[0].id,note:'Actually reviewed fixture',blocked_by:'NONE'});
+  assert.equal((await call('ASSISTANT_PLAN',{id:uuid(22)})).created,0,'do not re-create a completed virtual task on the same day');
+  await db.exec('RESET ROLE');await db.exec('UPDATE portal_private.operations_approval_config SET assistant_enabled=false');
+  await actor(db,'admin');assert.equal((await call('WORKFLOW_INFO')).assistant_available,false);
+  await denied(()=>call('ASSISTANT_PLAN',{id:uuid(24)}));
+  await db.exec('RESET ROLE');await db.exec('UPDATE portal_private.operations_approval_config SET assistant_enabled=true');
+  await db.query('UPDATE portal_private.accounts SET is_active=false WHERE user_id=$1',[ids.admin]);
+  await actor(db,'admin');await denied(()=>call('ASSISTANT_PLAN',{id:uuid(23)}));
+  console.log('Approval chain passed: manager then final, no bypass, frozen documents, assistant owner-only attribution/deduplication and inactive denial');
+ }finally{await db.close();}
+})().catch(e=>{console.error(e);process.exit(1)});
