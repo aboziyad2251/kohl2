@@ -5,11 +5,14 @@ const assert = require('assert/strict');
 const fs = require('fs');
 const origin = process.env.KOHL_TEST_ORIGIN || 'http://127.0.0.1:3100';
 const output = process.env.KOHL_TEST_ARTIFACTS || '/tmp/kohl-operations-ui';
+const chain = process.env.KOHL_TEST_APPROVAL_CHAIN === '1';
+const finalId = '00000000-0000-4000-8000-000000000099';
 const id = '00000000-0000-4000-8000-000000000001';
 const today = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const portal = {role:'ADMIN',today,properties:[],contracts:[],payments:[],dues:[],ownership:[],maintenance:[],commissions:[],kpis:[],customers:[],audit:[]};
 const attention = {today,items:[],metrics:{overdueRent:0,overdueCount:0,expiringContracts:0,approvals:0,openMaintenance:0,unpaidCommission:0}};
 const state = {role:'ADMIN',accountId:id};
+function workflow(){return {manager_id:id,final_id:finalId,manager_name:'محمد',final_name:'سالم',assistant_available:state.role==='ADMIN'&&state.accountId===id};}
 function profile(){return {account:{id:state.accountId,name:'مستخدم تجريبي',role:state.role,history_only:false,employee_id:'00000000-0000-4000-8000-000000000002'},email:'fixture@example.invalid',owners:[],leases:[],broker_contracts:[]};}
 async function contextFor(browser, role = 'ADMIN', width=1440, accountId=id){
   state.role=role;state.accountId=accountId;
@@ -27,16 +30,17 @@ async function contextFor(browser, role = 'ADMIN', width=1440, accountId=id){
       return json([]);
     }
     if(url.origin!==origin) return route.abort();
+    if(url.pathname==='/api/operations/workflow') return json(chain?workflow():{assistant_available:false});
     if(url.pathname==='/api/operations'){
       if(route.request().method()==='POST'){
         const p=route.request().postDataJSON();writes.push(p);
         if(p.operation==='CASE_CREATE') data.cases.unshift({id:p.id,lead_id:p.lead_id,customer_name:'عميل تجريبي',phone:'0500000000',assignee_id:id,assignee_name:'موظف تجريبي',kind:p.kind,source:p.source,need:p.need,stage:'NEW',unit_id:null,start_date:null,end_date:null,amount:null,beneficiary:null,contract_id:null,version:1,created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
         if(p.operation==='INSTALLMENTS_SAVE'){data.dues=p.parts.map((part,i)=>({...part,id:'aaaaaaaa-aaaa-4aaa-8aaa-'+String(i+10).padStart(12,'0'),sequence:i+1,case_id:p.case_id,voided:false}));data.cases.find(c=>c.id===p.case_id).version++;}
         if(p.operation==='ENTRY_CREATE')data.entries.unshift({...p,status:'PENDING',created_by:id,created_at:new Date().toISOString(),decision_note:''});
-        if(p.operation==='ENTRY_DECIDE'){const e=data.entries.find(e=>e.id===p.id);e.status=p.status;e.decision_note=p.note;}
+        if(p.operation==='ENTRY_DECIDE'){const e=data.entries.find(e=>e.id===p.id);if(chain&&state.accountId===id&&p.status==='APPROVED'){e.manager_reviewed_by=id;e.manager_reviewed_at=new Date().toISOString();e.manager_review_note=p.note;}else{e.status=p.status;e.decision_note=p.note;}}
         return json({saved:true});
       }
-      return json({...data,role:state.role});
+      return json({...data,role:state.role,...(chain?{workflow:workflow()}:{})});
     }
     if(url.pathname==='/api/operations/documents'){
      if(route.request().method()==='POST'){data.documents.push({id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',entry_id:data.entries[0].id,filename:'receipt.pdf',mime:'application/pdf',size:16,sha256:'a'.repeat(64),created_at:new Date().toISOString()});return json({saved:true});}
@@ -75,6 +79,17 @@ const data={documents:[],role:'ADMIN',captured_at:new Date().toISOString(),cases
  try{
   let context=await contextFor(browser),page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
   await ready(page,'/leasing');await page.getByRole('heading',{name:'التأجير ومتابعة العملاء',exact:true,level:1}).waitFor();await noOverflow(page);
+  if(chain){
+   await page.getByRole('link',{name:'أخصائي التأجير · مساعد افتراضي',exact:true}).click();
+   await page.getByRole('heading',{name:'أخصائي التأجير — مساعد افتراضي',exact:true}).waitFor();
+   await page.getByLabel('مسودة عميل تجريبي',{exact:true}).waitFor();
+   await page.getByRole('button',{name:'إنشاء متابعات المدد التي تحتاج متابعة',exact:true}).click();
+   await page.getByText('تم الحفظ.',{exact:true}).waitFor();assert(writes.some(p=>p.operation==='ASSISTANT_PLAN'));
+   await page.setViewportSize({width:390,height:1000});await noOverflow(page);
+   await page.screenshot({path:output+'/assistant-mobile.png',fullPage:true});
+   await page.setViewportSize({width:1440,height:1000});
+   await page.getByRole('button',{name:'يومي',exact:true}).click();
+  }
   await page.screenshot({path:output+'/leasing-desktop.png',fullPage:true});
   await page.getByRole('heading',{name:'انتهاء المدة والتجديد',exact:true}).waitFor();
   await page.getByRole('button',{name:'إضافة متابعة للمدة',exact:true}).click();
@@ -93,13 +108,30 @@ const data={documents:[],role:'ADMIN',captured_at:new Date().toISOString(),cases
   await page.getByRole('button',{name:'الحركات والمراجعة',exact:true}).click();await page.getByRole('button',{name:'تسجيل حركة',exact:true}).click();
   await page.getByLabel('طلب التأجير المؤكد (اختياري للمصروف العام)').selectOption(caseId);await page.getByLabel('نوع الحركة').selectOption('RECEIPT');await page.getByLabel('الدفعة المرتبطة').selectOption(data.dues[0].id);await page.getByLabel('المبلغ بالريال').fill('500');await page.getByLabel('الجهة المستلمة / الدافعة').selectOption('PLATFORM');await page.getByLabel('مرجع التحويل أو المستند (فريد لدى الجهة)').fill('TEST-REF');await page.getByLabel('التصنيف',{exact:true}).fill('إيجار');await page.getByRole('button',{name:'حفظ',exact:true}).click();await page.getByText('تم الحفظ.',{exact:true}).waitFor();
   await page.locator('.ops-documents summary').click();await page.getByLabel('مستند الحركة').setInputFiles({name:'receipt.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.7\nfixture')});await page.getByRole('button',{name:'رفع المستند',exact:true}).click();await page.getByRole('button',{name:'receipt.pdf',exact:true}).waitFor();assert.equal(data.documents.length,1);
-  await page.getByRole('button',{name:'مراجعة',exact:true}).click();await page.getByLabel('قرار المراجعة').selectOption('APPROVED');await page.getByLabel('نتيجة المطابقة أو سبب الرفض').fill('مطابق للكشف التجريبي');await page.getByRole('button',{name:'حفظ',exact:true}).click();await page.getByText('تم الحفظ.',{exact:true}).waitFor();assert.equal(data.entries[0].status,'APPROVED');
+  await page.getByRole('button',{name:'مراجعة',exact:true}).click();await page.getByLabel('قرار المراجعة').selectOption('APPROVED');await page.getByLabel('نتيجة المطابقة أو سبب الرفض').fill('مطابق للكشف التجريبي');await page.getByRole('button',{name:'حفظ',exact:true}).click();await page.getByText('تم الحفظ.',{exact:true}).waitFor();assert.equal(data.entries[0].status,chain?'PENDING':'APPROVED');
+  if(chain){
+   await page.getByText('بانتظار اعتماد سالم',{exact:true}).waitFor();
+   assert.equal(await page.getByRole('button',{name:'مراجعة',exact:true}).count(),0);
+   assert.equal(await page.getByLabel('مستند الحركة',{exact:true}).count(),0);
+   await context.close();context=await contextFor(browser,'CEO',1440,finalId);page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
+   await ready(page,'/financials/internal');
+   assert.equal(await page.getByRole('link',{name:'أخصائي التأجير · مساعد افتراضي',exact:true}).count(),0);
+   await page.getByRole('button',{name:'مراجعة',exact:true}).click();await page.getByLabel('قرار المراجعة').selectOption('APPROVED');
+   await page.getByLabel('نتيجة المطابقة أو سبب الرفض').fill('اعتماد نهائي');await page.getByRole('button',{name:'حفظ',exact:true}).click();await page.getByText('تم الحفظ.',{exact:true}).waitFor();
+   assert.equal(data.entries[0].status,'APPROVED');
+  }
   await page.getByRole('button',{name:'تقرير المحاسب',exact:true}).click();const downloaded=page.waitForEvent('download');await page.getByRole('button',{name:'حفظ نسخة وتصدير Excel'}).click();assert((await downloaded).suggestedFilename().endsWith('.xlsx'));
   const archive=page.waitForEvent('download');await page.getByRole('button',{name:'تنزيل حزمة المحاسب مع المرفقات'}).click();assert((await archive).suggestedFilename().endsWith('.zip'));
   await page.screenshot({path:output+'/finance-desktop.png',fullPage:true});await context.close();
   context=await contextFor(browser,'EMPLOYEE',390);page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));await ready(page,'/leasing');await noOverflow(page);await page.screenshot({path:output+'/leasing-mobile.png',fullPage:true});
   await ready(page,'/financials/internal');await page.getByRole('heading',{name:'المالية الداخلية',exact:true,level:1}).waitFor();assert.equal(await page.getByRole('button',{name:'مراجعة',exact:true}).count(),0);await noOverflow(page);await page.screenshot({path:output+'/finance-mobile.png',fullPage:true});await context.close();
+  if(chain){
+   context=await contextFor(browser,'ADMIN',390,'00000000-0000-4000-8000-000000000088');page=await context.newPage();
+   await ready(page,'/leasing?view=assistant');await page.getByRole('button',{name:'طلبات التأجير',exact:true}).waitFor();
+   assert.equal(await page.getByRole('link',{name:'أخصائي التأجير · مساعد افتراضي',exact:true}).count(),0);
+   assert.equal(await page.getByRole('button',{name:'أخصائي التأجير',exact:true}).count(),0);await context.close();
+  }
   context=await contextFor(browser,'OWNER',390);page=await context.newPage();await page.goto(origin+'/leasing');await page.waitForURL('**/portal');await context.close();
-  assert.deepEqual(errors,[]);console.log('Operations browser passed: create request, installments, private documents, financial review, Excel/archive export, employee controls, external redirect, desktop/mobile');
+  assert.deepEqual(errors,[]);console.log((chain?'Two-stage review, frozen documents, owner-only assistant passed. ':'')+'Operations browser passed: create request, installments, private documents, financial review, Excel/archive export, employee controls, external redirect, desktop/mobile');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1);});

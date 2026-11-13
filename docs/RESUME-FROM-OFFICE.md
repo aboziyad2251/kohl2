@@ -1,4 +1,36 @@
-# Current release — leasing/internal finance deployed, 12 November 2026 (Riyadh)
+# Current release — approval chain and leasing assistant deployed, 13 November 2026 (Riyadh)
+
+After a successful server dry run, the operator ran the provided exact-image apply
+command and reported `APPROVAL RELEASE OK`: fresh backup checked, the single
+approval migration applied, main switched, Hatif preserved, broker/account unchanged.
+This records operator output, not independent cloud-to-production inspection.
+
+- Continue on `codex/leasing-approval-chain`, PR #3. Dispatcher `5315878` passed
+  local checks and GitHub workflow `43336364971` on Node 20/22.
+- Deployed main image:
+  `sha256:cc84170de3567a868a6c9605b526744705dc58f469f3055545f2e6e0c5f639a3`.
+  Application source: `f12ad73504dc155eaa990001a3c431fcdeb05f1c`.
+- Applied: `20261112172325_operations_approval_chain.sql`, SHA256
+  `64574fcc8b5348fde6f3af8cd62195076e89f1094a5b7bc223ccea921d952637`.
+  Do not reapply it or either already deployed operations migration.
+- Private release directory:
+  `/home/debian/backups/kohl-approval-plan-k0sdvnsw/release-20261113T002353Z`
+  (13 November, 03:23 Riyadh). Keep its backup, receipts and original main container.
+- Verified active manager and final-approver IDs remain in private configuration;
+  never commit them. The temporary assistant belongs only to the designated manager.
+- Recovery procedures are in `docs/approval-release.md`. Application recovery retains
+  the new approval policy and data; older UI labels do not describe both stages.
+  Never automatically restore an older production database backup.
+
+Next: user-facing confirmation in Mohammed's and Salem's accounts is pending.
+Refresh the app, confirm the private assistant appears for Mohammed only, and verify
+manager review → pending final decision → Salem final approval during legitimate
+business processing. Do not create fictional financial entries in production.
+No repeat deployment, schema change or additional phase is needed for these checks.
+
+---
+
+# Previous release — leasing/internal finance deployed, 12 November 2026 (Riyadh)
 
 The user explicitly approved the two reviewed migrations and the tested main-app
 image after the server dry run passed. The operator then supplied `RELEASE OK`:
@@ -21,13 +53,11 @@ not a separate direct production inspection from the cloud workspace.
   policy was disabled by the dispatcher; explicit recovery restores it. Broker
   and account image IDs remain those in the previous release checkpoint below.
 - Successful dispatcher completion means internal/public login and anonymous API
-  checks passed. Real user sign-in and business-flow confirmation remain pending.
+  checks passed. The user subsequently confirmed the release works.
 
-Next: have the user sign in and confirm `/leasing` and `/financials/internal`
-load under the expected permissions. Do not invent real financial entries to test.
-Read `docs/operations-release.md` for recovery; do not repeat apply or historical
-release scripts. Application rollback retains the additive schema and new data;
-never automatically restore an older database dump. No new phase is authorized.
+The user confirmed this first release works. The subsequent approval-chain release
+is recorded in the current checkpoint above. Preserve its newer source, runtime and
+recovery receipts; do not repeat this previous release's preparation/apply steps.
 
 ---
 

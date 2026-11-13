@@ -52,7 +52,10 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--application",action="store_true",help="Also test the exact application image APIs")
     parser.add_argument("--app-image",help="Exact sha256 image ID of a newly built candidate")
+    parser.add_argument("--approval-chain",action="store_true",help="Also test the new two-stage chain in the isolated database")
     args=parser.parse_args()
+    if args.approval_chain and not (args.application and args.app_image):
+        raise SystemExit("STOP: --approval-chain requires --application and an exact --app-image")
     if args.app_image:
         if not re.fullmatch(r'sha256:[0-9a-f]{64}',args.app_image):
             raise SystemExit('STOP: --app-image requires an exact sha256 image ID')
@@ -262,6 +265,10 @@ GRANT ALL ON ALL TABLES IN SCHEMA storage TO service_role;
                     nonlocal stage
                     stage=value
                 fixture.run(http,require,sql,access,password,service,ROOT,application_stage)
+                if args.approval_chain:
+                    chain_spec=importlib.util.spec_from_file_location('approval_fixture',ROOT/'scripts/operations-approval-fixture.py')
+                    chain=importlib.util.module_from_spec(chain_spec);chain_spec.loader.exec_module(chain)
+                    chain.run(http,require,sql,access,password,service,ROOT,application_stage)
                 print('EXACT APPLICATION API TEST PASSED (synthetic data).',flush=True)
             else:
                 print('Exact application HTTP flow not requested; use --application.',flush=True)

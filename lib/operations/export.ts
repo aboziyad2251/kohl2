@@ -47,6 +47,8 @@ async function createWorkbook(s: ExportSnapshot) {
         "مرجع المستند": e.reference,
         ملاحظات: e.note,
         "قرار المراجعة": e.decision_note,
+        "مراجعة المدير": e.manager_review_note || "",
+        "تاريخ الرفع للاعتماد النهائي": e.manager_reviewed_at || "",
       })),
   );
   add(

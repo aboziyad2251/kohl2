@@ -71,5 +71,29 @@ try:
  assert sql("select sum(amount) from portal_private.internal_entries where status='APPROVED'")=='400.00'
  assert sql("select count(*) from portal_private.internal_dues")=='1'
  print('PostgreSQL 17 concurrency passed: overlapping bookings and competing partial installment collections serialize correctly')
+ # Exercise the new chain on the same disposable database after legacy regression.
+ sql("""create schema storage;
+ create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
+ create table storage.objects(id uuid default gen_random_uuid(),bucket_id text,name text);
+ alter table storage.objects enable row level security;""")
+ sql((root.parent/'supabase/migrations/20261110215449_operations_private_documents.sql').read_text())
+ sql(f"select set_config('kohl.workflow_manager','{admin}',false),set_config('kohl.workflow_final','{ceo}',false);\n"+(root.parent/'supabase/migrations/20261112172325_operations_approval_chain.sql').read_text())
+ second=sql(f"select id from portal_private.internal_installments where case_id='{winner}' and sequence=2")
+ chain_ids=['10000000-0000-4000-8000-000000000004','10000000-0000-4000-8000-000000000005']
+ for rid in chain_ids:
+  ok('ENTRY_CREATE',dict(id=rid,case_id=winner,installment_id=second,kind='RECEIPT',amount=300,date='2026-11-10',holder='OWNER',reference=rid,category='Rent',note=''))
+ review=dict(id=chain_ids[0],status='APPROVED',note='Manager review')
+ results=race(f"select pg_advisory_xact_lock(hashtextextended('{chain_ids[0]}',0))",[command(admin,'ENTRY_DECIDE',review),command(admin,'ENTRY_DECIDE',review)])
+ assert sorted(r[0]==0 for r in results)==[False,True],results
+ assert sql(f"select status from portal_private.internal_entries where id='{chain_ids[0]}'")=='PENDING'
+ ok('ENTRY_DECIDE',dict(id=chain_ids[1],status='APPROVED',note='Manager review'))
+ results=race(f"select id from portal_private.leasing_cases where id='{winner}' for update",[command(ceo,'ENTRY_DECIDE',dict(id=rid,status='APPROVED',note='Final review')) for rid in chain_ids])
+ assert sorted(r[0]==0 for r in results)==[False,True],results
+ assert sql(f"select sum(amount) from portal_private.internal_entries where installment_id='{second}' and status='APPROVED'")=='300.00'
+ sql(f"update portal_private.leasing_cases set assignee_id='{admin}' where id='{winner}'; update portal_private.leasing_followups set completed_at=now();")
+ results=race(f"select pg_advisory_xact_lock(hashtextextended('{admin}:assistant-plan',0))",[command(admin,'ASSISTANT_PLAN',dict(id='10000000-0000-4000-8000-00000000000'+str(i))) for i in (6,7)])
+ assert all(r[0]==0 for r in results),results
+ assert sql("select count(*) from portal_private.leasing_followups where origin='LEASING_ASSISTANT'")=='1'
+ print('PostgreSQL 17 approval chain concurrency passed: one manager transition, final collection limits, no duplicate assistant tasks')
 finally:
  if created:subprocess.run(['docker','rm','-f',name],check=True,stdout=subprocess.DEVNULL)
