@@ -37,7 +37,13 @@ HTTP acceptance passed and temporary services were removed. The image ID was not
 included in the pasted result. Use the new PREPARE_ONLY tool documented in
 `docs/leasing-approval-chain.md` to capture that ID, make a fresh private backup,
 rehearse the new migration offline, and preserve the validated Hatif runtime.
-A new cutover dispatcher still needs preparation and review. Do not reuse the old one.
+Operator then reported successful approval preparation and offline restore with
+real records preserved. Accepted candidate image:
+`sha256:cc84170de3567a868a6c9605b526744705dc58f469f3055545f2e6e0c5f639a3`.
+Private plan: `/home/debian/backups/kohl-approval-plan-k0sdvnsw`.
+The new `scripts/release-approval.py` is prepared and tested locally; the next
+server step is its default read-only dry run. Read `docs/approval-release.md`.
+No new production migration/cutover has occurred. Never reuse the old dispatcher.
 
 ---
 

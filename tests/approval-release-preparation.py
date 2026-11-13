@@ -140,7 +140,7 @@ def isolated(log):
             mod.restore.run(['docker', 'rm', '-f', '-v', name], log, stdout=log)
 
 
-def integration():
+def integration(dispatcher=False):
     with tempfile.TemporaryDirectory() as folder:
         archive = Path(folder)/'fixture.dump'
         with (Path(folder)/'private.log').open('w+b') as log:
@@ -171,8 +171,32 @@ VALUES(gen_random_uuid(),'EXPENSE',99,current_date,'COMPANY','pending-fixture','
                     with archive.open('wb') as stream:
                         mod.restore.run(['docker','exec',source,'pg_dump','-U','postgres','-Fc','postgres'], log, stdout=stream)
                 with isolated(log) as target:
-                    fingerprints = mod.rehearse(target, archive, roles, MANAGER, FINAL,
-                        (ROOT/'supabase/migrations'/mod.MIGRATION).read_text(), log)
+                    content = (ROOT/'supabase/migrations'/mod.MIGRATION).read_text()
+                    if dispatcher:
+                        release_spec = importlib.util.spec_from_file_location('approval_dispatcher', ROOT/'scripts/release-approval.py')
+                        release = importlib.util.module_from_spec(release_spec); release_spec.loader.exec_module(release)
+                        plan = {'manager_id':MANAGER,'final_id':FINAL}
+                        transaction = release.transaction(plan, content)
+                        mod.restore.query(target, roles, log)
+                        mod.restore.restore(target, archive, log)
+                        before = mod.snapshot(target, log)
+                        try:
+                            mod.restore.query(target, transaction.replace('\nCOMMIT;', '\nSELECT 1/0;\nCOMMIT;'), log)
+                        except subprocess.CalledProcessError:
+                            pass
+                        else:
+                            raise AssertionError('Injected late migration failure did not fail')
+                        assert mod.restore.query(target, mod.preflight_sql(MANAGER, FINAL), log) == 't'
+                        assert mod.snapshot(target, log) == before
+                        mod.restore.query(target, transaction, log)
+                        with patch.object(release, 'database', side_effect=lambda sql, log:mod.restore.query(target, sql, log)):
+                            release.verify_applied(plan, log)
+                        mod.verify(target, MANAGER, FINAL, log)
+                        fingerprints = mod.snapshot(target, log)
+                        assert fingerprints == before
+                        print('PASS: approval dispatcher transaction rolls back all DDL on late failure, commits correct reviewers and preserves data')
+                    else:
+                        fingerprints = mod.rehearse(target, archive, roles, MANAGER, FINAL, content, log)
                     assert len(fingerprints) == 10
                     assert mod.restore.query(target, 'SELECT sum(amount) FROM portal_private.internal_entries', log) == '126.00'
                     assert mod.restore.query(target, mod.preflight_sql(MANAGER, FINAL), log) == 'f'
@@ -193,6 +217,6 @@ VALUES(gen_random_uuid(),'EXPENSE',99,current_date,'COMPANY','pending-fixture','
 
 if __name__ == '__main__':
     if '--integration' in sys.argv:
-        integration()
+        integration(dispatcher="--dispatcher" in sys.argv)
     else:
         unittest.main()
