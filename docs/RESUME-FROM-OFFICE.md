@@ -1,4 +1,36 @@
-# Current release — leasing/internal finance deployed, 12 November 2026 (Riyadh)
+# Current release — approval chain and leasing assistant deployed, 13 November 2026 (Riyadh)
+
+After a successful server dry run, the operator ran the provided exact-image apply
+command and reported `APPROVAL RELEASE OK`: fresh backup checked, the single
+approval migration applied, main switched, Hatif preserved, broker/account unchanged.
+This records operator output, not independent cloud-to-production inspection.
+
+- Continue on `codex/leasing-approval-chain`, PR #3. Dispatcher `5315878` passed
+  local checks and GitHub workflow `43336364971` on Node 20/22.
+- Deployed main image:
+  `sha256:cc84170de3567a868a6c9605b526744705dc58f469f3055545f2e6e0c5f639a3`.
+  Application source: `f12ad73504dc155eaa990001a3c431fcdeb05f1c`.
+- Applied: `20261112172325_operations_approval_chain.sql`, SHA256
+  `64574fcc8b5348fde6f3af8cd62195076e89f1094a5b7bc223ccea921d952637`.
+  Do not reapply it or either already deployed operations migration.
+- Private release directory:
+  `/home/debian/backups/kohl-approval-plan-k0sdvnsw/release-20261113T002353Z`
+  (13 November, 03:23 Riyadh). Keep its backup, receipts and original main container.
+- Verified active manager and final-approver IDs remain in private configuration;
+  never commit them. The temporary assistant belongs only to the designated manager.
+- Recovery procedures are in `docs/approval-release.md`. Application recovery retains
+  the new approval policy and data; older UI labels do not describe both stages.
+  Never automatically restore an older production database backup.
+
+Next: user-facing confirmation in Mohammed's and Salem's accounts is pending.
+Refresh the app, confirm the private assistant appears for Mohammed only, and verify
+manager review → pending final decision → Salem final approval during legitimate
+business processing. Do not create fictional financial entries in production.
+No repeat deployment, schema change or additional phase is needed for these checks.
+
+---
+
+# Previous release — leasing/internal finance deployed, 12 November 2026 (Riyadh)
 
 The user explicitly approved the two reviewed migrations and the tested main-app
 image after the server dry run passed. The operator then supplied `RELEASE OK`:
@@ -23,27 +55,9 @@ not a separate direct production inspection from the cloud workspace.
 - Successful dispatcher completion means internal/public login and anonymous API
   checks passed. The user subsequently confirmed the release works.
 
-The user confirmed the deployed workspaces work and authorized the next phase:
-financial employee → designated manager → designated final approver, plus a
-temporary leasing assistant visible only in the designated manager account.
-Read `docs/operations-release.md` for recovery; do not repeat apply or historical
-release scripts. Application rollback retains the additive schema and new data;
-never automatically restore an older database dump. The new phase is in progress
-on `codex/leasing-approval-chain`; read `docs/leasing-approval-chain.md`.
-The operator supplied verified active ADMIN and CEO account IDs privately; do not
-commit them. Local database/browser verification does not authorize production
-cutover. On 13 November (Riyadh), the operator reported exact-image approval-chain
-HTTP acceptance passed and temporary services were removed. The image ID was not
-included in the pasted result. Use the new PREPARE_ONLY tool documented in
-`docs/leasing-approval-chain.md` to capture that ID, make a fresh private backup,
-rehearse the new migration offline, and preserve the validated Hatif runtime.
-Operator then reported successful approval preparation and offline restore with
-real records preserved. Accepted candidate image:
-`sha256:cc84170de3567a868a6c9605b526744705dc58f469f3055545f2e6e0c5f639a3`.
-Private plan: `/home/debian/backups/kohl-approval-plan-k0sdvnsw`.
-The new `scripts/release-approval.py` is prepared and tested locally; the next
-server step is its default read-only dry run. Read `docs/approval-release.md`.
-No new production migration/cutover has occurred. Never reuse the old dispatcher.
+The user confirmed this first release works. The subsequent approval-chain release
+is recorded in the current checkpoint above. Preserve its newer source, runtime and
+recovery receipts; do not repeat this previous release's preparation/apply steps.
 
 ---
 
