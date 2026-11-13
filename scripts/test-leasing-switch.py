@@ -1,6 +1,7 @@
-"""Real GoTrue/PostgREST + locally built Next acceptance; synthetic disposable data only.
-Needs npm run build, Docker and the three pinned images. Never reads production state.
+"""Real GoTrue/PostgREST + Next acceptance; synthetic disposable data only.
+Use a local build or --app-image. Needs Docker and pinned service images; no production reads.
 """
+import argparse
 import base64
 import hashlib
 import hmac
@@ -10,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import secrets
+import re
 import socket
 import subprocess
 import tempfile
@@ -33,8 +35,16 @@ def jwt(secret,role):
 def freeport():
  with socket.socket() as s:s.bind(('127.0.0.1',0));return s.getsockname()[1]
 def main():
+ parser=argparse.ArgumentParser(description=__doc__)
+ parser.add_argument('--app-image',help='Exact candidate image; runs the packaged app on the internal test network')
+ parser.add_argument('--receipt',type=Path,help='Write an exclusive private acceptance receipt for this image')
+ args=parser.parse_args()
+ if args.app_image:
+  if not re.fullmatch(r'sha256:[0-9a-f]{64}',args.app_image):raise SystemExit('STOP: exact image ID required')
+  IMAGES['app']=args.app_image
+ elif args.receipt:raise SystemExit('STOP: receipt requires an exact app image')
  os.umask(0o077)
- if not (ROOT/'.next/BUILD_ID').is_file():raise SystemExit('STOP: build the candidate first')
+ if not args.app_image and not (ROOT/'.next/BUILD_ID').is_file():raise SystemExit('STOP: build the candidate first')
  folder=Path(tempfile.mkdtemp(prefix='kohl-leasing-switch-'))
  network='kohl_leasing_test_'+uuid.uuid4().hex[:10]
  names={k:network+'_'+k for k in IMAGES}
@@ -44,11 +54,12 @@ def main():
  with (folder/'private.log').open('w+b') as log:
   def run(args,**kw):return subprocess.run(args,check=True,stderr=log,**kw)
   def sql(statement):return run(['docker','exec','-i',names['db'],'psql','-X','-qAt','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1'],input=statement.encode(),stdout=log)
-  def start(kind,env,port=None):
+  def start(kind,env,port=None,command=None):
    envfile=folder/(kind+'.env');envfile.write_text(''.join(k+'='+v+'\n' for k,v in env.items()))
-   command=['docker','create','--pull','never','--name',names[kind],'--network',network,'--network-alias',kind,'--memory','512m','--pids-limit','256','--env-file',str(envfile)]
-   command+=[IMAGES[kind]]
-   run(command,stdout=log);created.append(names[kind]);run(['docker','start',names[kind]],stdout=log);envfile.unlink()
+   arguments=['docker','create','--pull','never','--name',names[kind],'--network',network,'--network-alias',kind,'--memory','512m','--pids-limit','256','--env-file',str(envfile)]
+   if command:arguments+=['--entrypoint','node']
+   arguments+=[IMAGES[kind]]+(command or [])
+   run(arguments,stdout=log);created.append(names[kind]);run(['docker','start',names[kind]],stdout=log);envfile.unlink()
    if port:
     binding=json.loads(subprocess.check_output(['docker','inspect','--format','{{json .NetworkSettings.Networks}}',names[kind]],text=True))
     return binding[network]['IPAddress']
@@ -125,14 +136,22 @@ REVOKE ALL ON FUNCTION public.portal_me() FROM public;GRANT EXECUTE ON FUNCTION 
       self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data)
      finally:upstream.close()
     do_GET=do_POST=do_PUT=do_DELETE=proxy
-   gateway=ThreadingHTTPServer(('127.0.0.1',0),Gateway);threading.Thread(target=gateway.serve_forever,daemon=True).start()
-   port=freeport();base='http://127.0.0.1:'+str(port)
-   env={**os.environ,'SUPABASE_SERVER_URL':'http://127.0.0.1:'+str(gateway.server_port),'NEXT_PUBLIC_SUPABASE_URL':'http://127.0.0.1:'+str(gateway.server_port),'NEXT_PUBLIC_SUPABASE_ANON_KEY':anon,'SUPABASE_SERVICE_ROLE_KEY':service,'APP_ORIGIN':base,'NEXT_TELEMETRY_DISABLED':'1'}
-   app=subprocess.Popen(['node','node_modules/next/dist/bin/next','start','-H','127.0.0.1','-p',str(port)],cwd=ROOT,env=env,stdout=log,stderr=log)
+   if args.app_image:
+    code=(ROOT/'tests/fixtures/operations-gateway.cjs').read_text()
+    apphost=start('app',{'SUPABASE_SERVER_URL':'http://127.0.0.1:8080',
+     'NEXT_PUBLIC_SUPABASE_URL':'http://127.0.0.1:8080','NEXT_PUBLIC_SUPABASE_ANON_KEY':anon,
+     'SUPABASE_SERVICE_ROLE_KEY':service,'APP_ORIGIN':'http://leasing-review.invalid',
+     'HOSTNAME':'0.0.0.0','PORT':'3000','NEXT_TELEMETRY_DISABLED':'1'},3000,['-e',code])
+    base='http://'+apphost+':3000';switch_origin='http://leasing-review.invalid'
+   else:
+    gateway=ThreadingHTTPServer(('127.0.0.1',0),Gateway);threading.Thread(target=gateway.serve_forever,daemon=True).start()
+    port=freeport();base='http://127.0.0.1:'+str(port);switch_origin=base
+    env={**os.environ,'SUPABASE_SERVER_URL':'http://127.0.0.1:'+str(gateway.server_port),'NEXT_PUBLIC_SUPABASE_URL':'http://127.0.0.1:'+str(gateway.server_port),'NEXT_PUBLIC_SUPABASE_ANON_KEY':anon,'SUPABASE_SERVICE_ROLE_KEY':service,'APP_ORIGIN':base,'NEXT_TELEMETRY_DISABLED':'1'}
+    app=subprocess.Popen(['node','node_modules/next/dist/bin/next','start','-H','127.0.0.1','-p',str(port)],cwd=ROOT,env=env,stdout=log,stderr=log)
    ready(base,'/api/auth/providers');stage='owner-only real switch'
    require(http(base,'/api/auth/leasing-switch',other['access_token']),403)
    require(http(base,'/api/auth/leasing-switch',parent['access_token'],{'operation':'ENTER','refresh_token':parent['refresh_token']}),403)
-   switched=http(base,'/api/auth/leasing-switch',parent['access_token'],{'operation':'ENTER','refresh_token':parent['refresh_token']},headers={'Origin':base})
+   switched=http(base,'/api/auth/leasing-switch',parent['access_token'],{'operation':'ENTER','refresh_token':parent['refresh_token']},headers={'Origin':switch_origin})
    child=require(switched)['session'];cookie=switched[2]['Set-Cookie'].split(';')[0]
    assert parent['refresh_token'] not in switched[1].decode()
    profile=require(http(base,'/api/portal/me',child['access_token']));assert profile['account']['role']=='LEASING'
@@ -150,15 +169,15 @@ REVOKE ALL ON FUNCTION public.portal_me() FROM public;GRANT EXECUTE ON FUNCTION 
    child_user=require(http(authbase,'/user',child['access_token']))
    link=require(http(authbase,'/admin/generate_link',service,{'type':'magiclink','email':child_user['email']}))
    unrelated=require(http(authbase,'/verify',body={'type':'magiclink','token_hash':link['hashed_token']}))
-   require(http(base,'/api/auth/leasing-switch',unrelated['access_token'],{'operation':'RETURN'},headers={'Origin':base,'Cookie':cookie}),403)
+   require(http(base,'/api/auth/leasing-switch',unrelated['access_token'],{'operation':'RETURN'},headers={'Origin':switch_origin,'Cookie':cookie}),403)
    assert http(base,'/api/operations',unrelated['access_token'])[0] in (401,403)
 
-   require(http(base,'/api/auth/leasing-switch',child['access_token'],{'operation':'RETURN'},headers={'Origin':base}),401)
-   returned=require(http(base,'/api/auth/leasing-switch',child['access_token'],{'operation':'RETURN'},headers={'Origin':base,'Cookie':cookie}))['session']
+   require(http(base,'/api/auth/leasing-switch',child['access_token'],{'operation':'RETURN'},headers={'Origin':switch_origin}),401)
+   returned=require(http(base,'/api/auth/leasing-switch',child['access_token'],{'operation':'RETURN'},headers={'Origin':switch_origin,'Cookie':cookie}))['session']
    assert require(http(authbase,'/user',returned['access_token']))['id']==owner
    assert http(base,'/api/operations',child['access_token'])[0] in (401,403)
    # Refreshing a child cannot grant administrative capabilities.
-   switched=http(base,'/api/auth/leasing-switch',returned['access_token'],{'operation':'ENTER','refresh_token':returned['refresh_token']},headers={'Origin':base})
+   switched=http(base,'/api/auth/leasing-switch',returned['access_token'],{'operation':'ENTER','refresh_token':returned['refresh_token']},headers={'Origin':switch_origin})
    child2=require(switched)['session']
    renewed=require(http(authbase,'/token?grant_type=refresh_token',body={'refresh_token':child2['refresh_token']}))
    assert require(http(base,'/api/portal/me',renewed['access_token']))['account']['role']=='LEASING'
@@ -166,6 +185,11 @@ REVOKE ALL ON FUNCTION public.portal_me() FROM public;GRANT EXECUTE ON FUNCTION 
    assert require(http(base,'/api/portal/me',renewed['access_token']))['account']['role']=='LEASING'
    require(http(authbase,'/logout?scope=global',returned['access_token'],method='POST'),204)
    assert http(base,'/api/operations',renewed['access_token'])[0] in (401,403)
+   if args.receipt:
+    with args.receipt.open('x') as receipt:
+     json.dump({'passed':True,'image':args.app_image,'production_changed':False,
+       'migration_sha256':hashlib.sha256((ROOT/'supabase/migrations/20261113202336_leasing_specialist_account.sql').read_bytes()).hexdigest(),
+       'test_script_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'created_epoch':time.time()},receipt,indent=2)
    print('REAL LEASING SWITCH PASSED: custom Auth role, new requests, direct API/REST denial, encrypted return, refresh isolation and parent logout revocation',flush=True)
   except Exception as e:
    for name in created:subprocess.run(['docker','logs',name],stdout=log,stderr=log)
@@ -178,7 +202,7 @@ REVOKE ALL ON FUNCTION public.portal_me() FROM public;GRANT EXECUTE ON FUNCTION 
     try:app.wait(timeout=10)
     except subprocess.TimeoutExpired:app.kill();app.wait()
    if gateway:gateway.shutdown();gateway.server_close()
-   for name in reversed(created):subprocess.run(['docker','rm','-f',name],stdout=log,stderr=log)
+   for name in reversed(created):subprocess.run(['docker','rm','-f','-v',name],stdout=log,stderr=log)
    if network_created:subprocess.run(['docker','network','rm',network],stdout=log,stderr=log)
    print('Temporary test services removed; production unchanged.',flush=True)
 if __name__=='__main__':main()

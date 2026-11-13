@@ -1,0 +1,8 @@
+# Lightweight CI fixture for the packaged Next server; the VPS builds Dockerfile.next.
+FROM node:20-alpine
+WORKDIR /app
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000
+COPY .next/standalone ./
+COPY .next/static ./.next/static
+COPY public ./public
+CMD ["node", "server.js"]
