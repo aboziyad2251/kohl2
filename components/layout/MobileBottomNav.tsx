@@ -6,6 +6,7 @@ import {LayoutDashboard,MapPinned,Building2,FileSignature,UserCheck,Users,Folder
 import {useLayout} from '@/context/LayoutContext';
 import {useAuth} from '@/context/AuthContext';
 const items=[
+ {name:'التأجير',href:'/leasing',module:'leasing',icon:Building2},
  {name:'الرئيسية',href:'/dashboard',module:'dashboard',icon:LayoutDashboard},
  {name:'العملاء',href:'/crm',module:'crm',icon:UserCheck},
  {name:'العقارات',href:'/ownership-properties',module:'ownership-properties',icon:Building2},

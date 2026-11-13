@@ -59,6 +59,9 @@ jobs:
           node tests/operations-archive.cjs
           node tests/operations-db.cjs
           node tests/operations-approval-chain.cjs
+          node tests/leasing-specialist.cjs
+          node tests/leasing-switch.cjs
+          node tests/leasing-identity.cjs
           python3 tests/hatif-runtime.py
           python3 -B tests/postgres-test-runtime.py
           python3 -B tests/operations-release-plan.py
@@ -75,3 +78,10 @@ jobs:
           python3 scripts/test-operations-postgres.py
           python3 -B tests/approval-release-preparation.py --integration
           python3 -B tests/approval-release-preparation.py --integration --dispatcher
+
+      - name: Real isolated leasing identity switch
+        if: matrix.node == 22
+        run: |
+          docker pull supabase/gotrue@sha256:385184459f57569c54c25209f51f3b2be99ddd7c4ce9e3555b5d3eea8447b7cf
+          docker pull postgrest/postgrest@sha256:54000f24847d01a2c2302e0041cf0618b875c57fb48507d743cfa9aaa50bf43c
+          python3 -B scripts/test-leasing-switch.py

@@ -64,7 +64,7 @@ export function AuthProvider({ children }: {
                 return;
             // External sessions cannot inherit business caches from the legacy app.
             // Back up unsynced legacy records before enabling external access (runbook).
-            if (['BROKER', 'OWNER', 'TENANT'].includes(account.role))
+            if (['BROKER', 'OWNER', 'TENANT', 'LEASING'].includes(account.role))
                 Object.keys(localStorage).filter(key => key.startsWith('kohl_')).forEach(key => localStorage.removeItem(key));
             setCurrentUser({ ...account, email: body.email, role_display: roleLabels[account.role], avatar_initials: account.name.split(' ').map(s => s[0]).slice(0, 2).join('.') });
             setProfile(body);
@@ -107,6 +107,7 @@ export function AuthProvider({ children }: {
     const canAccess = (module: string) => {
         if (!authenticated || isExternal)
             return false;
+        if (role === 'LEASING') return module === 'leasing';
         if (isExecutive)
             return true;
         if (module === 'audit') return profile?.audit_viewer === true;

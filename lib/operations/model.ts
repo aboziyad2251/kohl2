@@ -62,6 +62,7 @@ export const labels: Record<string, string> = {
   CANCELLED_TASK: "ملغاة",
 };
 export const operationAction = z.discriminatedUnion("operation", [
+  z.object({operation:z.literal("CONTACT_CREATE"),id,name:short,phone:z.string().regex(/^05[0-9]{8}$/),source:short.max(50)}).strict(),
   z
     .object({
       operation: z.literal("INSTALLMENTS_SAVE"),

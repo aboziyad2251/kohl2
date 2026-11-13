@@ -1,3 +1,8 @@
+> 13 نوفمبر 2026 — العمل الجاري: فصل حساب أخصائي التأجير على
+> `codex/leasing-specialist-account`. يبدأ بطلبات جديدة فقط، والتبديل لمحمد وحده.
+> التنفيذ والاختبارات في [خطة الحساب](leasing-specialist-account.md).
+> لم ينشر هذا التعديل بعد؛ يبقى نشر سلسلة الاعتماد السابق هو الوضع الحي المؤكد.
+
 # Current release — approval chain and leasing assistant deployed, 13 November 2026 (Riyadh)
 
 After a successful server dry run, the operator ran the provided exact-image apply

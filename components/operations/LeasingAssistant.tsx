@@ -38,6 +38,6 @@ export default function LeasingAssistant({ workspace, owner, busy, onPlan, onFol
         value={`مرحباً ${item.customer_name}، معك كحل العقارية. بخصوص مدة التأجير التي تنتهي بتاريخ ${item.end_date}، نرجو تأكيد رغبتك في المغادرة أو بحث إمكانية التمديد. سنراجع التوفر والشروط قبل أي تأكيد.`} />
       <button className="ops-link" onClick={() => onFollowup(item)}>فتح نموذج متابعة</button>
     </article>)}
-    <p className="ops-help">المسودات اقتراحات للمراجعة والنسخ اليدوي؛ لم تُرسل عبر هاتف. المساعد لا يملك حساب دخول مستقلاً أو صلاحية اعتماد.</p>
+    <p className="ops-help">المسودات اقتراحات للمراجعة والنسخ اليدوي؛ لم تُرسل عبر هاتف. لا يملك هذا المساعد صلاحية اعتماد مالي.</p>
   </section>;
 }

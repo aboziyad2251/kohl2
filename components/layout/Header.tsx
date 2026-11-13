@@ -18,7 +18,7 @@ import {
   Menu,
   X,
 } from 'lucide-react';
-import { portalRequest } from '@/lib/portal/client';
+import LeasingSwitcher from '@/components/auth/LeasingSwitcher';
 import { useAuth } from '@/context/AuthContext';
 import { useLayout } from '@/context/LayoutContext';
 import { AppUser, UserRole } from '@/lib/types';
@@ -50,26 +50,11 @@ export default function Header({
     currentUser,
     allUsers,
     role,
-    actingOnBehalfOf,
-    setActingOnBehalfOf,
-    isExecutive,
     lockSession,
     openChangePasswordModal,
   } = useAuth();
 
   const { toggleMobileNav, isMobileNavOpen } = useLayout();
-
-  const [assistantOwner, setAssistantOwner] = useState<string | null>(null);
-  useEffect(() => {
-    let active = true;
-    setAssistantOwner(null);
-    if (currentUser.role === 'ADMIN') {
-      portalRequest<{assistant_available:boolean}>('/api/operations/workflow')
-        .then(data => { if (active && data.assistant_available) setAssistantOwner(currentUser.id); })
-        .catch(() => {});
-    }
-    return () => { active = false; };
-  }, [currentUser.id, currentUser.role]);
 
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
   const [selectedTargetUser, setSelectedTargetUser] = useState<AppUser | null>(null);
@@ -153,14 +138,14 @@ export default function Header({
           <NavigationSearch />
 
           {/* Change Password Button in Header */}
-          <button
+          {role !== 'LEASING' && <button
             onClick={openChangePasswordModal}
             data-mobile-secondary="true"
             title="تغيير كلمة المرور الخاصة بحسابك"
             className="p-1.5 sm:p-2 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-sky-400 transition"
           >
             <KeyRound className="w-4 h-4" />
-          </button>
+          </button>}
 
           {/* Lock Session Button */}
           <button
@@ -188,7 +173,7 @@ export default function Header({
                   <span
                     className={`text-[10px] px-1.5 py-0.2 rounded border font-semibold ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border}`}
                   >
-                    {currentUser.role}
+                    {currentUser.role === 'LEASING' ? 'تأجير' : currentUser.role}
                   </span>
                 </div>
                 <div className="text-[10px] text-slate-400">صلاحية: {currentUser.role_display}</div>
@@ -199,13 +184,6 @@ export default function Header({
                 }`}
               />
             </button>
-            {assistantOwner === currentUser.id && (
-              <a href="/leasing?view=assistant" className="block text-[11px] text-center mt-1 text-amber-600">
-                أخصائي التأجير · مساعد افتراضي
-              </a>
-            )}
-
-
             {/* User & Role Dropdown Menu */}
             {isSwitcherOpen && (
               <div className="absolute left-0 mt-2 w-72 max-w-[calc(100vw-24px)] rounded-2xl bg-slate-900 border border-slate-700/90 shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
@@ -216,7 +194,7 @@ export default function Header({
                       <span>الحساب الحالي</span>
                     </p>
                     <p className="text-[11px] text-slate-400 mt-0.5">
-                      سجّل الخروج للدخول بحساب آخر
+                      تبديل الحساب والصلاحيات
                     </p>
                   </div>
                 </div>
@@ -253,7 +231,7 @@ export default function Header({
                               <span
                                 className={`text-[9px] px-1.5 py-0.2 rounded border ${uBadge.bg} ${uBadge.text} ${uBadge.border}`}
                               >
-                                {user.role}
+                                {user.role === 'LEASING' ? 'تأجير' : user.role}
                               </span>
                             </div>
                             <div className="text-[10px] text-slate-400">{user.department}</div>
@@ -269,27 +247,11 @@ export default function Header({
                   })}
                 </div>
 
-                {/* Task Delegation banner for Executive */}
-                {isExecutive && (
-                  <div className="mt-2 pt-2 border-t border-slate-800 px-3 py-2 bg-slate-800/40 rounded-xl">
-                    <div className="flex items-center justify-between text-[11px] font-semibold text-amber-400">
-                      <span className="flex items-center gap-1.5">
-                        <UserCheck className="w-3.5 h-3.5" />
-                        النيابة وتفويض الصلاحيات
-                      </span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">
-                        متاح
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      يمكن للرئيس التنفيذي والمسؤول التنفيذ والاعتماد بالنيابة عن أي موظف في كافة الأقسام.
-                    </p>
-                  </div>
-                )}
+                <LeasingSwitcher />
 
                 {/* Action Buttons in Dropdown Footer */}
                 <div className="mt-2 pt-1.5 border-t border-slate-800 space-y-1">
-                  <button
+                  {role !== 'LEASING' && <button
                     onClick={() => {
                       setIsSwitcherOpen(false);
                       openChangePasswordModal();
@@ -298,7 +260,7 @@ export default function Header({
                   >
                     <KeyRound className="w-3.5 h-3.5 text-sky-400" />
                     <span>تغيير كلمة المرور لحسابي</span>
-                  </button>
+                  </button>}
 
                   <button
                     onClick={() => {

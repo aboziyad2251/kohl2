@@ -6,12 +6,13 @@ import {
   PortalError,
 } from "@/lib/portal/server";
 import { withAudit } from "@/lib/audit/server";
+import { leasingActions } from '@/lib/leasing/access';
 import { operationAction } from "@/lib/operations/model";
 export const dynamic = "force-dynamic";
 async function perform(req: NextRequest, write: boolean) {
   try {
     const { client, profile } = await requireIdentity(req);
-    if (!["ADMIN", "CEO", "EMPLOYEE"].includes(profile.account.role))
+    if (!["ADMIN", "CEO", "EMPLOYEE", "LEASING"].includes(profile.account.role))
       throw new PortalError(403, "غير مخول");
     if (write && Number(req.headers.get("content-length") || 0) > 16384)
       throw new PortalError(413, "طلب كبير");
@@ -21,7 +22,8 @@ async function perform(req: NextRequest, write: boolean) {
       ? operationAction.parse(JSON.parse(raw))
       : { operation: "LIST" };
     const { operation, ...payload } = input;
-    const { data, error } = await client.rpc("kohl_operations", {
+    if (profile.account.role === "LEASING" && !leasingActions.has(operation)) throw new PortalError(403, "صلاحيات التأجير فقط.");
+    const { data, error } = await client.rpc(profile.account.role === "LEASING" ? "leasing_operations" : "kohl_operations", {
       operation,
       payload,
     });
