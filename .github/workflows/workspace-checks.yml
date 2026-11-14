@@ -67,6 +67,7 @@ jobs:
           python3 -B tests/operations-release-plan.py
           python3 -B tests/approval-release-preparation.py
           python3 -B tests/leasing-release-preparation.py
+          python3 -B tests/leasing-release-dispatcher.py
           python3 -B tests/approval-release-dispatcher.py
           python3 -B tests/operations-release-dispatcher.py
           node tests/operations-release-transaction.cjs
@@ -79,7 +80,7 @@ jobs:
           python3 scripts/test-operations-postgres.py
           python3 -B tests/approval-release-preparation.py --integration
           python3 -B tests/approval-release-preparation.py --integration --dispatcher
-          python3 -B tests/leasing-release-preparation.py --integration
+          python3 -B tests/leasing-release-preparation.py --integration --dispatcher
 
       - name: Real isolated leasing identity switch
         if: matrix.node == 22

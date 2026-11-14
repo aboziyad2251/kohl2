@@ -124,6 +124,55 @@ INSERT INTO portal_private.internal_entries(id,kind,amount,date,holder,reference
      except subprocess.CalledProcessError:pass
      else:raise AssertionError('Injected failure should roll back')
      mod.preflight(target,log);assert mod.snapshot(target,log)==before
+    if '--dispatcher' in sys.argv:
+     dispatcher=load('leasing_dispatcher_native','scripts/release-leasing-specialist.py')
+     with oldfixture.isolated(log) as target:
+      mod.restore.query(target,roles,log);mod.restore.restore(target,archive,log)
+      before=mod.snapshot(target,log);plan={'rehearsal_fingerprints':before}
+      def database(sql,private_log):return mod.restore.query(target,sql,private_log)
+      with patch.object(dispatcher,'database',side_effect=database):
+       dispatcher.preflight(plan,log)
+       sql=dispatcher.transaction(plan,content)
+       # Verify the actual dispatcher guard rejects configuration drift atomically.
+       drift={'rehearsal_fingerprints':{**before,dispatcher.CONFIG_KEY:'0'*32}}
+       try:database(dispatcher.transaction(drift,content),log)
+       except subprocess.CalledProcessError:pass
+       else:raise AssertionError('Changed reviewers were not blocked')
+       assert mod.snapshot(target,log)==before;dispatcher.preflight(plan,log)
+       try:database(sql.replace('\nCOMMIT;','\nSELECT 1/0;\nCOMMIT;'),log)
+       except subprocess.CalledProcessError:pass
+       else:raise AssertionError('Dispatcher late failure did not roll back')
+       assert mod.snapshot(target,log)==before;dispatcher.preflight(plan,log)
+       database(sql,log);dispatcher.verify_applied(plan,log)
+       assert mod.snapshot(target,log)==before
+       child='55555555-5555-4555-8555-555555555555'
+       parent_session='66666666-6666-4666-8666-666666666666'
+       child_session='77777777-7777-4777-8777-777777777777'
+       database(f"""
+INSERT INTO auth.users VALUES('{child}','specialist@fixture.invalid','kohl_leasing');
+SELECT public.leasing_switch_admin('{MANAGER}','REGISTER','{{"id":"{child}"}}');
+INSERT INTO auth.sessions VALUES('{parent_session}','{MANAGER}'),('{child_session}','{child}');
+SELECT public.leasing_switch_admin('{MANAGER}','BEGIN','{{"parent_session":"{parent_session}","child_session":"{child_session}"}}');
+INSERT INTO public.crm_leads(id,name,phone,source) VALUES('88888888-8888-4888-8888-888888888888','New specialist customer','0500000003','Fixture');
+INSERT INTO portal_private.leasing_specialist_leads VALUES('88888888-8888-4888-8888-888888888888','{child}');
+INSERT INTO portal_private.leasing_cases(id,lead_id,assignee_id,kind,source,need) VALUES('99999999-9999-4999-8999-999999999999','88888888-8888-4888-8888-888888888888','{child}','DAILY','Fixture','Retain after recovery');
+""",log)
+       scope=f"""BEGIN; SET LOCAL ROLE kohl_leasing;
+SELECT set_config('request.jwt.claim.sub','{child}',true);
+SELECT set_config('request.jwt.claims','{{"session_id":"{child_session}"}}',true);
+SELECT public.leasing_profile()->'account'->>'role'; ROLLBACK;"""
+       assert database(scope,log).splitlines()[-1]=='LEASING'
+       current=mod.snapshot(target,log)
+       rows_sql="SELECT jsonb_build_object('delegations',(SELECT jsonb_agg(to_jsonb(t)) FROM portal_private.leasing_delegations t),'leads',(SELECT jsonb_agg(to_jsonb(t)) FROM portal_private.leasing_specialist_leads t));"
+       private_rows=database(rows_sql,log)
+       dispatcher.suspend_specialist(log);dispatcher.suspend_specialist(log)
+       assert mod.snapshot(target,log)==current
+       assert database(rows_sql,log)==private_rows
+       try:database(scope,log)
+       except subprocess.CalledProcessError:pass
+       else:raise AssertionError('Delegated session remained usable after recovery')
+       assert database("SELECT assignee_id FROM portal_private.leasing_cases WHERE id='44444444-4444-4444-8444-444444444444'",log)==MANAGER
+     print('PASS: actual dispatcher transaction, reviewer drift rejection, late rollback, recovery denies existing session while retaining new and old data')
     print('PASS: leasing backup/restore, new-role permissions, original assignments/reviews/history preserved, late-error transaction rollback')
    except Exception:
     log.seek(0);print(log.read().decode(errors='replace')[-3000:]);raise # Synthetic fixture only.
