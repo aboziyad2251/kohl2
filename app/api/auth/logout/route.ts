@@ -1,3 +1,4 @@
+import { RETURN_COOKIE,returnCookieOptions } from '@/lib/leasing/session';
 import { NextRequest } from 'next/server';
 import { requireIdentity,apiError,json,PortalError } from '@/lib/portal/server';
 import { withAudit,recordAudit } from '@/lib/audit/server';
@@ -9,4 +10,4 @@ async function post(req:NextRequest){let logged=false;try{
  if(!response.ok){logged=true;await recordAudit('LOGOUT','Auth',{source:'app_logout',outcome:'FAILURE',status:response.status});throw new PortalError(503,'تعذر إنهاء الجلسة؛ أعد المحاولة');}
  logged=true;await recordAudit('LOGOUT','Auth',{source:'app_logout',outcome:'SUCCESS'});return json({signed_out:true});
  }catch(e){if(!logged)await recordAudit('LOGOUT','Auth',{source:'app_logout',outcome:'FAILURE',reason:'REQUEST_OR_PROVIDER_ERROR'}).catch(()=>console.error('[audit] logout event unavailable'));return apiError(e);}}
-export const POST=withAudit(post);
+export const POST=withAudit(async (req:NextRequest)=>{const response=await post(req);response.cookies.set(RETURN_COOKIE,'',{...returnCookieOptions(req),maxAge:0});return response;});

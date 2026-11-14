@@ -4,9 +4,10 @@ export type ExternalRole = typeof externalRoles[number];
 export type ManagedRole = ExternalRole | 'EMPLOYEE';
 export const roleLabels: Record<UserRole, string> = {
     ADMIN: 'المسؤول العام', CEO: 'الرئيس التنفيذي', HR: 'الموارد البشرية', EMPLOYEE: 'موظف',
-    BROKER: 'وسيط', OWNER: 'مالك', TENANT: 'مستأجر',
+    BROKER: 'وسيط', OWNER: 'مالك', TENANT: 'مستأجر', LEASING: 'أخصائي التأجير',
 };
 export interface PortalProfile {
+    leasing_operator?: { name: string; expires_at: string };
     audit_viewer?: boolean;
     kr_reports?: boolean;
     account: {

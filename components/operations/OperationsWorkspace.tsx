@@ -111,7 +111,8 @@ export default function OperationsWorkspace({
 }: {
   mode: "leasing" | "finance";
 }) {
-  const { currentUser, isExecutive } = useAuth();
+  const { currentUser, isExecutive, profile } = useAuth();
+  const leasingOnly = currentUser.role === 'LEASING';
   const [entryCase, setEntryCase] = useState(""),
     [entryKind, setEntryKind] = useState("");
   const [w, setW] = useState<Workspace | null>(null),
@@ -239,6 +240,8 @@ export default function OperationsWorkspace({
       nullable = (key: string) => get(key) || null;
     const item = form.item as Case | undefined;
     try {
+      if (form.type === "contact")
+        return await save({operation:"CONTACT_CREATE",id:form.id,name:get("name"),phone:get("phone"),source:get("source")});
       if (form.type === "case")
         return await save({
           operation: "CASE_CREATE",
@@ -392,6 +395,7 @@ export default function OperationsWorkspace({
       <header className="ops-header">
         <div>
           <p className="ops-eyebrow">كحل · مساحة العمل</p>
+          {leasingOnly && <p className="ops-help">أخصائي التأجير · صلاحيات التأجير فقط · المشغّل: {profile?.leasing_operator?.name}. يبدأ هذا الحساب بطلباته الجديدة.</p>}
           <h1>
             {mode === "leasing"
               ? "التأجير ومتابعة العملاء"
@@ -411,12 +415,12 @@ export default function OperationsWorkspace({
           >
             تحديث
           </button>
-          <Link
+          {!leasingOnly && <Link
             className="ops-link"
             href={mode === "leasing" ? "/financials/internal" : "/leasing"}
           >
             {mode === "leasing" ? "المالية الداخلية" : "التأجير"}
-          </Link>
+          </Link>}
         </div>
       </header>
       <nav className="ops-tabs" aria-label="أقسام مساحة العمل">
@@ -603,19 +607,21 @@ export default function OperationsWorkspace({
                   <p className="ops-empty">لا توجد مدد تحتاج تنبيهاً حالياً.</p>
                 )}
               </section>
-              <p className="ops-help">
+              {!leasingOnly && <p className="ops-help">
                 المكالمات والرسائل متاحة في{" "}
                 <Link href="/crm?tab=activities" className="ops-link">
                   سجل علاقات العملاء
                 </Link>
                 . قياس سرعة الرد يحتاج بيانات إضافية من هاتف.
-              </p>
+              </p>}
+              {leasingOnly && <p className="ops-help">سجّل نتيجة التواصل عبر هاتف في متابعة الطلب بعد إجرائه.</p>}
             </>
           )}
           {tab === "cases" && (
             <>
               <div className="ops-section-head">
                 <h2>طلبات التأجير</h2>
+                {leasingOnly && <button className="ops-link" onClick={() => open("contact")}>إضافة عميل تأجير جديد</button>}
                 <button className="portal-button" onClick={() => open("case")}>
                   طلب تأجير جديد
                 </button>
@@ -1005,6 +1011,7 @@ export default function OperationsWorkspace({
                       (
                         {
                           case: "طلب تأجير جديد",
+                          contact: "عميل تأجير جديد",
                           update: "تحديث الطلب",
                           followup: "متابعة جديدة",
                           done: "نتيجة المتابعة",
@@ -1029,6 +1036,11 @@ export default function OperationsWorkspace({
                   </p>
                 )}
                 <form key={form.id} onSubmit={submit} className="ops-form">
+                  {form.type === "contact" && <>
+                    <Input name="name" label="اسم العميل" />
+                    <Input name="phone" label="رقم الجوال (05xxxxxxxx)" />
+                    <Input name="source" label="مصدر التواصل" value="هاتف" />
+                  </>}
                   {form.type === "case" && (
                     <>
                       <Options
@@ -1039,9 +1051,7 @@ export default function OperationsWorkspace({
                           name: `${l.name} · ${l.phone}`,
                         }))}
                       />
-                      <Link href="/crm" className="ops-link">
-                        إضافة أو مراجعة العميل في CRM
-                      </Link>
+                      {leasingOnly ? <button type="button" className="ops-link" onClick={() => open("contact")}>إضافة عميل تأجير جديد</button> : <Link href="/crm" className="ops-link">إضافة أو مراجعة العميل في CRM</Link>}
                       {isExecutive && (
                         <Options
                           name="assignee_id"

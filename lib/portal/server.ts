@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import type { PortalProfile } from './types';
 import { ZodError } from 'zod';
+import { leasingApiAllowed } from '@/lib/leasing/access';
 export class PortalError extends Error {
     constructor(public status: number, message: string) { super(message); }
 }
@@ -33,10 +34,15 @@ export async function requireIdentity(req: NextRequest, executive = false) {
     const { data: identity, error } = await client.auth.getUser(bearer);
     if (error || !identity.user)
         throw new PortalError(401, 'Invalid session');
-    const { data, error: profileError } = await client.rpc('portal_me');
+    const leasing = identity.user.role === 'kohl_leasing';
+    if (leasing && !leasingApiAllowed(new URL(req.url).pathname, req.method))
+        throw new PortalError(403, 'هذا الحساب مخصص للتأجير فقط.');
+    const { data, error: profileError } = await client.rpc(leasing ? 'leasing_profile' : 'portal_me');
     if (profileError || !data)
         throw new PortalError(403, 'Inactive or unassigned account');
     const profile = data as PortalProfile;
+    if ((profile.account.role === 'LEASING') !== leasing)
+        throw new PortalError(403, 'Session scope mismatch');
     if (profile.account.id !== identity.user.id)
         throw new PortalError(403, 'Identity mismatch');
     if (executive && !['ADMIN', 'CEO'].includes(profile.account.role))

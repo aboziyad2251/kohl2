@@ -1,3 +1,15 @@
+> 14 نوفمبر 2026 — نجح تحضير الحساب المنفصل على الخادم، والإنتاج لم يتغير.
+> الخطة الخاصة: `/home/debian/backups/kohl-leasing-plan-6s_gi1ss`.
+> الصورة: `sha256:df561ba5ca8da66172ea97edd4390fecb9e3e0e9b6f034f68b08689f3e9ed259`.
+> سكربت التحويل الجديد `scripts/release-leasing-specialist.py` افتراضيًا dry run؛
+> الخطوة التالية فحص هذه الخطة به على الخادم. لا تستخدم سكربت نشر سابق.
+> الاسترجاع يعطل التفويض ويحفظ البيانات؛ راجع [الخطة](leasing-specialist-account.md).
+
+> 13 نوفمبر 2026 — العمل الجاري: فصل حساب أخصائي التأجير على
+> `codex/leasing-specialist-account`. يبدأ بطلبات جديدة فقط، والتبديل لمحمد وحده.
+> التنفيذ والاختبارات في [خطة الحساب](leasing-specialist-account.md).
+> لم ينشر هذا التعديل بعد؛ يبقى نشر سلسلة الاعتماد السابق هو الوضع الحي المؤكد.
+
 # Current release — approval chain and leasing assistant deployed, 13 November 2026 (Riyadh)
 
 After a successful server dry run, the operator ran the provided exact-image apply
