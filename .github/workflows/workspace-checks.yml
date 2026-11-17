@@ -44,6 +44,7 @@ jobs:
           node tests/hatif.cjs
           node tests/drafts.cjs
           node tests/navigation.cjs
+          node tests/employee-tour.cjs
           node tests/kr.cjs
           node tests/kr-workflow-db.cjs
           node tests/kr-management-db.cjs
