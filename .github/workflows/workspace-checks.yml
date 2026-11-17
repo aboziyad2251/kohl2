@@ -44,6 +44,7 @@ jobs:
           node tests/hatif.cjs
           node tests/drafts.cjs
           node tests/navigation.cjs
+          node tests/employee-tour.cjs
           node tests/kr.cjs
           node tests/kr-workflow-db.cjs
           node tests/kr-management-db.cjs
@@ -68,6 +69,8 @@ jobs:
           python3 -B tests/operations-release-plan.py
           python3 -B tests/approval-release-preparation.py
           python3 -B tests/leasing-release-preparation.py
+          python3 -B tests/tour-release-preparation.py
+          python3 -B tests/tour-release-dispatcher.py
           python3 -B tests/leasing-release-dispatcher.py
           python3 -B tests/approval-release-dispatcher.py
           python3 -B tests/operations-release-dispatcher.py

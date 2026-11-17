@@ -8,7 +8,7 @@ function session(role){const uid=role==='LEASING'?id:owner;return {access_token:
   let role='LEASING',calls=[];
   const w={role,cases:[],followups:[],entries:[],units:[],dues:[],leads:[],properties:[],staff:[{id,name:'أخصائي التأجير'}],contracts:[],history:[],captured_at:new Date().toISOString(),workflow:{manager_id:owner,final_id:owner,manager_name:'محمد',final_name:'سالم',assistant_available:true}};
   const context=await browser.newContext({viewport:{width,height:950},locale:'ar-SA'});
-  await context.addInitScript(({session})=>{if(!localStorage.getItem('sb-127-auth-token'))localStorage.setItem('sb-127-auth-token',JSON.stringify(session));},{session:session(role)});
+  await context.addInitScript(({session})=>{localStorage.setItem('kohl:onboarding:v1:dddddddd-dddd-4ddd-8ddd-000000000001','completed');localStorage.setItem('kohl:onboarding:v1:dddddddd-dddd-4ddd-8ddd-000000000002','completed');if(!localStorage.getItem('sb-127-auth-token'))localStorage.setItem('sb-127-auth-token',JSON.stringify(session));},{session:session(role)});
   await context.route('**/*',async route=>{
    const req=route.request(),url=new URL(req.url());const json=(v,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(v)});
    if(url.pathname.startsWith('/auth/v1/'))return json(url.pathname.endsWith('/user')?session(role).user:session(role));

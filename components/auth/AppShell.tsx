@@ -8,6 +8,7 @@ import { DataProvider } from '@/context/DataContext';
 import { LayoutProvider } from '@/context/LayoutContext';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
+import EmployeeTour from '@/components/layout/EmployeeTour';
 import { AppearanceWorkspace } from '@/components/layout/Appearance';
 import MobileBottomNav from '@/components/layout/MobileBottomNav';
 import PreviewNotice from './PreviewNotice';
@@ -36,7 +37,7 @@ export default function AppShell({ children }: {
         return <div className="w-full"><PreviewNotice /><Suspense fallback={<p role="status">جارٍ التحميل…</p>}>{children}</Suspense></div>;
     if (!auth.canAccess(module))
         return <p className="p-8">لا تملك صلاحية الدخول لهذه الصفحة.</p>;
-    const shell = <NavigationProvider key={auth.currentUser.id}><LayoutProvider><AppearanceWorkspace><Sidebar /><div className="flex-1 flex flex-col min-w-0"><PreviewNotice /><ExportObserver /><Header /><main className="flex-1 p-3.5 sm:p-5 md:p-8 overflow-y-auto pb-24 md:pb-8 min-w-0"><DraftNotice /><Suspense fallback={<p role="status">جارٍ تحميل القسم…</p>}>{children}</Suspense></main></div><MobileBottomNav /></AppearanceWorkspace></LayoutProvider></NavigationProvider>;
+    const shell = <NavigationProvider key={auth.currentUser.id}><LayoutProvider><AppearanceWorkspace><Sidebar /><div className="flex-1 flex flex-col min-w-0"><PreviewNotice /><ExportObserver /><Header /><main className="flex-1 p-3.5 sm:p-5 md:p-8 overflow-y-auto pb-24 md:pb-8 min-w-0"><DraftNotice /><Suspense fallback={<p role="status">جارٍ تحميل القسم…</p>}>{children}</Suspense></main></div><MobileBottomNav /><EmployeeTour key={auth.currentUser.id} /></AppearanceWorkspace></LayoutProvider></NavigationProvider>;
     if (auth.role === 'LEASING') return shell;
     return <DataProvider key={auth.currentUser.id}>{auth.isExecutive ? <AttentionProvider key={auth.currentUser.id}>{shell}</AttentionProvider> : shell}</DataProvider>;
 }
