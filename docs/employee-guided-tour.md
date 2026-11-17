@@ -26,3 +26,15 @@ fix/disable-email-recovery and does not include the incomplete operations employ
 permission work. Preserve the live account frontend's recovery=false setting.
 Before a main-image rollout validate persistent Hatif through prepare_hatif_runtime
 and retain the original runtime for recovery. No database migration is required.
+
+## Server preparation
+
+The user authorized rollout. Application commit `5f2ca19334e459a617b415578d47cd9cd2522583`
+passed GitHub run 44067054868 on Node 20/22. `prepare-tour-release.py` pins that
+source, checks the existing main/broker/account images and recovery=false, validates
+Hatif, builds from a clean Git archive with public build settings only, and runs the
+exact image against isolated synthetic Auth/API services. It checks that live runtime
+has not changed, then records private original/candidate configuration and an image
+acceptance receipt. There are no production SQL writes, container stops or deployment
+commands in preparation. Share only its resulting image ID and private plan path.
+The cutover dispatcher must be bound to that resulting image/plan before deployment.
