@@ -38,3 +38,26 @@ has not changed, then records private original/candidate configuration and an im
 acceptance receipt. There are no production SQL writes, container stops or deployment
 commands in preparation. Share only its resulting image ID and private plan path.
 The cutover dispatcher must be bound to that resulting image/plan before deployment.
+
+## Pinned cutover
+
+Operator preparation passed for image
+`sha256:bdc7734c1dacfa8cc32a71de0c272da46f2576504d0e768c36d1cf8ca1a6317a`,
+plan `/home/debian/backups/kohl-tour-plan-j7h1w0xv`.
+`release-tour.py --plan <directory>` defaults to read-only verification of the image,
+source label, private HTTP acceptance digest, unchanged runtimes and persistent Hatif.
+`--apply --approved-image <exact image>` replaces main only. A durable attempt marker
+blocks accidental repeat apply. No SQL, session revocation or account changes occur.
+
+Failures during cutover restore the original app. The old container and private
+runtime snapshots are retained. After interruption, use the actual printed release
+folder with `--rollback <release-folder>` and
+`--approved-image sha256:df561ba5ca8da66172ea97edd4390fecb9e3e0e9b6f034f68b08689f3e9ed259`.
+Recovery refuses an unrelated main container or changed Hatif snapshot. Do not delete
+attempt markers or runtime files to force retry. This script has its own tour-specific
+validation/cutover/recovery paths; historical release entry points are not invoked.
+
+Twelve stateful unit tests cover dry-run non-mutation, exact-plan/receipt validation,
+Hatif checks before stop, failed Docker mutations and lost replies, health failure,
+signals, repeated recovery and durable failure receipts. Production deployment is
+pending the operator's result.
