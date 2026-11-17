@@ -1,0 +1,15 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),ts=require('typescript');
+const React=require('react'),{renderToStaticMarkup}=require('react-dom/server');
+const mod={exports:{}};
+const source=fs.readFileSync('app/auth/forgot-password/page.tsx','utf8');
+new Function('require','exports','module',ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText)(require,mod.exports,mod);
+const html=renderToStaticMarkup(React.createElement(mod.exports.default));
+assert.match(html,/Email password recovery is currently unavailable/);
+assert.doesNotMatch(html,/<form|<input/);
+assert.match(html,/href="\/login"/);
+assert.doesNotMatch(source,/resetPasswordForEmail|fetch\(/);
+assert.match(fs.readFileSync('app/api/auth/providers/route.ts','utf8'),/recovery: false/);
+const login=fs.readFileSync('app/login/page.tsx','utf8');
+assert.match(login,/type="password"/);assert.match(login,/router.replace\('\/dashboard'\)/);
+assert.doesNotMatch(login,/router\.(?:replace|push)\('\/auth\/forgot-password/);
+console.log('PASS: unavailable recovery SSR, no form/network recovery call, login retained');

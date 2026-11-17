@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/context/AuthContext';
-import Link from 'next/link';
 import { loginErrorMessage } from '@/lib/portal/login-errors';
 export default function Login() {
     const [en, setEn] = useState(false), [email, setEmail] = useState(''), [password, setPassword] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState('');
@@ -30,6 +29,6 @@ export default function Login() {
   <label className="block">{en ? 'Email' : 'البريد الإلكتروني'}<input className="portal-input" type="email" required autoComplete="username" value={email} onChange={e => setEmail(e.target.value)}/></label>
   <label className="block">{en ? 'Password' : 'كلمة المرور'}<input className="portal-input" type="password" required autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)}/></label>
   {(error || auth.error) && <p role="alert" className="text-red-700">{error || auth.error}</p>}<button className="portal-button w-full" disabled={busy}>{busy ? '…' : en ? 'Sign in' : 'تسجيل الدخول'}</button>
-  <Link className="block text-center text-sm underline" href="/auth/forgot-password">{en ? 'Forgot your password?' : 'نسيت كلمة المرور؟'}</Link>
+  <a className="block text-center text-sm underline" href="/auth/forgot-password">{en ? 'Forgot your password?' : 'نسيت كلمة المرور؟'}</a>
  </form></main>;
 }

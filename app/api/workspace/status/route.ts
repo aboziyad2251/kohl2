@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       checkedAt: new Date().toISOString(), database: !database.error,
       hatif: { enabled: process.env.HATIF_ENABLED === 'true', configured: !!secret && secret.length >= 20 && !secret.includes('•'), lastRecordedActivity: last.data?.[0]?.created_at || null, observationAvailable: !last.error },
       aiConfigured: !!(process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY),
-      googleEnabled: process.env.GOOGLE_LOGIN_ENABLED === 'true', recoveryEnabled: process.env.PASSWORD_RECOVERY_ENABLED === 'true',
+      googleEnabled: process.env.GOOGLE_LOGIN_ENABLED === 'true', recoveryEnabled: false,
     });
   } catch (error) { return apiError(error); }
 }

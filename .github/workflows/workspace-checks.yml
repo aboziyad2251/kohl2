@@ -40,6 +40,7 @@ jobs:
         run: node scripts/check-release-baseline.cjs
       - name: Hatif, draft, and navigation tests (mocked)
         run: |
+          node tests/recovery-disabled.cjs
           node tests/hatif.cjs
           node tests/drafts.cjs
           node tests/navigation.cjs
