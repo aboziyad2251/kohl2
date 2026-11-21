@@ -1,5 +1,5 @@
 /** Pure availability rules. All timestamps must come from the server on writes. */
-export type RentalKind = 'DAILY' | 'MONTHLY' | 'YEARLY';
+export type RentalKind = 'DAILY' | 'MONTHLY' | 'ANNUAL';
 export interface Period { start: string; end: string }
 export interface Occupancy extends Period {
  unitId: string;
@@ -9,7 +9,7 @@ export interface Occupancy extends Period {
 }
 export interface AvailableUnit {
  id: string;
- readiness: 'READY' | 'CLEANING' | 'MAINTENANCE' | 'BLOCKED';
+ readiness: 'READY' | 'CLEANING' | 'MAINTENANCE' | 'UNAVAILABLE';
  bedrooms: number | null;
  entrances: number | null;
 }
@@ -32,7 +32,7 @@ export function holdHours(kind: RentalKind,start: string,now: Date): number {
  const today=new Date(now.getTime()+3*60*60*1000).toISOString().slice(0,10);
  const distance=(day(start)-day(today))/86400000;
  if(distance<0) throw new Error('Cannot hold a past arrival');
- if(kind==='YEARLY')return 72;
+ if(kind==='ANNUAL')return 72;
  if(kind==='MONTHLY')return 24;
  if(kind!=='DAILY')throw new Error('Unsupported rental kind');
  return distance<=1?2:12;

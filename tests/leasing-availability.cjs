@@ -1,7 +1,7 @@
 const fs=require('fs'),vm=require('vm'),ts=require('typescript'),assert=require('node:assert/strict');
 const exports_={};vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/operations/availability.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,{exports:exports_,Date,Set});
 const a=exports_,now=new Date('2026-11-21T21:15:00Z'); // Already Nov 22 in Riyadh.
-assert.equal(a.holdHours('YEARLY','2026-11-22',now),72);
+assert.equal(a.holdHours('ANNUAL','2026-11-22',now),72);
 assert.equal(a.holdHours('MONTHLY','2026-11-22',now),24);
 assert.equal(a.holdHours('DAILY','2026-11-23',now),2);
 assert.equal(a.holdHours('DAILY','2026-11-24',now),12);

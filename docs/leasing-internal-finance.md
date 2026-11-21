@@ -260,3 +260,16 @@ production deployment has been made. Search adapters, server-side atomic holds,
 contract-unit binding, cancellation authorization and UI integration remain pending;
 then document previews and follow-up classifications follow. Do not treat this
 foundation as a fix already applied to production search. No real data was modified.
+
+Cancellation prototype is now exercised on an isolated SQL fixture in
+`tests/leasing-booking-cancellation.cjs`. Candidate SQL is deliberately outside
+migrations (`scripts/sql/leasing-booking-cancellation.sql`): it is not a production
+release. It adds separate booking cancellation metadata, preserves contract stage,
+entries and dues, authorizes only configured manager ADMIN/final CEO, serializes by
+case, and writes one audit event. No client/API route invokes it yet. Before release,
+all booking confirmation and availability adapters must consume cancellation state.
+Current prototype must not be applied alone as a complete booking fix.
+
+Availability types were aligned with existing ANNUAL and UNAVAILABLE enum names.
+Remaining contract-unit adapter needs verified production contract columns/FKs:
+the initial repository schema only guarantees property-level contract linkage.
