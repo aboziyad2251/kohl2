@@ -273,3 +273,19 @@ Current prototype must not be applied alone as a complete booking fix.
 Availability types were aligned with existing ANNUAL and UNAVAILABLE enum names.
 Remaining contract-unit adapter needs verified production contract columns/FKs:
 the initial repository schema only guarantees property-level contract linkage.
+
+Live schema evidence received 21 November: contracts have property_id FK and textual
+unit_label/unit_details, but no unit FK. Properties have both imported count fields
+and canonical rooms/entrances plus building_name/unit_number; leasing_units has only
+id/property_id/code/readiness/note. Do not assume a whole building's room count is
+an apartment count. No production values or tenant records were requested.
+
+Added isolated candidate contract-unit mapping table and date-range availability RPC
+in scripts/sql/leasing-unit-availability.sql. It returns only unit identifiers/code,
+readiness and availability reason; active unmapped contracts conservatively require
+mapping review. The synthetic SQL test verifies mapped A blocked/B free, boundary
+checkout dates, and denial of direct private mapping access. An authenticated GET
+API adapter is added but is not connected to the search UI or deployed. The leasing
+session API allowlist remains unchanged pending its session-bound RPC tests. Holds,
+manual audited mapping controls, confirmation constraints, concurrency tests and
+search integration remain necessary before releasing this feature.

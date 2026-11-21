@@ -34,6 +34,23 @@ INSERT INTO portal_private.internal_entries(id,case_id,kind,amount,date,holder,r
   assert.equal(row.contract_id,uuid(80));assert.equal(row.stage,'NEW');assert.equal(row.booking_cancelled_by,ids.admin);
   assert.equal((await db.query('SELECT status FROM portal_private.internal_entries WHERE id=$1',[uuid(82)])).rows[0].status,'PENDING');
   assert.equal((await db.query("SELECT count(*)::int n FROM portal_private.operations_history WHERE action='BOOKING_CANCEL'")).rows[0].n,1);
+  await db.exec(`ALTER TABLE public.contracts ADD COLUMN property_id uuid, ADD COLUMN status text, ADD COLUMN start_date date, ADD COLUMN end_date date;
+INSERT INTO public.lessors(id,name) VALUES('${uuid(89)}','Synthetic lessor');
+INSERT INTO public.properties(id,property_name,property_type,address,city,lessor_id) VALUES('${uuid(90)}','Synthetic building','Residential','Fixture','Riyadh','${uuid(89)}');
+INSERT INTO portal_private.leasing_units VALUES('${uuid(91)}','${uuid(90)}','A','READY','Fixture'),('${uuid(92)}','${uuid(90)}','B','READY','Fixture');
+UPDATE public.contracts SET property_id='${uuid(90)}',status='Active',start_date='2026-11-01',end_date='2026-12-01' WHERE id='${uuid(80)}';`);
+  await db.exec(require('fs').readFileSync('scripts/sql/leasing-unit-availability.sql','utf8'));
+  const availability=async()=> (await db.query("SELECT public.leasing_unit_availability('2026-11-10','2026-11-11') result")).rows[0].result.units;
+  await actor(db,'employee');let units=await availability();
+  assert(units.every(u=>u.reason==='CONTRACT_MAPPING_REQUIRED'&&!u.available));
+  await denied(()=>db.query('SELECT * FROM portal_private.leasing_contract_units'));
+  await db.exec(`RESET ROLE; INSERT INTO portal_private.leasing_contract_units(contract_id,unit_id,linked_by) VALUES('${uuid(80)}','${uuid(91)}','${ids.admin}');`);
+  await actor(db,'employee');units=await availability();
+  assert.equal(units.find(u=>u.id===uuid(91)).reason,'CONTRACTED');
+  assert.equal(units.find(u=>u.id===uuid(92)).available,true);
+  assert(!JSON.stringify(units).includes('tenant'));
+  assert((await db.query("SELECT public.leasing_unit_availability('2026-12-01','2026-12-02') result")).rows[0].result.units.every(u=>u.available));
+  console.log('PASS: real unit search RPC blocks unmapped active contracts, only linked apartment occupied, adjacent dates free, private mapping denied');
   console.log('PASS: designated cancellation without financial prerequisite; employee/unrelated admin denied; contract, pending entry and audit retained; repeated cancellation idempotent');
  }finally{await db.close();}
 })().catch(e=>{console.error(e);process.exit(1)});
