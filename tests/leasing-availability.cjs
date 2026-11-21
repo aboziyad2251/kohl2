@@ -1,0 +1,23 @@
+const fs=require('fs'),vm=require('vm'),ts=require('typescript'),assert=require('node:assert/strict');
+const exports_={};vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/operations/availability.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,{exports:exports_,Date,Set});
+const a=exports_,now=new Date('2026-11-21T21:15:00Z'); // Already Nov 22 in Riyadh.
+assert.equal(a.holdHours('YEARLY','2026-11-22',now),72);
+assert.equal(a.holdHours('MONTHLY','2026-11-22',now),24);
+assert.equal(a.holdHours('DAILY','2026-11-23',now),2);
+assert.equal(a.holdHours('DAILY','2026-11-24',now),12);
+assert.throws(()=>a.holdHours('DAILY','2026-11-21',now));
+assert.throws(()=>a.validatePeriod({start:'2026-02-30',end:'2026-03-03'}));
+const period={start:'2026-11-22',end:'2026-11-24'},unit={id:'unit',readiness:'READY',bedrooms:3,entrances:2};
+const booking={...period,unitId:'unit',type:'BOOKING',state:'ACTIVE'};
+assert.equal(a.unitAvailability(unit,period,[booking],now).available,false);
+assert.equal(a.unitAvailability(unit,{start:'2026-11-24',end:'2026-11-25'},[booking],now).available,true);
+assert.equal(a.unitAvailability({...unit,readiness:'CLEANING'},period,[],now).available,false);
+const hold={...booking,type:'HOLD',expiresAt:now.toISOString()};
+assert.equal(a.unitAvailability(unit,period,[hold],now).available,true);
+assert.throws(()=>a.unitAvailability(unit,period,[{...hold,expiresAt:undefined}],now));
+assert.equal(a.unitAvailability(unit,period,[{...booking,state:'CANCELLED'},{...booking,type:'CONTRACT'}],now).available,false);
+assert.equal(a.unitAvailability(unit,period,[{...booking,state:'DRAFT'}],now).available,true);
+assert.equal(a.matchesRequirements({...unit,entrances:null},{entrances:2}),false);
+assert.equal(a.matchesRequirements(unit,{bedrooms:3,entrances:2}),true);
+assert.equal(JSON.stringify(a.suggestRequirements('شقة ٣ غرف مدخلين')),JSON.stringify({bedrooms:3,entrances:2}));
+console.log('PASS: Riyadh hold policy, date boundaries, occupancy/contract blockers, missing data and Arabic filter suggestions');

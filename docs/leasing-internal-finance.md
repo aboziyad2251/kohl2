@@ -239,3 +239,24 @@ image and run exact-image acceptance with its new ID:
 This build helper reads only public build settings from the running main container,
 performs no deployment and invokes only the isolated synthetic test. Its source
 checkout must be clean and contain no real environment files.
+
+## Approved availability work — 21 November 2026
+
+The user approved date/description search, period-aware occupancy, document previews,
+follow-up classifications, and starting implementation without disrupting production.
+Hold defaults: annual 72 hours; monthly 24 hours with authorized extension up to 72;
+daily arrival today/tomorrow in Riyadh two hours, farther arrivals twelve hours.
+Designated manager and CEO may cancel any booking without mandatory explanation,
+extra approval or a financial prerequisite. Keep audit attribution and all financial
+records. Cancelling a booking does not cancel its linked contract or refund money.
+Contracted status requires a confirmed contract bound to the same unit and period.
+
+Initial isolated implementation: lib/operations/availability.ts supplies pure date,
+hold and occupancy rules and explicit Arabic room/entrance filter suggestions.
+Existing runtime does not import these rules yet. Tests cover expiry at the exact
+boundary, adjacent stays, readiness, independent active contracts after reservation
+cancellation, invalid/missing dates and unknown unit attributes. No migration or
+production deployment has been made. Search adapters, server-side atomic holds,
+contract-unit binding, cancellation authorization and UI integration remain pending;
+then document previews and follow-up classifications follow. Do not treat this
+foundation as a fix already applied to production search. No real data was modified.
