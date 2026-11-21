@@ -55,7 +55,7 @@ export function unitAvailability(unit: AvailableUnit,period: Period,records: Occ
  const blockers=records.filter(record=>record.unitId===unit.id&&activeOccupancy(record,now)&&overlaps(period,record));
  return {available:unit.readiness==='READY'&&blockers.length===0,ready:unit.readiness==='READY',
   // Return reasons only, never tenant identity or contract financial information.
-  reasons:[...new Set(blockers.map(record=>record.type))]};
+  reasons:Array.from(new Set(blockers.map(record=>record.type)))};
 }
 export interface UnitRequirements { bedrooms?: number; entrances?: number }
 export function matchesRequirements(unit: AvailableUnit,requirements: UnitRequirements) {
@@ -70,8 +70,8 @@ export function matchesRequirements(unit: AvailableUnit,requirements: UnitRequir
 export function suggestRequirements(query: string): UnitRequirements {
  const normalized=query.replace(/[٠-٩]/g,c=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(c)))
   .replace(/[۰-۹]/g,c=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c))).replace(/[أإآ]/g,'ا').replace(/[\u064B-\u065F\u0640]/g,'');
- const rooms=normalized.match(/(?:^|\s)(\d+)\s*(?:غرف(?:ة)?|bedrooms?)(?=$|[^\p{L}\p{N}])/iu);
- const entrances=normalized.match(/(?:^|\s)(\d+)\s*(?:مداخل|مدخل|entrances?)(?=$|[^\p{L}\p{N}])/iu);
+ const rooms=normalized.match(/(?:^|\s)(\d+)\s*(?:غرف(?:ة)?|bedrooms?)(?=$|[\s،,.؛;])/i);
+ const entrances=normalized.match(/(?:^|\s)(\d+)\s*(?:مداخل|مدخل|entrances?)(?=$|[\s،,.؛;])/i);
  const result:UnitRequirements={};
  if(rooms&&Number(rooms[1])>0)result.bedrooms=Number(rooms[1]);
  if(entrances&&Number(entrances[1])>0)result.entrances=Number(entrances[1]);
