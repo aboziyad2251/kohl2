@@ -78,3 +78,16 @@ export function suggestRequirements(query: string): UnitRequirements {
  else if(/مدخلين|مدخلان/.test(normalized))result.entrances=2;
  return result;
 }
+
+/** Only these explicit filters are applied; unparsed prose is never treated as a match. */
+export function parseRequirementFilters(params: URLSearchParams): UnitRequirements {
+ const result: UnitRequirements={};
+ for(const key of ['bedrooms','entrances'] as const){
+  const value=params.get(key);
+  if(value===null||value==='')continue;
+  const max=key==='bedrooms'?100:20;
+  if(!/^[1-9][0-9]*$/.test(value)||Number(value)>max)throw new Error('Invalid unit requirement');
+  result[key]=Number(value);
+ }
+ return result;
+}

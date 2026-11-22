@@ -15,6 +15,7 @@ export async function POST(req:NextRequest){
   const raw=await req.text();if(raw.length>8192)throw new PortalError(413,'طلب كبير');
   const parsed=action.safeParse(JSON.parse(raw));if(!parsed.success)throw new PortalError(400,'تحقق من بيانات الحجز.');
   const input=parsed.data;
+  if(profile.account.role==='LEASING'&&input.action!=='reserve')throw new PortalError(403,'صلاحية أخصائي التأجير تقتصر على إنشاء الحجز.');
   if(input.action==='reserve'){
    try{validatePeriod({start:input.from,end:input.to});}catch{throw new PortalError(400,'حدد فترة صحيحة للحجز.');}
   }
@@ -27,4 +28,14 @@ export async function POST(req:NextRequest){
    error.code==='42501'?'ليست لديك صلاحية تنفيذ هذا الإجراء.':error.code==='PT409'?'تغير التوفر أو لم يعد الحجز قابلاً لهذا الإجراء. أعد التحقق.':'تعذر تنفيذ إجراء الحجز.');
   return json(data);
  }catch(error){return apiError(error instanceof SyntaxError?new PortalError(400,'طلب غير صالح'):error);}
+}
+
+export async function GET(req:NextRequest){
+ try{
+  const {client,profile}=await requireIdentity(req);
+  if(!['ADMIN','CEO','EMPLOYEE','LEASING'].includes(profile.account.role))throw new PortalError(403,'غير مخول');
+  const {data,error}=await client.rpc('leasing_reservation_status');
+  if(error)throw new PortalError(error.code==='42501'?403:503,'تعذر قراءة حالة الحجوزات.');
+  return json(data);
+ }catch(error){return apiError(error);}
 }

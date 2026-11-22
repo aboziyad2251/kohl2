@@ -240,92 +240,59 @@ This build helper reads only public build settings from the running main contain
 performs no deployment and invokes only the isolated synthetic test. Its source
 checkout must be clean and contain no real environment files.
 
-## Approved availability work — 21 November 2026
+## Leasing availability implementation — 22 November 2026
 
-The user approved date/description search, period-aware occupancy, document previews,
-follow-up classifications, and starting implementation without disrupting production.
-Hold defaults: annual 72 hours; monthly 24 hours with authorized extension up to 72;
-daily arrival today/tomorrow in Riyadh two hours, farther arrivals twelve hours.
-Designated manager and CEO may cancel any booking without mandatory explanation,
-extra approval or a financial prerequisite. Keep audit attribution and all financial
-records. Cancelling a booking does not cancel its linked contract or refund money.
-Contracted status requires a confirmed contract bound to the same unit and period.
+Branch `feat/leasing-availability`, draft PR #7. No production deployment has occurred.
+The two CLI-created migrations are `20261122073344_leasing_availability_and_reservations.sql`
+and `20261122073458_leasing_followup_categories.sql`. The first packages the isolated
+`scripts/sql/leasing-*.sql` candidates into one transaction; the specialist test checks
+source parity and verifies complete rollback if the legacy core signature differs.
+Do not apply individual candidate files to production.
 
-Initial isolated implementation: lib/operations/availability.ts supplies pure date,
-hold and occupancy rules and explicit Arabic room/entrance filter suggestions.
-Existing runtime does not import these rules yet. Tests cover expiry at the exact
-boundary, adjacent stays, readiness, independent active contracts after reservation
-cancellation, invalid/missing dates and unknown unit attributes. No migration or
-production deployment has been made. Search adapters, server-side atomic holds,
-contract-unit binding, cancellation authorization and UI integration remain pending;
-then document previews and follow-up classifications follow. Do not treat this
-foundation as a fix already applied to production search. No real data was modified.
+Implemented:
+- Precise contract/unit mapping and date availability, with unmapped active contracts
+  conservatively blocking the affected property until reviewed. Historical text labels
+  are never automatically treated as exact unit IDs. Checkout date is exclusive.
+- Annual 72-hour holds, monthly 24-hour holds with one designated extension to 72 hours
+  from creation, daily holds of 2 hours for Riyadh arrivals today/tomorrow and 12 otherwise.
+  Retries preserve deadlines; expiry is evaluated on reads, without a cron job.
+- Only configured Mohammed ADMIN and Salem CEO can cancel any booking without a reason,
+  extra approval or financial prerequisite. Audit and financial records remain; an active
+  linked contract continues to occupy its unit after booking cancellation.
+- Legacy confirmation requires an active contract mapped to the exact unit and period.
+  Contract edits/activation, holds and confirmation use shared unit locks. The old overlap
+  checks are patched with exact-signature guards to ignore explicitly cancelled bookings.
+- Apartment-specific room/entrance attributes with executive editing and audit. Arabic
+  descriptions suggest editable explicit filters; unknown attributes are excluded rather
+  than inferred from building-wide counts. Other prose is not silently treated as a filter.
+- Reservation controls and persisted status/deadline display, refreshed every 30 seconds.
+  Any reservation mutation invalidates prior availability results. Scoped specialist
+  sessions can search and reserve their own new cases, but cannot map contracts, change
+  attributes, extend or cancel. Writes retain the specialist and delegating operator IDs.
+- Inline record summaries for rental/brokerage agreements. These are explicitly labelled
+  system records, not signed originals. Financial attachments support authenticated inline
+  PDF/image preview; no public Storage URL is created, HTML types are rejected, and local
+  blob URLs are revoked on close/change. Existing archive PDF viewing remains unchanged.
+- Structured follow-up categories and editable suggestions, with category totals by due
+  date and selected employee/period in Riyadh time. Existing tasks stay GENERAL. Readiness
+  follow-ups coordinate with the operations manager; collection does not confer approval.
 
-Cancellation prototype is now exercised on an isolated SQL fixture in
-`tests/leasing-booking-cancellation.cjs`. Candidate SQL is deliberately outside
-migrations (`scripts/sql/leasing-booking-cancellation.sql`): it is not a production
-release. It adds separate booking cancellation metadata, preserves contract stage,
-entries and dues, authorizes only configured manager ADMIN/final CEO, serializes by
-case, and writes one audit event. No client/API route invokes it yet. Before release,
-all booking confirmation and availability adapters must consume cancellation state.
-Current prototype must not be applied alone as a complete booking fix.
+Verification: synthetic SQL covers permissions, exact mapping, expiry, cancellation,
+legacy guards, per-unit attributes and session revocation. PostgreSQL 17 runs the complete
+migration pair and verifies competing holds/contract activation, grants/RLS, categories,
+and existing financial concurrency regressions. Browser component acceptance uses mocked
+APIs on a mobile viewport; it checks Arabic filters, stale-result removal, persisted hold
+status, hidden employee cancellation controls and denied image previews. It does not prove
+production auth or native PDF viewer behavior. Run with `PLAYWRIGHT_MODULE=<installed
+playwright module> node tests/leasing-ui-browser.cjs`. TestSprite CLI is unavailable here.
 
-Availability types were aligned with existing ANNUAL and UNAVAILABLE enum names.
-Remaining contract-unit adapter needs verified production contract columns/FKs:
-the initial repository schema only guarantees property-level contract linkage.
+Before release: run `scripts/preflight-leasing-availability.py` on the VPS. It is read-only,
+checks Hatif/live runtime and disabled recovery, and prints only aggregate attachment/schema
+metadata and image IDs. No raw URLs, tokens or tenant identities are output. Original
+brokerage/contract file storage still needs this evidence before secure signed-file previews
+can be wired; system-record summaries are not a substitute for those originals.
 
-Live schema evidence received 21 November: contracts have property_id FK and textual
-unit_label/unit_details, but no unit FK. Properties have both imported count fields
-and canonical rooms/entrances plus building_name/unit_number; leasing_units has only
-id/property_id/code/readiness/note. Do not assume a whole building's room count is
-an apartment count. No production values or tenant records were requested.
-
-Added isolated candidate contract-unit mapping table and date-range availability RPC
-in scripts/sql/leasing-unit-availability.sql. It returns only unit identifiers/code,
-readiness and availability reason; active unmapped contracts conservatively require
-mapping review. The synthetic SQL test verifies mapped A blocked/B free, boundary
-checkout dates, and denial of direct private mapping access. An authenticated GET
-API adapter is added but is not connected to the search UI or deployed. The leasing
-session API allowlist remains unchanged pending its session-bound RPC tests. Holds,
-manual audited mapping controls, confirmation constraints, concurrency tests and
-search integration remain necessary before releasing this feature.
-
-Development checkpoint 22 November: added a date-availability panel to the ordinary
-operations units tab, with default available-only results, reasons for exclusions,
-stale-result invalidation and an executive contract-unit mapping form. The mapping
-POST uses the caller's authenticated RPC, not service-role writes. SQL validates the
-same property, locks contract/unit, rejects replacement mappings and overlapping
-mapped active contracts, and records attribution. Tests reject ordinary employees,
-wrong-property links and remapping. Leasing-only sessions remain excluded pending
-session-scope tests. This UI requires the candidate SQL; it is not deployable alone.
-
-This is still incomplete: production migration packaging, concurrency with legacy
-contract edits and confirmation, atomic expiring holds, description filters in the
-actual UI, cancellation UI and document/follow-up work remain outstanding. No live
-change, live search fix or complete availability guarantee is claimed.
-
-Development continuation 22 November: temporary holds now have a private SQL table,
-server-clock deadlines, retry idempotency and a designated monthly extension RPC.
-Expiry is evaluated on every availability read; no cron is needed to release it.
-A cancelled booking no longer occupies a unit through its hold; independent active
-contracts still do. Employee reservation writes require case assignment. Ordinary
-operations users have a reservation UI/API; the leasing-only allowlist stays closed
-until delegated-session tests cover the new routes. Availability results clear after
-a reservation mutation. No live feature is enabled by this work.
-
-Candidate occupancy triggers reject legacy confirmation without an exact active
-contract/unit/period, block mapped contract edits that would invalidate a confirmed
-booking, and serialize contract activation with reservations. Existing historical
-confirmed rows can still be audited/cancelled without compulsory backfill. Both old
-core implementations are patched with an exact-match guard to ignore explicitly
-cancelled bookings in their overlap check. These SQL files are isolated candidates,
-not production migrations. The native PostgreSQL test now proves one winner for
-two holds and for a hold competing with legacy contract activation, while preserving
-the existing collection/approval concurrency tests. Synthetic SQL tests cover
-expiry, deadlines, authorization, idempotency, contract preservation and guards.
-
-Still required before release: full delegated-session/UI acceptance, contract linking
-workflow usability, persistent hold status display, unit-level descriptive search,
-production migration packaging and reviewed deployment. Document previews and
-follow-up classifications remain the later approved phases. TestSprite CLI is absent
-in this environment; its hosted verification has not been run.
+Still needed: exact built-image API acceptance with both new migrations, production backup
+restore/rehearsal and a reviewed pinned apply/rollback dispatcher. Preserve Hatif through
+`prepare_hatif_runtime`, preserve original runtime for rollback, and keep broker/account
+containers and disabled recovery unchanged. Do not run historical release scripts.

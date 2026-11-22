@@ -21,3 +21,21 @@ assert.equal(a.matchesRequirements({...unit,entrances:null},{entrances:2}),false
 assert.equal(a.matchesRequirements(unit,{bedrooms:3,entrances:2}),true);
 assert.equal(JSON.stringify(a.suggestRequirements('شقة ٣ غرف مدخلين')),JSON.stringify({bedrooms:3,entrances:2}));
 console.log('PASS: Riyadh hold policy, date boundaries, occupancy/contract blockers, missing data and Arabic filter suggestions');
+
+assert.equal(JSON.stringify(a.parseRequirementFilters(new URLSearchParams('bedrooms=3&entrances=2'))),JSON.stringify({bedrooms:3,entrances:2}));
+for(const bad of ['bedrooms=0','bedrooms=-1','bedrooms=3.5','bedrooms=101','entrances=21','bedrooms=abc']) assert.throws(()=>a.parseRequirementFilters(new URLSearchParams(bad)));
+assert.equal(JSON.stringify(a.parseRequirementFilters(new URLSearchParams('bedrooms=&entrances='))),'{}');
+assert.equal(a.matchesRequirements({...unit,bedrooms:null},{bedrooms:3}),false);
+console.log('PASS: explicit search filters validate ranges and reject missing apartment attributes');
+
+const followups={};vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/operations/followups.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,{exports:followups,Date});
+assert.equal(followups.suggestFollowupCategory({stage:'NEW',kind:'ANNUAL',start_date:null},'2026-11-22'),'CONTACT');
+assert.equal(followups.suggestFollowupCategory({stage:'CONFIRMED',kind:'DAILY',start_date:'2026-11-22'},'2026-11-22'),'ARRIVAL');
+assert.equal(followups.suggestFollowupCategory({stage:'CONFIRMED',kind:'DAILY',start_date:'2026-11-21'},'2026-11-22'),'DEPARTURE');
+const grouped=followups.followupCategorySummary([
+ {category:'VIEWING',due_at:'2026-11-21T21:30:00Z',completed_at:null},
+ {category:'VIEWING',due_at:'2026-11-22T12:00:00Z',completed_at:'2026-11-22T11:00:00Z'},
+ {category:'CONTACT',due_at:'2026-11-22T21:01:00Z',completed_at:null}
+],'2026-11-22','2026-11-22');
+assert.equal(JSON.stringify(grouped),JSON.stringify([{category:'VIEWING',total:2,completed:1}]));
+console.log('PASS: editable follow-up suggestions and scoped Riyadh-day category counts');

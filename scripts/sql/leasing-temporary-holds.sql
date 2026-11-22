@@ -3,11 +3,11 @@ begin;
 create function public.reserve_leasing_unit(target_case uuid,target_unit uuid,from_date date,to_date date) returns jsonb
 language plpgsql security definer set search_path='' as $$
 declare who uuid:=auth.uid(); acct portal_private.accounts; c portal_private.leasing_cases;
- h portal_private.leasing_holds; checked_at timestamptz; hours integer; available boolean;
+ h portal_private.leasing_holds; operator_id uuid; checked_at timestamptz; hours integer; available boolean;
 begin
  select * into acct from portal_private.accounts where user_id=who and is_active;
  if not found or acct.role not in ('ADMIN','CEO','EMPLOYEE','LEASING') then raise insufficient_privilege; end if;
- if acct.role='LEASING' then perform portal_private.leasing_scope(); end if;
+ if acct.role='LEASING' then operator_id:=(portal_private.leasing_scope()).owner_id; end if;
  select * into c from portal_private.leasing_cases where id=target_case for update;
  if not found then raise no_data_found; end if;
  if acct.role in ('EMPLOYEE','LEASING') and c.assignee_id is distinct from who then raise insufficient_privilege; end if;
@@ -37,7 +37,7 @@ begin
  insert into portal_private.leasing_holds(case_id,unit_id,start_date,end_date,created_at,expires_at,created_by)
  values(c.id,target_unit,from_date,to_date,checked_at,checked_at+make_interval(hours=>hours),who) returning * into h;
  insert into portal_private.operations_history(entity_id,case_id,actor,action,note,changes)
- values(c.id,c.id,who,'HOLD_CREATE','حجز مؤقت',jsonb_build_object('unit_id',target_unit,'from',from_date,'to',to_date,'expires_at',h.expires_at));
+ values(c.id,c.id,who,'HOLD_CREATE','حجز مؤقت',jsonb_build_object('operator_id',operator_id,'unit_id',target_unit,'from',from_date,'to',to_date,'expires_at',h.expires_at));
  return jsonb_build_object('saved',true,'expires_at',h.expires_at);
 end $$;
 revoke all on function public.reserve_leasing_unit(uuid,uuid,date,date) from public,anon,service_role;
@@ -85,4 +85,22 @@ begin
 end $$;
 revoke all on function public.extend_leasing_hold(uuid,text) from public,anon,service_role;
 grant execute on function public.extend_leasing_hold(uuid,text) to authenticated;
+create function public.leasing_reservation_status() returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+declare who uuid:=auth.uid(); acct portal_private.accounts; result jsonb;
+begin
+ select * into acct from portal_private.accounts where user_id=who and is_active;
+ if not found or acct.role not in ('ADMIN','CEO','EMPLOYEE','LEASING') then raise insufficient_privilege; end if;
+ if acct.role='LEASING' then perform portal_private.leasing_scope(); end if;
+ select coalesce(jsonb_agg(jsonb_build_object('case_id',c.id,'unit_id',h.unit_id,'from',h.start_date,'to',h.end_date,
+  'expires_at',h.expires_at,'extended',h.extended_by is not null,
+  'status',case when c.booking_cancelled_at is not null or c.stage in ('CANCELLED','LOST') then 'CANCELLED'
+   when c.stage='CONFIRMED' then 'CONFIRMED' when h.expires_at<=statement_timestamp() then 'EXPIRED' else 'ACTIVE' end)
+  order by h.created_at desc),'[]'::jsonb) into result
+ from portal_private.leasing_holds h join portal_private.leasing_cases c on c.id=h.case_id
+ where acct.role in ('ADMIN','CEO') or c.assignee_id=who;
+ return jsonb_build_object('server_now',statement_timestamp(),'reservations',result);
+end $$;
+revoke all on function public.leasing_reservation_status() from public,anon,service_role;
+grant execute on function public.leasing_reservation_status() to authenticated;
 commit;

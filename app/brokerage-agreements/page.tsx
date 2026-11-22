@@ -128,6 +128,19 @@ export default function BrokerageAgreementsPage() {
                   <tr key={agreement.id} className="hover:bg-slate-800/40 transition">
                     <td className="p-4 font-bold text-teal-400 dir-ltr text-right">
                       {agreement.agreement_number}
+                      <details className="mt-2 text-sm font-normal text-slate-200 dir-rtl">
+                        <summary className="cursor-pointer text-sky-400">معاينة بيانات الاتفاقية</summary>
+                        <dl className="space-y-2 mt-3 whitespace-normal min-w-[220px]">
+                          <div><dt>العقار</dt><dd>{property?.title||'غير مسجل'}</dd></div>
+                          <div><dt>المؤجر</dt><dd>{lessors.find(l=>l.id===agreement.lessor_id)?.name||'غير مسجل'}</dd></div>
+                          <div><dt>المدة</dt><dd>{agreement.start_date} — {agreement.expiry_date}</dd></div>
+                          <div><dt>العمولة</dt><dd>{agreement.commission_rate}%</dd></div>
+                          <div><dt>حالة إيجار</dt><dd>{agreement.ejar_status}</dd></div>
+                          <div><dt>رقم عقد إيجار</dt><dd>{agreement.ejar_contract_number||'غير مرتبط'}</dd></div>
+                          <div><dt>الموظف المسؤول</dt><dd>{agreement.assigned_agent_name||'غير مسند'}</dd></div>
+                        </dl>
+                        <p className="mt-3 text-xs">هذه معاينة البيانات المسجلة، وليست نسخة المستند الموقّع.</p>
+                      </details>
                     </td>
 
                     <td className="p-4 font-semibold text-white">

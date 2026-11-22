@@ -27,6 +27,36 @@ create index leasing_holds_unit_period on portal_private.leasing_holds(unit_id,s
 alter table portal_private.leasing_holds enable row level security;
 revoke all on portal_private.leasing_holds from public,anon,authenticated,service_role;
 
+-- Apartment attributes are explicit; never inherit building-wide room counts.
+create table portal_private.leasing_unit_specs (
+ unit_id uuid primary key references portal_private.leasing_units(id),
+ bedrooms integer check(bedrooms between 1 and 100),
+ entrances integer check(entrances between 1 and 20),
+ updated_by uuid not null references portal_private.accounts(user_id),
+ updated_at timestamptz not null default now()
+);
+alter table portal_private.leasing_unit_specs enable row level security;
+revoke all on portal_private.leasing_unit_specs from public,anon,authenticated,service_role;
+
+create function public.save_leasing_unit_specs(target_unit uuid,room_count integer,entrance_count integer) returns jsonb
+language plpgsql security definer set search_path='' as $$
+declare who uuid:=auth.uid();
+begin
+ if not exists(select 1 from portal_private.accounts where user_id=who and is_active and role in ('ADMIN','CEO')) then raise insufficient_privilege; end if;
+ if (room_count is not null and room_count not between 1 and 100)
+  or (entrance_count is not null and entrance_count not between 1 and 20) then raise invalid_parameter_value; end if;
+ perform 1 from portal_private.leasing_units where id=target_unit for update;
+ if not found then raise no_data_found; end if;
+ insert into portal_private.leasing_unit_specs(unit_id,bedrooms,entrances,updated_by)
+ values(target_unit,room_count,entrance_count,who)
+ on conflict(unit_id) do update set bedrooms=excluded.bedrooms,entrances=excluded.entrances,updated_by=who,updated_at=now();
+ insert into portal_private.operations_history(entity_id,actor,action,note,changes)
+ values(target_unit,who,'UNIT_SPECS_SAVE','تحديث مواصفات الوحدة',jsonb_build_object('bedrooms',room_count,'entrances',entrance_count));
+ return jsonb_build_object('saved',true);
+end $$;
+revoke all on function public.save_leasing_unit_specs(uuid,integer,integer) from public,anon,service_role;
+grant execute on function public.save_leasing_unit_specs(uuid,integer,integer) to authenticated;
+
 create function public.leasing_unit_availability(from_date date,to_date date) returns jsonb
 language plpgsql stable security definer set search_path='' as $$
 declare acct portal_private.accounts; result jsonb;
@@ -37,7 +67,7 @@ begin
  if from_date is null or to_date is null or to_date<=from_date or from_date<date '2000-01-01' or to_date>date '2100-01-01' then raise invalid_parameter_value; end if;
  -- Fail closed when old contracts cannot yet be assigned to a precise apartment.
  with state as (
- select u.id,u.property_id,u.code,u.readiness,
+ select u.id,u.property_id,u.code,u.readiness,spec.bedrooms,spec.entrances,
  exists(select 1 from public.contracts c where c.property_id=u.property_id and c.status='Active'
   and (c.start_date is null or c.end_date is null or c.end_date<=c.start_date or (c.start_date<to_date and c.end_date>from_date))
   and not exists(select 1 from portal_private.leasing_contract_units l join portal_private.leasing_units target on target.id=l.unit_id
@@ -50,8 +80,8 @@ begin
  exists(select 1 from portal_private.leasing_holds h join portal_private.leasing_cases c on c.id=h.case_id
   where h.unit_id=u.id and h.expires_at>statement_timestamp() and c.booking_cancelled_at is null
   and c.stage not in ('CONFIRMED','CANCELLED','LOST') and h.start_date<to_date and h.end_date>from_date) as held
- from portal_private.leasing_units u)
- select coalesce(jsonb_agg(jsonb_build_object('id',id,'property_id',property_id,'code',code,'readiness',readiness,
+ from portal_private.leasing_units u left join portal_private.leasing_unit_specs spec on spec.unit_id=u.id)
+ select coalesce(jsonb_agg(jsonb_build_object('id',id,'property_id',property_id,'code',code,'readiness',readiness,'bedrooms',bedrooms,'entrances',entrances,
   'available',readiness='READY' and not needs_mapping and not contracted and not booked and not held,
   'reason',case when needs_mapping then 'CONTRACT_MAPPING_REQUIRED' when contracted then 'CONTRACTED'
    when held then 'HELD' when booked then 'BOOKED' when readiness<>'READY' then 'NOT_READY' else 'AVAILABLE' end) order by code,id),'[]'::jsonb)

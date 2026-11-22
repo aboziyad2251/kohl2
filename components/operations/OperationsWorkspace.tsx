@@ -7,6 +7,7 @@ import {
   type FormEvent,
 } from "react";
 import Link from "next/link";
+import {followupCategories,followupCategoryLabels,suggestFollowupCategory,followupCategorySummary} from "@/lib/operations/followups";
 import UnitAvailabilityPanel from "./UnitAvailabilityPanel";
 import ReservationControls from "./ReservationControls";
 import { useAuth } from "@/context/AuthContext";
@@ -274,6 +275,7 @@ export default function OperationsWorkspace({
       if (form.type === "followup")
         return await save({
           operation: "FOLLOWUP_ADD",
+          category:get("category"),
           id: form.id,
           case_id: get("case_id"),
           title: get("title"),
@@ -543,6 +545,7 @@ export default function OperationsWorkspace({
                     <article className="portal-card ops-row" key={f.id}>
                       <div>
                         <h3>{f.title}</h3>
+                        <span className="ops-badge">{followupCategoryLabels[f.category||"GENERAL"]}</span>
                         {f.origin === "LEASING_ASSISTANT" && <span className="ops-badge">مهمة أعدّها أخصائي التأجير الافتراضي</span>}
                         <p>
                           {caseName(f.case_id)} · {dateTime(f.due_at)}
@@ -677,8 +680,8 @@ export default function OperationsWorkspace({
           )}
           {tab === "units" && (
             <>
-              {!leasingOnly && <UnitAvailabilityPanel key={availabilityRevision} units={w.units} contracts={w.contracts} canLink={isExecutive} />}
-              {!leasingOnly && <ReservationControls cases={w.cases} units={w.units} canManage={!!w.workflow && [w.workflow.manager_id,w.workflow.final_id].includes(currentUser.id)} onChanged={() => { setAvailabilityRevision(v=>v+1); setNotice("تغيّر الحجز؛ أعد البحث للتحقق من التوفر الحالي."); }} />}
+              <UnitAvailabilityPanel key={availabilityRevision} units={w.units} contracts={w.contracts} canLink={isExecutive} />
+              <ReservationControls cases={w.cases} units={w.units} canManage={!!w.workflow && [w.workflow.manager_id,w.workflow.final_id].includes(currentUser.id)} onChanged={() => { setAvailabilityRevision(v=>v+1); setNotice("تغيّر الحجز؛ أعد البحث للتحقق من التوفر الحالي."); }} />
               <div className="ops-section-head">
                 <h2>الوحدات وجاهزيتها</h2>
                 {isExecutive && (
@@ -763,6 +766,9 @@ export default function OperationsWorkspace({
                 متابعات مستحقة: {m!.followupsDue} · في الموعد: {m!.onTime} ·
                 عوائق مسجلة: {m!.blocked}
               </p>
+              <h2>المتابعات حسب التصنيف</h2>
+              <p className="ops-help">حسب موعد استحقاق المتابعة في الفترة المختارة، بتوقيت الرياض.</p>
+              <div className="ops-cards">{followupCategorySummary((performance||w).followups,from,to).map(row=><article className="portal-card" key={row.category}><h3>{followupCategoryLabels[row.category]}</h3><p>{row.completed} منجزة من {row.total} متابعة</p></article>)}</div>
               <h2>خطوات التحسين</h2>
               <ul>
                 {recommendations(performance || w, from, to).map((t) => (
@@ -1174,6 +1180,8 @@ export default function OperationsWorkspace({
                         items={caseItems}
                         value={form.item?.id}
                       />
+                      <Options name="category" label="تصنيف المتابعة (يمكن تعديل الاقتراح)" items={followupCategories.map(id=>({id,name:followupCategoryLabels[id]}))} value={form.item?suggestFollowupCategory(form.item as Case,riyadhDate()):'GENERAL'}/>
+                      <p className="ops-help">تصنيف الجاهزية للتنسيق مع مدير التشغيل؛ لا ينقل مسؤولية النظافة للموظف. متابعة التحصيل لا تمنح صلاحية اعتماد مالي.</p>
                       <Input name="title" label="الإجراء المطلوب"
                         value={form.item ? ((form.item as Case).kind === "DAILY"
                           ? "تنسيق المغادرة أو التمديد" : "متابعة التجديد أو الإخلاء") : ""}
