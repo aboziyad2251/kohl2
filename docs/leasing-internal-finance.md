@@ -367,3 +367,42 @@ production query wrapping, mandatory availability receipt/hash checks and privat
 artifact modes) and a native synthetic dump/restore rehearsal with real PostgreSQL
 passed. The rehearsal detects excessive grants and verifies late-error atomic
 rollback. These results do not claim a VPS preparation has already been performed.
+
+## Availability cutover dispatcher (22 November 2026)
+
+The operator reported successful VPS preparation at
+`/home/debian/backups/kohl-availability-plan-zrf3jqk3`, including exact-image HTTP
+acceptance and private backup restore with both migrations and data preservation.
+`scripts/release-availability.py` pins the accepted image
+`sha256:9bae346387ec38d2eadf79360e67bdb5a5078a2acc2c32711a1b7d275d3a078e`.
+Application source and the two migration hashes remain unchanged from preparation.
+
+The default `--plan <directory>` mode validates the plan, receipt, backup, role-file
+hash, image source label, designated reviewer configuration, unchanged live runtime,
+Hatif and disabled account recovery. It performs read-only database checks and an
+nginx configuration test; it does not create a release, migrate or restart anything.
+
+`--apply --approved-image <exact candidate>` takes a new checked backup, revalidates
+live state, applies both migrations in one transaction with bounded locks, guards
+the reviewer configuration and verifies privileges before commit. Only the main
+container is switched; the stopped original is retained with restart disabled.
+Internal and public route health checks plus broker/account preservation are required.
+A host-wide lock and durable attempt marker prevent concurrent or blind repeat apply.
+Unknown SQL outcomes require receipt review, not automatic reapplication.
+
+Cutover failures restore the original main container, restart policy and nginx
+routing, retaining the additive schema and all data. Recovery never disables the
+already-deployed specialist account or rewrites financial records. New occupancy
+guards remain active and may reject unsupported legacy writes; app-only recovery
+is not a schema rollback. Explicit recovery uses `--rollback <private release dir>`
+and `--approved-image <original main image>` against the same plan. It refuses a
+foreign replacement container or changed Hatif secrets. Private logs/runtime files
+must not be shared. No production deployment is claimed by these local tests.
+
+Validation: 15 stateful dispatcher tests cover dry-run non-mutation, missing/changed
+artifacts, unapproved image, runtime drift, final Hatif validation, interruptions,
+Docker failures before and after mutations, health failures and durable repeatable
+app-only recovery. Native PostgreSQL validation covers the exact guarded migration
+transaction, reviewer drift, late errors, excessive grants, repeated apply rejection
+and preservation of existing data. TestSprite CLI is unavailable in this workspace;
+these checks use the repository's Python/native PostgreSQL harnesses.
