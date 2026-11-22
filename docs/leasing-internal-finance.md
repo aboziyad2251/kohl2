@@ -336,3 +336,34 @@ checks now normalize case and surrounding whitespace at comparison time. No save
 contract is rewritten. The unknown-status conservative block remains for truly
 unrecognized values. Tests cover active/Active/ACTIVE and padded values, lowercase
 confirmation/activation and the native concurrent activation/hold race.
+
+## Availability preparation (no production apply)
+
+`scripts/prepare-availability-release.py` pins application commit
+`a63cba7609ee1e78ee78c7dc38c50eec29fdded7`, both migration hashes and the three
+VPS image IDs verified above. It imports only the established pure Hatif/runtime,
+source-archive build and isolated-restore helpers; no historical prepare/release
+main function is called. It validates recovery=false and Hatif before building.
+
+The preparation builds from git archive (not the operator's live checkout), verifies
+source image labels and runs exact-image HTTP acceptance with --availability. It
+then creates a fresh private pg_dump plus role definitions without password hashes,
+restores into a network-disabled disposable database and applies both migrations
+in one transaction. It verifies grants, RLS, triggers and empty new tables, and
+compares every existing business/auth/storage table fingerprint, excluding only the
+new default columns. Existing assignments, active lowercase contracts, history and
+financial records must remain unchanged. Source/core mismatch or a late SQL error
+must fail closed and roll back the pair.
+
+Only read-only SQL, pg_dump and pg_restore --list are used against supabase-db.
+No main/broker/account stop, rename, start, migration or nginx reload is included.
+Private artifacts live under /home/debian/backups/kohl-availability-plan-* with
+owner-only permissions. Runtime JSON, backups, role files and logs must not be shared.
+The final plan records exact source/image/migration/backup/receipt hashes; a separate
+reviewed apply/rollback dispatcher and a fresh backup at cutover remain required.
+
+Validation: six preparation boundary tests (including unchanged runtime, read-only
+production query wrapping, mandatory availability receipt/hash checks and private
+artifact modes) and a native synthetic dump/restore rehearsal with real PostgreSQL
+passed. The rehearsal detects excessive grants and verifies late-error atomic
+rollback. These results do not claim a VPS preparation has already been performed.

@@ -48,6 +48,7 @@ jobs:
           node tests/leasing-availability.cjs
           node tests/leasing-booking-cancellation.cjs
           python3 -B tests/leasing-availability-preflight.py
+          python3 -B tests/availability-release-preparation.py
           node tests/kr.cjs
           node tests/kr-workflow-db.cjs
           node tests/kr-management-db.cjs
@@ -88,6 +89,7 @@ jobs:
           python3 -B tests/approval-release-preparation.py --integration
           python3 -B tests/approval-release-preparation.py --integration --dispatcher
           python3 -B tests/leasing-release-preparation.py --integration --dispatcher
+          python3 -B tests/availability-release-preparation.py --integration
 
       - name: Real isolated leasing identity switch
         if: matrix.node == 22
