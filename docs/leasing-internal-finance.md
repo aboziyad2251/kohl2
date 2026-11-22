@@ -303,3 +303,29 @@ This is still incomplete: production migration packaging, concurrency with legac
 contract edits and confirmation, atomic expiring holds, description filters in the
 actual UI, cancellation UI and document/follow-up work remain outstanding. No live
 change, live search fix or complete availability guarantee is claimed.
+
+Development continuation 22 November: temporary holds now have a private SQL table,
+server-clock deadlines, retry idempotency and a designated monthly extension RPC.
+Expiry is evaluated on every availability read; no cron is needed to release it.
+A cancelled booking no longer occupies a unit through its hold; independent active
+contracts still do. Employee reservation writes require case assignment. Ordinary
+operations users have a reservation UI/API; the leasing-only allowlist stays closed
+until delegated-session tests cover the new routes. Availability results clear after
+a reservation mutation. No live feature is enabled by this work.
+
+Candidate occupancy triggers reject legacy confirmation without an exact active
+contract/unit/period, block mapped contract edits that would invalidate a confirmed
+booking, and serialize contract activation with reservations. Existing historical
+confirmed rows can still be audited/cancelled without compulsory backfill. Both old
+core implementations are patched with an exact-match guard to ignore explicitly
+cancelled bookings in their overlap check. These SQL files are isolated candidates,
+not production migrations. The native PostgreSQL test now proves one winner for
+two holds and for a hold competing with legacy contract activation, while preserving
+the existing collection/approval concurrency tests. Synthetic SQL tests cover
+expiry, deadlines, authorization, idempotency, contract preservation and guards.
+
+Still required before release: full delegated-session/UI acceptance, contract linking
+workflow usability, persistent hold status display, unit-level descriptive search,
+production migration packaging and reviewed deployment. Document previews and
+follow-up classifications remain the later approved phases. TestSprite CLI is absent
+in this environment; its hosted verification has not been run.

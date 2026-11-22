@@ -8,6 +8,7 @@ import {
 } from "react";
 import Link from "next/link";
 import UnitAvailabilityPanel from "./UnitAvailabilityPanel";
+import ReservationControls from "./ReservationControls";
 import { useAuth } from "@/context/AuthContext";
 import { portalRequest } from "@/lib/portal/client";
 import {
@@ -113,6 +114,7 @@ export default function OperationsWorkspace({
   mode: "leasing" | "finance";
 }) {
   const { currentUser, isExecutive, profile } = useAuth();
+  const [availabilityRevision,setAvailabilityRevision] = useState(0);
   const leasingOnly = currentUser.role === 'LEASING';
   const [entryCase, setEntryCase] = useState(""),
     [entryKind, setEntryKind] = useState("");
@@ -675,7 +677,8 @@ export default function OperationsWorkspace({
           )}
           {tab === "units" && (
             <>
-              {!leasingOnly && <UnitAvailabilityPanel units={w.units} contracts={w.contracts} canLink={isExecutive} />}
+              {!leasingOnly && <UnitAvailabilityPanel key={availabilityRevision} units={w.units} contracts={w.contracts} canLink={isExecutive} />}
+              {!leasingOnly && <ReservationControls cases={w.cases} units={w.units} canManage={!!w.workflow && [w.workflow.manager_id,w.workflow.final_id].includes(currentUser.id)} onChanged={() => { setAvailabilityRevision(v=>v+1); setNotice("تغيّر الحجز؛ أعد البحث للتحقق من التوفر الحالي."); }} />}
               <div className="ops-section-head">
                 <h2>الوحدات وجاهزيتها</h2>
                 {isExecutive && (

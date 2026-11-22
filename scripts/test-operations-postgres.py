@@ -95,5 +95,37 @@ try:
  assert all(r[0]==0 for r in results),results
  assert sql("select count(*) from portal_private.leasing_followups where origin='LEASING_ASSISTANT'")=='1'
  print('PostgreSQL 17 approval chain concurrency passed: one manager transition, final collection limits, no duplicate assistant tasks')
+ # Candidate availability/holds run only inside this disposable database.
+ sql("alter table public.contracts add column property_id uuid, add column status text, add column start_date date, add column end_date date;")
+ for candidate in ('leasing-booking-cancellation.sql','leasing-unit-availability.sql','leasing-temporary-holds.sql'):
+  sql((root/'sql'/candidate).read_text())
+ hold_cases=['20000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000002']
+ for cid in hold_cases:ok('CASE_CREATE',dict(id=cid,lead_id=broker,kind='MONTHLY',source='Fixture',need='Concurrent hold',next_action='Call',due_at='2027-01-10T10:00:00Z'))
+ def hold_command(cid):
+  return f"begin;set local role authenticated;select set_config('request.jwt.claim.sub','{admin}',true);select public.reserve_leasing_unit('{cid}','{other}',current_date+100,current_date+110);commit;"
+ results=race(f"select id from portal_private.leasing_units where id='{other}' for update",[hold_command(cid) for cid in hold_cases])
+ assert sorted(r[0]==0 for r in results)==[False,True],results
+ assert any('PT409' in r[2] for r in results),results
+ assert sql("select count(*) from portal_private.leasing_holds")=='1'
+ held=sql("select case_id from portal_private.leasing_holds")
+ assert process(hold_command(held))[0]==0,'Idempotent retry failed'
+ assert sql("select count(*) from portal_private.operations_history where action='HOLD_CREATE'")=='1'
+ sql(f"set role authenticated;select set_config('request.jwt.claim.sub','{ceo}',false);select public.cancel_leasing_booking('{held}');reset role;")
+ next_case=next(cid for cid in hold_cases if cid!=held)
+ assert process(hold_command(next_case))[0]==0,'Cancelled hold still occupies unit'
+ print('PostgreSQL 17 hold concurrency passed: one overlapping winner, retry preserves audit/deadline, designated cancellation frees the unit')
+ sql((root/'sql'/'leasing-occupancy-guards.sql').read_text())
+ # A legacy contract writer and new hold writer must serialize on the same unit.
+ future_contract='30000000-0000-4000-8000-000000000001'
+ race_case='30000000-0000-4000-8000-000000000002'
+ ok('CASE_CREATE',dict(id=race_case,lead_id=broker,kind='ANNUAL',source='Fixture',need='Contract race',next_action='Call',due_at='2027-01-10T10:00:00Z'))
+ sql(f"insert into public.contracts values('{future_contract}','Concurrency draft','{agreement}','Draft',current_date+200,current_date+210);")
+ sql(f"set role authenticated;select set_config('request.jwt.claim.sub','{admin}',false);select public.link_leasing_contract_unit('{future_contract}','{other}');reset role;")
+ hold_sql=hold_command(race_case).replace('current_date+100,current_date+110','current_date+200,current_date+210')
+ activate_sql=f"begin;update public.contracts set status='Active' where id='{future_contract}';commit;"
+ results=race(f"select id from portal_private.leasing_units where id='{other}' for update",[hold_sql,activate_sql])
+ assert sorted(r[0]==0 for r in results)==[False,True],results
+ assert any('PT409' in r[2] for r in results),results
+ print('PostgreSQL 17 legacy contract/hold race passed: exactly one occupancy writer succeeds')
 finally:
  if created:subprocess.run(['docker','rm','-f',name],check=True,stdout=subprocess.DEVNULL)

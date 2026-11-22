@@ -57,6 +57,65 @@ UPDATE public.contracts SET property_id='${uuid(90)}',status='Active',start_date
   assert.equal(units.find(u=>u.id===uuid(92)).available,true);
   assert(!JSON.stringify(units).includes('tenant'));
   assert((await db.query("SELECT public.leasing_unit_availability('2026-12-01','2026-12-02') result")).rows[0].result.units.every(u=>u.available));
+  await db.exec('RESET ROLE');
+  await db.exec(require('fs').readFileSync('scripts/sql/leasing-temporary-holds.sql','utf8'));
+  const dates=(await db.query("SELECT ((clock_timestamp() at time zone 'Asia/Riyadh')::date+10)::text a,((clock_timestamp() at time zone 'Asia/Riyadh')::date+11)::text b")).rows[0];
+  for (const [n,kind] of [[100,'MONTHLY'],[101,'ANNUAL'],[102,'DAILY'],[103,'DAILY'],[104,'ANNUAL']]) {
+   await db.query("INSERT INTO portal_private.leasing_cases(id,lead_id,assignee_id,kind,source,need) VALUES($1,$2,$3,$4,'Fixture','Hold test')",[uuid(n),uuid(1),ids.employee,kind]);
+  }
+  const reserve=(n,start=dates.a,end=dates.b)=>db.query('SELECT public.reserve_leasing_unit($1,$2,$3,$4) result',[uuid(n),uuid(92),start,end]);
+  const extend=n=>db.query("SELECT public.extend_leasing_hold($1,'Document review') result",[uuid(n)]);
+  await actor(db,'employee');
+  const first=(await reserve(100)).rows[0].result;
+  assert.equal((await reserve(100)).rows[0].result.expires_at,first.expires_at,'Retry must not reset clock');
+  assert.equal((await db.query('SELECT public.leasing_unit_availability($1,$2) result',[dates.a,dates.b])).rows[0].result.units.find(u=>u.id===uuid(92)).reason,'HELD');
+  await denied(()=>reserve(101),'PT409');
+  await denied(()=>extend(100));
+  await denied(()=>db.query('SELECT * FROM portal_private.leasing_holds'));
+  await actor(db,'manager');await denied(()=>extend(100));
+  await actor(db,'admin');await extend(100);await denied(()=>extend(100),'PT409');
+  await db.exec('RESET ROLE');
+  assert.equal((await db.query("SELECT extract(epoch from expires_at-created_at)/3600 hours FROM portal_private.leasing_holds WHERE case_id=$1",[uuid(100)])).rows[0].hours,'72.0000000000000000');
+  await actor(db,'ceo');await db.query('SELECT public.cancel_leasing_booking($1)',[uuid(100)]);
+  await actor(db,'employee');await reserve(101);
+  await db.exec('RESET ROLE');
+  // Expired annual reservation must disappear from availability without any cron job.
+  await db.query("UPDATE portal_private.leasing_holds SET created_at=statement_timestamp()-interval '73 hours', expires_at=statement_timestamp()-interval '1 hour' WHERE case_id=$1",[uuid(101)]);
+  await actor(db,'employee');await reserve(102);
+  await denied(()=>reserve(101),'PT409');
+  await db.exec('RESET ROLE');
+  const daily=(await db.query('SELECT extract(epoch from expires_at-created_at)/3600 hours FROM portal_private.leasing_holds WHERE case_id=$1',[uuid(102)])).rows[0];
+  assert.equal(Number(daily.hours),12);
+  await actor(db,'admin');await db.query('SELECT public.cancel_leasing_booking($1)',[uuid(102)]);
+  const near=(await db.query("SELECT (clock_timestamp() at time zone 'Asia/Riyadh')::date::text a,((clock_timestamp() at time zone 'Asia/Riyadh')::date+1)::text b")).rows[0];
+  await actor(db,'employee');await reserve(103,near.a,near.b);
+  await db.exec('RESET ROLE');
+  assert.equal(Number((await db.query('SELECT extract(epoch from expires_at-created_at)/3600 hours FROM portal_private.leasing_holds WHERE case_id=$1',[uuid(103)])).rows[0].hours),2);
+  await db.query('UPDATE portal_private.leasing_cases SET assignee_id=$1 WHERE id=$2',[ids.admin,uuid(104)]);
+  await actor(db,'employee');await denied(()=>reserve(104));
+  await db.exec('RESET ROLE');
+  await db.exec(require('fs').readFileSync('scripts/sql/leasing-occupancy-guards.sql','utf8'));
+  await db.query("INSERT INTO portal_private.leasing_cases(id,lead_id,assignee_id,kind,source,need) VALUES($1,$2,$3,'ANNUAL','Fixture','Confirmation guard')",[uuid(105),uuid(1),ids.employee]);
+  await denied(()=>db.query("UPDATE portal_private.leasing_cases SET stage='CONFIRMED',unit_id=$1,start_date='2026-11-01',end_date='2026-12-01',amount=100,beneficiary='OWNER' WHERE id=$2",[uuid(91),uuid(105)]),'PT409');
+  // Use a separate mapped draft to exercise activation, confirmation and subsequent edits.
+  await db.query("INSERT INTO public.contracts(id,contract_number,property_id,status,start_date,end_date) VALUES($1,'Guard',$2,'Draft','2028-01-01','2028-02-01')",[uuid(106),uuid(90)]);
+  await actor(db,'admin');await db.query('SELECT public.link_leasing_contract_unit($1,$2)',[uuid(106),uuid(91)]);
+  await db.exec('RESET ROLE');await db.query("UPDATE public.contracts SET status='Active' WHERE id=$1",[uuid(106)]);
+  await db.query("UPDATE portal_private.leasing_cases SET stage='CONFIRMED',unit_id=$1,start_date='2028-01-01',end_date='2028-02-01',amount=100,beneficiary='OWNER',contract_id=$2 WHERE id=$3",[uuid(91),uuid(106),uuid(105)]);
+  await denied(()=>db.query("UPDATE public.contracts SET end_date='2028-03-01' WHERE id=$1",[uuid(106)]),'PT409');
+  await denied(()=>db.query('UPDATE public.contracts SET property_id=$1 WHERE id=$2',[uuid(93),uuid(106)]),'PT409');
+  await actor(db,'admin');await db.query('SELECT public.cancel_leasing_booking($1)',[uuid(105)]);
+  // Cancelling the booking leaves the independent active contract blocking availability.
+  const afterCancel=(await db.query("SELECT public.leasing_unit_availability('2028-01-01','2028-02-01') result")).rows[0].result.units;
+  assert.equal(afterCancel.find(u=>u.id===uuid(91)).reason,'CONTRACTED');
+  await db.exec('RESET ROLE');
+  await denied(()=>db.query("UPDATE portal_private.leasing_cases SET end_date='2028-03-01' WHERE id=$1",[uuid(105)]),'PT409');
+  // Draft activation may not displace another case's live hold.
+  await db.query("INSERT INTO public.contracts(id,contract_number,property_id,status,start_date,end_date) VALUES($1,'Hold conflict',$2,'Draft',$3,$4)",[uuid(107),uuid(90),near.a,near.b]);
+  await actor(db,'admin');await db.query('SELECT public.link_leasing_contract_unit($1,$2)',[uuid(107),uuid(92)]);
+  await db.exec('RESET ROLE');await denied(()=>db.query("UPDATE public.contracts SET status='Active' WHERE id=$1",[uuid(107)]),'PT409');
+  console.log('PASS: legacy confirmation requires mapped active contract, contract edits cannot invalidate bookings, cancelled bookings cannot reconfirm, draft activation cannot displace holds');
+  console.log('PASS: holds expire without cron, retries preserve deadline, cancellation releases occupancy, designated monthly extension only, scoped employee access');
   console.log('PASS: real unit search RPC blocks unmapped active contracts, only linked apartment occupied, adjacent dates free, private mapping denied');
   console.log('PASS: designated cancellation without financial prerequisite; employee/unrelated admin denied; contract, pending entry and audit retained; repeated cancellation idempotent');
  }finally{await db.close();}

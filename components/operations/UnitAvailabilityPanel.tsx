@@ -3,7 +3,7 @@ import { useRef,useState } from 'react';
 import { operationsFetch } from '@/lib/operations/client';
 import type { Unit } from '@/lib/operations/model';
 type Row={id:string;code:string;available:boolean;reason:string};
-const reasons:Record<string,string>={AVAILABLE:'متاحة خلال الفترة',CONTRACTED:'مرتبطة بعقد نشط',BOOKED:'محجوزة',NOT_READY:'غير جاهزة',CONTRACT_MAPPING_REQUIRED:'يلزم تحديد الوحدة في عقد قائم'};
+const reasons:Record<string,string>={HELD:'حجز مؤقت لم تنته مهلته',AVAILABLE:'متاحة خلال الفترة',CONTRACTED:'مرتبطة بعقد نشط',BOOKED:'محجوزة',NOT_READY:'غير جاهزة',CONTRACT_MAPPING_REQUIRED:'يلزم تحديد الوحدة في عقد قائم'};
 export default function UnitAvailabilityPanel({units,contracts,canLink}:{units:Unit[];contracts:{id:string;contract_number:string}[];canLink:boolean}) {
  const [from,setFrom]=useState(''),[to,setTo]=useState(''),[rows,setRows]=useState<Row[]|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[all,setAll]=useState(false),[message,setMessage]=useState(''),[linking,setLinking]=useState(false);
  const sequence=useRef(0);

@@ -10,6 +10,23 @@ create table portal_private.leasing_contract_units (
 alter table portal_private.leasing_contract_units enable row level security;
 revoke all on portal_private.leasing_contract_units from public,anon,authenticated,service_role;
 
+-- One immutable initial deadline per case. Notes cannot renew a reservation.
+create table portal_private.leasing_holds (
+ case_id uuid primary key references portal_private.leasing_cases(id),
+ unit_id uuid not null references portal_private.leasing_units(id),
+ start_date date not null,
+ end_date date not null check(end_date>start_date),
+ created_at timestamptz not null,
+ expires_at timestamptz not null check(expires_at>created_at),
+ created_by uuid not null references portal_private.accounts(user_id),
+ extended_by uuid references portal_private.accounts(user_id),
+ extension_reason text,
+ check(expires_at<=created_at+interval '72 hours')
+);
+create index leasing_holds_unit_period on portal_private.leasing_holds(unit_id,start_date,end_date);
+alter table portal_private.leasing_holds enable row level security;
+revoke all on portal_private.leasing_holds from public,anon,authenticated,service_role;
+
 create function public.leasing_unit_availability(from_date date,to_date date) returns jsonb
 language plpgsql stable security definer set search_path='' as $$
 declare acct portal_private.accounts; result jsonb;
@@ -29,12 +46,15 @@ begin
   where l.unit_id=u.id and c.status='Active'
   and (c.start_date is null or c.end_date is null or c.end_date<=c.start_date or (c.start_date<to_date and c.end_date>from_date))) as contracted,
  exists(select 1 from portal_private.leasing_cases c where c.unit_id=u.id and c.stage='CONFIRMED'
-  and c.booking_cancelled_at is null and c.start_date<to_date and c.end_date>from_date) as booked
+  and c.booking_cancelled_at is null and c.start_date<to_date and c.end_date>from_date) as booked,
+ exists(select 1 from portal_private.leasing_holds h join portal_private.leasing_cases c on c.id=h.case_id
+  where h.unit_id=u.id and h.expires_at>statement_timestamp() and c.booking_cancelled_at is null
+  and c.stage not in ('CONFIRMED','CANCELLED','LOST') and h.start_date<to_date and h.end_date>from_date) as held
  from portal_private.leasing_units u)
  select coalesce(jsonb_agg(jsonb_build_object('id',id,'property_id',property_id,'code',code,'readiness',readiness,
-  'available',readiness='READY' and not needs_mapping and not contracted and not booked,
+  'available',readiness='READY' and not needs_mapping and not contracted and not booked and not held,
   'reason',case when needs_mapping then 'CONTRACT_MAPPING_REQUIRED' when contracted then 'CONTRACTED'
-   when booked then 'BOOKED' when readiness<>'READY' then 'NOT_READY' else 'AVAILABLE' end) order by code,id),'[]'::jsonb)
+   when held then 'HELD' when booked then 'BOOKED' when readiness<>'READY' then 'NOT_READY' else 'AVAILABLE' end) order by code,id),'[]'::jsonb)
  into result from state;
  return jsonb_build_object('from',from_date,'to',to_date,'units',result);
 end $$;
@@ -63,6 +83,15 @@ begin
     or other.end_date<=other.start_date or (other.start_date<c.end_date and other.end_date>c.start_date))) then
    raise exception 'Overlapping active contract' using errcode='PT409';
   end if;
+  if exists(select 1 from portal_private.leasing_cases lc where lc.unit_id=u.id and lc.contract_id is distinct from c.id
+   and lc.stage='CONFIRMED' and lc.booking_cancelled_at is null and lc.start_date<c.end_date and lc.end_date>c.start_date)
+  or exists(select 1 from portal_private.leasing_holds h join portal_private.leasing_cases lc on lc.id=h.case_id
+   where h.unit_id=u.id and h.expires_at>clock_timestamp() and lc.booking_cancelled_at is null
+   and lc.stage not in ('CONFIRMED','CANCELLED','LOST') and h.start_date<c.end_date and h.end_date>c.start_date
+   and not (lc.contract_id is not distinct from c.id and h.start_date=c.start_date and h.end_date=c.end_date)) then
+   raise exception 'Contract mapping conflicts with occupancy' using errcode='PT409';
+  end if;
+
  end if;
  insert into portal_private.leasing_contract_units(contract_id,unit_id,linked_by) values(c.id,u.id,who);
  insert into portal_private.operations_history(entity_id,actor,action,note,changes)
