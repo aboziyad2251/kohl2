@@ -40,5 +40,37 @@ begin
 end $$;
 revoke all on function public.leasing_unit_availability(date,date) from public,anon,service_role;
 grant execute on function public.leasing_unit_availability(date,date) to authenticated;
+
+create function public.link_leasing_contract_unit(target_contract uuid,target_unit uuid) returns jsonb
+language plpgsql security definer set search_path='' as $$
+declare who uuid:=auth.uid(); c public.contracts; u portal_private.leasing_units; existing uuid;
+begin
+ if not exists(select 1 from portal_private.accounts where user_id=who and is_active and role in ('ADMIN','CEO')) then raise insufficient_privilege; end if;
+ select * into c from public.contracts where id=target_contract for update;
+ if not found then raise no_data_found; end if;
+ select * into u from portal_private.leasing_units where id=target_unit for update;
+ if not found then raise no_data_found; end if;
+ if c.property_id is distinct from u.property_id then raise exception 'Contract and unit properties differ' using errcode='22023'; end if;
+ select unit_id into existing from portal_private.leasing_contract_units where contract_id=c.id;
+ if found then
+  if existing<>u.id then raise exception 'Existing mapping requires reviewed correction' using errcode='PT409'; end if;
+  return jsonb_build_object('saved',true,'already_linked',true);
+ end if;
+ if c.status='Active' then
+  if c.start_date is null or c.end_date is null or c.end_date<=c.start_date then raise invalid_parameter_value; end if;
+  if exists(select 1 from portal_private.leasing_contract_units l join public.contracts other on other.id=l.contract_id
+   where l.unit_id=u.id and other.status='Active' and (other.start_date is null or other.end_date is null
+    or other.end_date<=other.start_date or (other.start_date<c.end_date and other.end_date>c.start_date))) then
+   raise exception 'Overlapping active contract' using errcode='PT409';
+  end if;
+ end if;
+ insert into portal_private.leasing_contract_units(contract_id,unit_id,linked_by) values(c.id,u.id,who);
+ insert into portal_private.operations_history(entity_id,actor,action,note,changes)
+ values(c.id,who,'CONTRACT_UNIT_LINK','ربط عقد بوحدة',jsonb_build_object('unit_id',u.id,'property_id',u.property_id));
+ return jsonb_build_object('saved',true);
+end $$;
+revoke all on function public.link_leasing_contract_unit(uuid,uuid) from public,anon,service_role;
+grant execute on function public.link_leasing_contract_unit(uuid,uuid) to authenticated;
+
 notify pgrst,'reload schema';
 commit;

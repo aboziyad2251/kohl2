@@ -7,6 +7,7 @@ import {
   type FormEvent,
 } from "react";
 import Link from "next/link";
+import UnitAvailabilityPanel from "./UnitAvailabilityPanel";
 import { useAuth } from "@/context/AuthContext";
 import { portalRequest } from "@/lib/portal/client";
 import {
@@ -674,6 +675,7 @@ export default function OperationsWorkspace({
           )}
           {tab === "units" && (
             <>
+              {!leasingOnly && <UnitAvailabilityPanel units={w.units} contracts={w.contracts} canLink={isExecutive} />}
               <div className="ops-section-head">
                 <h2>الوحدات وجاهزيتها</h2>
                 {isExecutive && (

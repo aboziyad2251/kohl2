@@ -289,3 +289,17 @@ API adapter is added but is not connected to the search UI or deployed. The leas
 session API allowlist remains unchanged pending its session-bound RPC tests. Holds,
 manual audited mapping controls, confirmation constraints, concurrency tests and
 search integration remain necessary before releasing this feature.
+
+Development checkpoint 22 November: added a date-availability panel to the ordinary
+operations units tab, with default available-only results, reasons for exclusions,
+stale-result invalidation and an executive contract-unit mapping form. The mapping
+POST uses the caller's authenticated RPC, not service-role writes. SQL validates the
+same property, locks contract/unit, rejects replacement mappings and overlapping
+mapped active contracts, and records attribution. Tests reject ordinary employees,
+wrong-property links and remapping. Leasing-only sessions remain excluded pending
+session-scope tests. This UI requires the candidate SQL; it is not deployable alone.
+
+This is still incomplete: production migration packaging, concurrency with legacy
+contract edits and confirmation, atomic expiring holds, description filters in the
+actual UI, cancellation UI and document/follow-up work remain outstanding. No live
+change, live search fix or complete availability guarantee is claimed.

@@ -14,3 +14,18 @@ export async function GET(req: NextRequest) {
   return json(data);
  } catch(error) {return apiError(error);}
 }
+
+export async function POST(req: NextRequest) {
+ try {
+  const {client}=await requireIdentity(req,true);
+  const raw=await req.text();
+  if(raw.length>1024)throw new PortalError(413,'طلب كبير');
+  const body=JSON.parse(raw);
+  const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if(!body || typeof body!=='object' || Array.isArray(body) || Object.keys(body).some(key=>!['contract_id','unit_id'].includes(key))
+   || typeof body.contract_id!=='string' || typeof body.unit_id!=='string' || !uuid.test(body.contract_id) || !uuid.test(body.unit_id))throw new PortalError(400,'حدد العقد والوحدة.');
+  const {data,error}=await client.rpc('link_leasing_contract_unit',{target_contract:body.contract_id,target_unit:body.unit_id});
+  if(error)throw new PortalError(error.code==='42501'?403:error.code==='PT409'?409:['42883','PGRST202'].includes(error.code)?503:400,'تعذر الربط؛ تحقق من تطابق العقار وعدم وجود تعارض أو ربط سابق.');
+  return json(data);
+ } catch(error) {return apiError(error instanceof SyntaxError?new PortalError(400,'طلب غير صالح'):error);}
+}

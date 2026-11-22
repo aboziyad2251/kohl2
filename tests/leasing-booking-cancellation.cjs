@@ -44,7 +44,14 @@ UPDATE public.contracts SET property_id='${uuid(90)}',status='Active',start_date
   await actor(db,'employee');let units=await availability();
   assert(units.every(u=>u.reason==='CONTRACT_MAPPING_REQUIRED'&&!u.available));
   await denied(()=>db.query('SELECT * FROM portal_private.leasing_contract_units'));
-  await db.exec(`RESET ROLE; INSERT INTO portal_private.leasing_contract_units(contract_id,unit_id,linked_by) VALUES('${uuid(80)}','${uuid(91)}','${ids.admin}');`);
+  await denied(()=>db.query('SELECT public.link_leasing_contract_unit($1,$2)',[uuid(80),uuid(91)]));
+  await db.exec(`RESET ROLE; UPDATE public.contracts SET property_id='${uuid(93)}' WHERE id='${uuid(80)}';`);
+  await actor(db,'admin');
+  await denied(()=>db.query('SELECT public.link_leasing_contract_unit($1,$2)',[uuid(80),uuid(91)]),'22023');
+  await db.exec(`RESET ROLE; UPDATE public.contracts SET property_id='${uuid(90)}' WHERE id='${uuid(80)}';`);
+  await actor(db,'admin');
+  await db.query('SELECT public.link_leasing_contract_unit($1,$2)',[uuid(80),uuid(91)]);
+  await denied(()=>db.query('SELECT public.link_leasing_contract_unit($1,$2)',[uuid(80),uuid(92)]),'PT409');
   await actor(db,'employee');units=await availability();
   assert.equal(units.find(u=>u.id===uuid(91)).reason,'CONTRACTED');
   assert.equal(units.find(u=>u.id===uuid(92)).available,true);
