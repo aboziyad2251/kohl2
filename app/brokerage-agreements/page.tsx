@@ -1,6 +1,7 @@
 'use client';
 import {useDraftState,useDraftControls} from '@/lib/drafts/hooks';
 
+import {brokerageAttachmentReference} from '@/lib/documents/brokerage-reference';
 import React, { useState } from 'react';
 import {
   FileCheck,
@@ -140,6 +141,7 @@ export default function BrokerageAgreementsPage() {
                           <div><dt>الموظف المسؤول</dt><dd>{agreement.assigned_agent_name||'غير مسند'}</dd></div>
                         </dl>
                         <p className="mt-3 text-xs">هذه معاينة البيانات المسجلة، وليست نسخة المستند الموقّع.</p>
+                        <p className="mt-2 text-xs">{brokerageAttachmentReference(agreement.file_url)?'مرجع المرفق محفوظ؛ معاينة الأصل تتطلب التحقق من مصدر الملف.':'لا توجد نسخة أصلية مرفقة بهذه الاتفاقية.'}</p>
                       </details>
                     </td>
 

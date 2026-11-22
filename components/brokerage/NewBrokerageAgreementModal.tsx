@@ -1,5 +1,6 @@
 'use client';
 
+import {brokerageAttachmentReference} from '@/lib/documents/brokerage-reference';
 import React, { useState } from 'react';
 import {useDraftForm} from '@/lib/drafts/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -53,7 +54,7 @@ export default function NewBrokerageAgreementModal({
         start_date: data.start_date,
         expiry_date: data.expiry_date,
         ejar_status: 'Active',
-        file_url: data.file_url || '/docs/sample_brokerage.pdf',
+        file_url: brokerageAttachmentReference(data.file_url),
         property: prop,
         lessor: prop?.lessor,
         created_at: new Date().toISOString(),

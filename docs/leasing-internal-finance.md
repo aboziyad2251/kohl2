@@ -296,3 +296,23 @@ Still needed: exact built-image API acceptance with both new migrations, product
 restore/rehearsal and a reviewed pinned apply/rollback dispatcher. Preserve Hatif through
 `prepare_hatif_runtime`, preserve original runtime for rollback, and keep broker/account
 containers and disabled recovery unchanged. Do not run historical release scripts.
+
+VPS evidence received 22 November: main remains the tour image `bdc7734c...`, broker
+and account images unchanged, Hatif file matches live and recovery is disabled.
+Availability migration is absent, specialist role exists, leasing_units count is zero,
+and literal Active contract count is zero. Do not equate that last count with no
+contracts: the enhanced preflight reports total and normalized status counts.
+Nine brokerage file references were classified other_reference. Repository inspection
+found NewBrokerageAgreementModal inserting `/docs/sample_brokerage.pdf` when no upload
+exists; no such static asset exists in the checkout. New creation no longer inserts
+that placeholder; existing data is preserved and recognized as no original attachment.
+The enhanced preflight distinguishes this known placeholder from other references.
+
+`python3 -B scripts/test-leasing-switch.py --availability` now tests both new migrations
+with real isolated GoTrue, PostgREST and the built Next app. Local acceptance passed:
+filtered search, specialist reservation, unchanged retry deadline, scoped status,
+designated cancellation, categorized follow-up, and revoked delegated-session denial.
+This run used the local production build, not a pinned deployable image. The same flag
+supports `--app-image` with a private receipt containing migration hashes for the later
+release preparation. Signed original-file storage evidence and image/backup rehearsal
+remain required before deployment.

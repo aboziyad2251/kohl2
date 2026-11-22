@@ -39,3 +39,8 @@ const grouped=followups.followupCategorySummary([
 ],'2026-11-22','2026-11-22');
 assert.equal(JSON.stringify(grouped),JSON.stringify([{category:'VIEWING',total:2,completed:1}]));
 console.log('PASS: editable follow-up suggestions and scoped Riyadh-day category counts');
+
+const references={};vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/documents/brokerage-reference.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,{exports:references});
+for(const ref of [undefined,null,'','   ','/docs/sample_brokerage.pdf',' /docs/sample_brokerage.pdf?old=1#page=1 '])assert.equal(references.brokerageAttachmentReference(ref),undefined);
+assert.equal(references.brokerageAttachmentReference('/private/actual.pdf'),'/private/actual.pdf');
+console.log('PASS: absent and historical sample references are not presented as signed attachments');

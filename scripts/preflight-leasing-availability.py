@@ -53,6 +53,8 @@ def main():
     metadata = query("""SELECT json_build_object(
       'availability_migration_present',to_regclass('portal_private.leasing_holds') IS NOT NULL,
       'specialist_role_present',EXISTS(SELECT 1 FROM pg_roles WHERE rolname='kohl_leasing'),
+      'contracts_total',(SELECT count(*) FROM public.contracts),
+      'contract_status_counts',(SELECT coalesce(json_object_agg(state,n),'{}'::json) FROM (SELECT CASE WHEN status IN ('Active','Draft','Expired','Terminated') THEN status WHEN status IS NULL THEN 'NULL' ELSE 'OTHER' END state,count(*) n FROM public.contracts GROUP BY 1) grouped),
       'active_contracts', (SELECT count(*) FROM public.contracts WHERE status='Active'),
       'active_contracts_missing_period',(SELECT count(*) FROM public.contracts WHERE status='Active' AND (start_date IS NULL OR end_date IS NULL OR end_date<=start_date)),
       'units',(SELECT count(*) FROM portal_private.leasing_units),
@@ -69,6 +71,10 @@ def main():
             continue
         counts = query("""SELECT coalesce(json_object_agg(kind,n),'{}'::json) FROM (
           SELECT CASE WHEN file_url IS NULL OR btrim(file_url)='' THEN 'missing'
+          WHEN split_part(split_part(btrim(file_url),'?',1),'#',1)='/docs/sample_brokerage.pdf' THEN 'sample_placeholder'
+          WHEN btrim(file_url) LIKE '/%%' THEN 'relative_reference'
+          WHEN file_url LIKE 'blob:%%' THEN 'temporary_blob_reference'
+          WHEN file_url LIKE 'http://%%' THEN 'http_reference'
           WHEN file_url LIKE 'data:application/pdf;%%' THEN 'embedded_pdf'
           WHEN file_url LIKE 'https://%%' THEN 'https_reference'
           ELSE 'other_reference' END kind,count(*) n
