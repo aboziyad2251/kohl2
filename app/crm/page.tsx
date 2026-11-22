@@ -723,95 +723,11 @@ export default function CrmPage() {
 
       {/* TAB 4: SMART PROPERTY MATCHER */}
       {activeTab === 'matcher' && (
-        <div className="space-y-4">
-          <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-slate-900 to-indigo-950/60 border border-indigo-500/30 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
-                <Sparkles className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-white">محرك المطابقة الذكي بين طلبات العملاء والعقارات</h3>
-                <p className="text-xs text-slate-400">
-                  يقوم النظام بمطابقة متطلبات العملاء (نوع العقار، الميزانية، والحي) مع محفظة العقارات الشاغرة
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {myLeads.map((lead) => {
-              const matchedProperties = properties.filter((p) => {
-                const typeMatches =
-                  !lead.preferred_property_type ||
-                  p.property_type.toLowerCase().includes(lead.preferred_property_type.toLowerCase()) ||
-                  p.title.toLowerCase().includes(lead.preferred_property_type.toLowerCase());
-                return typeMatches;
-              });
-
-              return (
-                <div
-                  key={lead.id}
-                  className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4"
-                >
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-sky-600/20 text-sky-400 font-bold flex items-center justify-center border border-sky-500/30">
-                        {lead.name.slice(0, 1)}
-                      </div>
-                      <div>
-                        <span className="font-bold text-white text-sm">{lead.name}</span>
-                        <div className="text-xs text-slate-400 flex items-center gap-3 mt-0.5">
-                          <span>النوع: {LEAD_TYPE_LABELS[lead.lead_type]}</span>
-                          <span>المطلوب: {lead.preferred_property_type || 'عقار عام'}</span>
-                          <span className="text-emerald-400 font-mono">
-                            الميزانية: {lead.budget_max?.toLocaleString('ar-SA')} ر.س
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        setDealLeadId(lead.id);
-                        setIsAddDealOpen(true);
-                      }}
-                      className="px-3.5 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-xs font-bold transition flex items-center gap-1.5"
-                    >
-                      <Handshake className="w-3.5 h-3.5" />
-                      <span>فتح صفقة لهذا العميل</span>
-                    </button>
-                  </div>
-
-                  {/* Matched Properties */}
-                  <div>
-                    <span className="text-xs font-semibold text-slate-400 block mb-2">
-                      العقارات المقترحة من المخزون ({matchedProperties.length}):
-                    </span>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {matchedProperties.slice(0, 3).map((prop) => (
-                        <div
-                          key={prop.id}
-                          className="p-3 rounded-xl bg-slate-800/70 border border-slate-700/60 flex items-center justify-between text-xs"
-                        >
-                          <div>
-                            <div className="font-bold text-white">{prop.title}</div>
-                            <div className="text-slate-400 text-[11px]">{prop.city} - {prop.address}</div>
-                          </div>
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/30 font-semibold">
-                            مطابق
-                          </span>
-                        </div>
-                      ))}
-                      {matchedProperties.length === 0 && (
-                        <div className="text-xs text-slate-500 italic">لا توجد عقارات مطابقة حالياً بمخزون المكتب.</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <section className="portal-card space-y-4">
+          <h2 className="font-bold">مطابقة طلبات العملاء مع المعروض</h2>
+          <p>حدد غرض الطلب والميزانية والمواصفات في قسم البيع أو التأجير. تُعرض أسباب الترشيح ويُتحقق من توفر التأجير حسب الفترة.</p>
+          <div className="flex gap-4"><a className="portal-button" href="/sales">البيع والمشترون</a><a className="portal-button" href="/rental-market">التأجير والمستأجرون</a></div>
+        </section>
       )}
 
       {/* Deal Print Modal */}

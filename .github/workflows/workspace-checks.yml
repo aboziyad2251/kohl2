@@ -43,6 +43,9 @@ jobs:
           node tests/recovery-disabled.cjs
           node tests/hatif.cjs
           node tests/drafts.cjs
+          node tests/market-matching.cjs
+          node tests/market-matching-db.cjs
+          node tests/market-matching-api.cjs
           node tests/navigation.cjs
           node tests/employee-tour.cjs
           node tests/leasing-availability.cjs

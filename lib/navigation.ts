@@ -19,6 +19,8 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
+  { id: 'sales', group: 'customers', label: 'البيع والمطابقة', title: 'البيع وطلبات المشترين', href: '/sales', moduleKey: 'crm', icon: 'properties', keywords: 'شراء مشترين تسويق ترشيح' },
+  { id: 'rental-market', group: 'customers', label: 'التأجير والمطابقة', title: 'التأجير وطلبات المستأجرين', href: '/rental-market', moduleKey: 'crm', icon: 'properties', keywords: 'استئجار تسويق ترشيح' },
   { id: 'leasing', group: 'customers', label: 'التأجير ومتابعة العملاء', title: 'التأجير ومتابعة العملاء', href: '/leasing', moduleKey: 'leasing', icon: 'contracts', keywords: 'يومي شهري سنوي حجوزات متابعة مؤشرات' },
   { id: 'internal-finance', group: 'finance', label: 'المالية الداخلية', title: 'المالية الداخلية', href: '/financials/internal', moduleKey: 'internal-finance', icon: 'earnings', keywords: 'تحصيل مصروفات أمانات محاسب' },
   { id: 'dashboard', group: 'home', label: 'لوحة التحكم', title: 'لوحة التحكم القيادية', href: '/dashboard', moduleKey: 'dashboard', icon: 'dashboard' },
@@ -46,7 +48,7 @@ export const navItems: NavItem[] = [
 
 export const navShortcuts: NavItem[] = [
   { id: 'followups', group: 'customers', label: 'المتابعات والاتصالات', title: 'المتابعات والاتصالات', href: '/crm?tab=activities', moduleKey: 'crm', icon: 'crm' },
-  { id: 'matcher', group: 'customers', label: 'مطابقة الطلبات والعقارات', title: 'مطابقة الطلبات والعقارات', href: '/crm?tab=matcher', moduleKey: 'crm', icon: 'crm' },
+  { id: 'matcher', group: 'customers', label: 'مطابقة الطلبات والعقارات', title: 'مطابقة الطلبات والعقارات', href: '/sales', moduleKey: 'crm', icon: 'crm' },
   { id: 'maintenance', group: 'properties', label: 'صيانة الأملاك', title: 'صيانة الأملاك', href: '/property-management?tab=MAINTENANCE', moduleKey: 'property-management', icon: 'management' },
   { id: 'statements', group: 'properties', label: 'كشوف الملاك', title: 'كشوف الملاك', href: '/property-management?tab=STATEMENTS', moduleKey: 'property-management', icon: 'earnings' },
   { id: 'owners', group: 'properties', label: 'الملاك والمؤجرون', title: 'الملاك والمؤجرون', href: '/ownership-properties?tab=lessors', moduleKey: 'ownership-properties', icon: 'properties' },
