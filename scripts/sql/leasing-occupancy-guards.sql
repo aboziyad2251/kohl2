@@ -21,7 +21,7 @@ begin
  perform 1 from portal_private.leasing_units where id=new.unit_id and readiness='READY' for update;
  if not found then raise exception 'Unit not ready' using errcode='PT409'; end if;
  select c.* into ct from public.contracts c join portal_private.leasing_contract_units l on l.contract_id=c.id
- where c.id=new.contract_id and l.unit_id=new.unit_id and c.status='Active'
+ where c.id=new.contract_id and l.unit_id=new.unit_id and lower(btrim(c.status))='active'
  and c.property_id=(select property_id from portal_private.leasing_units where id=new.unit_id)
  and c.start_date=new.start_date and c.end_date=new.end_date;
  if not found then raise exception 'Confirmation requires an active contract for this exact unit and period' using errcode='PT409'; end if;
@@ -31,7 +31,7 @@ begin
   and h.start_date<new.end_date and h.end_date>new.start_date)
  or exists(select 1 from portal_private.leasing_cases c where c.id<>new.id and c.unit_id=new.unit_id
   and c.stage='CONFIRMED' and c.booking_cancelled_at is null and c.start_date<new.end_date and c.end_date>new.start_date)
- or exists(select 1 from public.contracts c where c.id<>new.contract_id and c.property_id=ct.property_id and c.status='Active'
+ or exists(select 1 from public.contracts c where c.id<>new.contract_id and c.property_id=ct.property_id and lower(btrim(c.status))='active'
   and (c.start_date is null or c.end_date is null or c.end_date<=c.start_date or (c.start_date<new.end_date and c.end_date>new.start_date))
   and (not exists(select 1 from portal_private.leasing_contract_units l where l.contract_id=c.id)
    or exists(select 1 from portal_private.leasing_contract_units l where l.contract_id=c.id and l.unit_id=new.unit_id))) then
@@ -49,10 +49,11 @@ declare unit uuid;
 begin
  if tg_op='UPDATE' and (new.property_id,new.status,new.start_date,new.end_date) is not distinct from
   (old.property_id,old.status,old.start_date,old.end_date) then return new; end if;
+ if new.status is null or lower(btrim(new.status)) not in ('active','draft','expired','terminated') then raise exception 'Contract status needs review before occupancy changes' using errcode='PT409'; end if;
  select unit_id into unit from portal_private.leasing_contract_units where contract_id=new.id;
  if unit is null then
   -- Legacy unmapped contracts remain visible as mapping-required. They cannot displace a hold/booking.
-  if new.status='Active' then
+  if lower(btrim(new.status))='active' then
    perform id from portal_private.leasing_units where property_id=new.property_id order by id for update;
    if exists(select 1 from portal_private.leasing_holds h join portal_private.leasing_units u on u.id=h.unit_id
     join portal_private.leasing_cases c on c.id=h.case_id where u.property_id=new.property_id
@@ -70,12 +71,12 @@ begin
  if new.property_id is distinct from (select property_id from portal_private.leasing_units where id=unit) then
   raise exception 'Mapped contract property cannot change' using errcode='PT409';
  end if;
- if new.status<>'Active' then return new; end if;
+ if lower(btrim(new.status))<>'active' then return new; end if;
  if new.start_date is null or new.end_date is null or new.end_date<=new.start_date then raise invalid_parameter_value; end if;
  if exists(select 1 from portal_private.leasing_cases c where c.contract_id=new.id and c.stage='CONFIRMED' and c.booking_cancelled_at is null
   and (c.unit_id,c.start_date,c.end_date) is distinct from (unit,new.start_date,new.end_date))
  or exists(select 1 from portal_private.leasing_contract_units l join public.contracts c on c.id=l.contract_id
-  where l.unit_id=unit and c.id<>new.id and c.status='Active'
+  where l.unit_id=unit and c.id<>new.id and lower(btrim(c.status))='active'
   and (c.start_date is null or c.end_date is null or c.end_date<=c.start_date or (c.start_date<new.end_date and c.end_date>new.start_date)))
  or exists(select 1 from portal_private.leasing_cases c where c.unit_id=unit and c.contract_id is distinct from new.id
   and c.stage='CONFIRMED' and c.booking_cancelled_at is null and c.start_date<new.end_date and c.end_date>new.start_date)

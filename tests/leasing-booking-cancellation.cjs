@@ -41,6 +41,12 @@ INSERT INTO portal_private.leasing_units VALUES('${uuid(91)}','${uuid(90)}','A',
 UPDATE public.contracts SET property_id='${uuid(90)}',status='Active',start_date='2026-11-01',end_date='2026-12-01' WHERE id='${uuid(80)}';`);
   await db.exec(require('fs').readFileSync('scripts/sql/leasing-unit-availability.sql','utf8'));
   const availability=async()=> (await db.query("SELECT public.leasing_unit_availability('2026-11-10','2026-11-11') result")).rows[0].result.units;
+  await db.exec('RESET ROLE');
+  await db.query("UPDATE public.contracts SET status='unreviewed-import-status' WHERE id=$1",[uuid(80)]);
+  await actor(db,'employee');
+  assert((await availability()).every(u=>u.reason==='CONTRACT_STATUS_REVIEW'&&!u.available));
+  await actor(db,'admin');await denied(()=>db.query('SELECT public.link_leasing_contract_unit($1,$2)',[uuid(80),uuid(91)]),'PT409');
+  await db.exec('RESET ROLE');await db.query("UPDATE public.contracts SET status='active' WHERE id=$1",[uuid(80)]);
   await actor(db,'employee');let units=await availability();
   assert(units.every(u=>u.reason==='CONTRACT_MAPPING_REQUIRED'&&!u.available));
   await denied(()=>db.query('SELECT * FROM portal_private.leasing_contract_units'));
@@ -54,6 +60,11 @@ UPDATE public.contracts SET property_id='${uuid(90)}',status='Active',start_date
   await denied(()=>db.query('SELECT public.link_leasing_contract_unit($1,$2)',[uuid(80),uuid(92)]),'PT409');
   await actor(db,'employee');units=await availability();
   assert.equal(units.find(u=>u.id===uuid(91)).reason,'CONTRACTED');
+  for(const status of ['active','ACTIVE',' Active ']){
+   await db.exec('RESET ROLE');await db.query('UPDATE public.contracts SET status=$1 WHERE id=$2',[status,uuid(80)]);
+   await actor(db,'employee');assert.equal((await availability()).find(u=>u.id===uuid(91)).reason,'CONTRACTED');
+  }
+
   assert.equal(units.find(u=>u.id===uuid(92)).available,true);
   assert(!JSON.stringify(units).includes('tenant'));
   assert((await db.query("SELECT public.leasing_unit_availability('2026-12-01','2026-12-02') result")).rows[0].result.units.every(u=>u.available));
@@ -100,7 +111,7 @@ UPDATE public.contracts SET property_id='${uuid(90)}',status='Active',start_date
   // Use a separate mapped draft to exercise activation, confirmation and subsequent edits.
   await db.query("INSERT INTO public.contracts(id,contract_number,property_id,status,start_date,end_date) VALUES($1,'Guard',$2,'Draft','2028-01-01','2028-02-01')",[uuid(106),uuid(90)]);
   await actor(db,'admin');await db.query('SELECT public.link_leasing_contract_unit($1,$2)',[uuid(106),uuid(91)]);
-  await db.exec('RESET ROLE');await db.query("UPDATE public.contracts SET status='Active' WHERE id=$1",[uuid(106)]);
+  await db.exec('RESET ROLE');await db.query("UPDATE public.contracts SET status='active' WHERE id=$1",[uuid(106)]);
   await db.query("UPDATE portal_private.leasing_cases SET stage='CONFIRMED',unit_id=$1,start_date='2028-01-01',end_date='2028-02-01',amount=100,beneficiary='OWNER',contract_id=$2 WHERE id=$3",[uuid(91),uuid(106),uuid(105)]);
   await denied(()=>db.query("UPDATE public.contracts SET end_date='2028-03-01' WHERE id=$1",[uuid(106)]),'PT409');
   await denied(()=>db.query('UPDATE public.contracts SET property_id=$1 WHERE id=$2',[uuid(93),uuid(106)]),'PT409');
@@ -113,7 +124,7 @@ UPDATE public.contracts SET property_id='${uuid(90)}',status='Active',start_date
   // Draft activation may not displace another case's live hold.
   await db.query("INSERT INTO public.contracts(id,contract_number,property_id,status,start_date,end_date) VALUES($1,'Hold conflict',$2,'Draft',$3,$4)",[uuid(107),uuid(90),near.a,near.b]);
   await actor(db,'admin');await db.query('SELECT public.link_leasing_contract_unit($1,$2)',[uuid(107),uuid(92)]);
-  await db.exec('RESET ROLE');await denied(()=>db.query("UPDATE public.contracts SET status='Active' WHERE id=$1",[uuid(107)]),'PT409');
+  await db.exec('RESET ROLE');await denied(()=>db.query("UPDATE public.contracts SET status='active' WHERE id=$1",[uuid(107)]),'PT409');
   await actor(db,'employee');
   await denied(()=>db.query('SELECT public.save_leasing_unit_specs($1,3,2)',[uuid(91)]));
   await denied(()=>db.query('SELECT * FROM portal_private.leasing_unit_specs'));

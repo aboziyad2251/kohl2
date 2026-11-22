@@ -54,9 +54,9 @@ def main():
       'availability_migration_present',to_regclass('portal_private.leasing_holds') IS NOT NULL,
       'specialist_role_present',EXISTS(SELECT 1 FROM pg_roles WHERE rolname='kohl_leasing'),
       'contracts_total',(SELECT count(*) FROM public.contracts),
-      'contract_status_counts',(SELECT coalesce(json_object_agg(state,n),'{}'::json) FROM (SELECT CASE WHEN status IN ('Active','Draft','Expired','Terminated') THEN status WHEN status IS NULL THEN 'NULL' ELSE 'OTHER' END state,count(*) n FROM public.contracts GROUP BY 1) grouped),
-      'active_contracts', (SELECT count(*) FROM public.contracts WHERE status='Active'),
-      'active_contracts_missing_period',(SELECT count(*) FROM public.contracts WHERE status='Active' AND (start_date IS NULL OR end_date IS NULL OR end_date<=start_date)),
+      'contract_status_counts',(SELECT coalesce(json_object_agg(state,n),'{}'::json) FROM (SELECT CASE WHEN lower(btrim(status)) IN ('active','draft','expired','terminated') THEN lower(btrim(status)) WHEN status IS NULL THEN 'NULL' ELSE 'OTHER' END state,count(*) n FROM public.contracts GROUP BY 1) grouped),
+      'active_contracts', (SELECT count(*) FROM public.contracts WHERE lower(btrim(status))='active'),
+      'active_contracts_missing_period',(SELECT count(*) FROM public.contracts WHERE lower(btrim(status))='active' AND (start_date IS NULL OR end_date IS NULL OR end_date<=start_date)),
       'units',(SELECT count(*) FROM portal_private.leasing_units),
       'confirmed_cases_without_contract',(SELECT count(*) FROM portal_private.leasing_cases WHERE stage='CONFIRMED' AND contract_id IS NULL),
       'attachment_columns',(SELECT coalesce(json_agg(table_name||'.'||column_name),'[]'::json) FROM information_schema.columns

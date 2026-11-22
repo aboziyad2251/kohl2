@@ -96,4 +96,4 @@ jobs:
           docker pull postgrest/postgrest@sha256:54000f24847d01a2c2302e0041cf0618b875c57fb48507d743cfa9aaa50bf43c
           docker build -f tests/fixtures/Dockerfile.leasing-http -t kohl-leasing-http-fixture .
           leasing_test_image=$(docker image inspect kohl-leasing-http-fixture --format '{{.Id}}')
-          python3 -B scripts/test-leasing-switch.py --app-image "$leasing_test_image" --receipt "$RUNNER_TEMP/leasing-http-receipt.json"
+          python3 -B scripts/test-leasing-switch.py --availability --app-image "$leasing_test_image" --receipt "$RUNNER_TEMP/leasing-http-receipt.json"

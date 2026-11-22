@@ -316,3 +316,23 @@ This run used the local production build, not a pinned deployable image. The sam
 supports `--app-image` with a private receipt containing migration hashes for the later
 release preparation. Signed original-file storage evidence and image/backup rehearsal
 remain required before deployment.
+
+Latest VPS evidence: both contracts have statuses outside the four expected literals,
+and all nine brokerage references are the historical sample placeholder. No signed
+original can be recovered from those reference values alone. Unknown/null contract
+statuses now conservatively block period availability for the associated property
+with CONTRACT_STATUS_REVIEW, and cannot be mapped/changed for occupancy until reviewed;
+no production status is normalized or modified automatically.
+
+GitHub run 45000883119 failed in both Node versions because the new API mutation routes
+lacked the mandatory request-audit wrapper. POST/PATCH are now wrapped with withAudit;
+GET availability/status reads remain unwrapped to avoid routine polling audit noise.
+The complete mocked/unit workflow group passes locally. CI's real HTTP acceptance now
+also uses --availability so it covers the new migration pair and booking endpoints.
+
+The subsequent read-only VPS query identified both statuses as lowercase `active`.
+All new occupancy readers, mapping/confirmation guards and hold-extension conflict
+checks now normalize case and surrounding whitespace at comparison time. No saved
+contract is rewritten. The unknown-status conservative block remains for truly
+unrecognized values. Tests cover active/Active/ACTIVE and padded values, lowercase
+confirmation/activation and the native concurrent activation/hold race.

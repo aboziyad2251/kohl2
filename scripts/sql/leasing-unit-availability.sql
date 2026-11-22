@@ -68,12 +68,15 @@ begin
  -- Fail closed when old contracts cannot yet be assigned to a precise apartment.
  with state as (
  select u.id,u.property_id,u.code,u.readiness,spec.bedrooms,spec.entrances,
- exists(select 1 from public.contracts c where c.property_id=u.property_id and c.status='Active'
+ exists(select 1 from public.contracts c where c.property_id=u.property_id
+  and (c.status is null or lower(btrim(c.status)) not in ('active','draft','expired','terminated'))
+  and (c.start_date is null or c.end_date is null or c.end_date<=c.start_date or (c.start_date<to_date and c.end_date>from_date))) as needs_status_review,
+ exists(select 1 from public.contracts c where c.property_id=u.property_id and lower(btrim(c.status))='active'
   and (c.start_date is null or c.end_date is null or c.end_date<=c.start_date or (c.start_date<to_date and c.end_date>from_date))
   and not exists(select 1 from portal_private.leasing_contract_units l join portal_private.leasing_units target on target.id=l.unit_id
    where l.contract_id=c.id and target.property_id=c.property_id)) as needs_mapping,
  exists(select 1 from portal_private.leasing_contract_units l join public.contracts c on c.id=l.contract_id
-  where l.unit_id=u.id and c.status='Active'
+  where l.unit_id=u.id and lower(btrim(c.status))='active'
   and (c.start_date is null or c.end_date is null or c.end_date<=c.start_date or (c.start_date<to_date and c.end_date>from_date))) as contracted,
  exists(select 1 from portal_private.leasing_cases c where c.unit_id=u.id and c.stage='CONFIRMED'
   and c.booking_cancelled_at is null and c.start_date<to_date and c.end_date>from_date) as booked,
@@ -82,8 +85,8 @@ begin
   and c.stage not in ('CONFIRMED','CANCELLED','LOST') and h.start_date<to_date and h.end_date>from_date) as held
  from portal_private.leasing_units u left join portal_private.leasing_unit_specs spec on spec.unit_id=u.id)
  select coalesce(jsonb_agg(jsonb_build_object('id',id,'property_id',property_id,'code',code,'readiness',readiness,'bedrooms',bedrooms,'entrances',entrances,
-  'available',readiness='READY' and not needs_mapping and not contracted and not booked and not held,
-  'reason',case when needs_mapping then 'CONTRACT_MAPPING_REQUIRED' when contracted then 'CONTRACTED'
+  'available',readiness='READY' and not needs_status_review and not needs_mapping and not contracted and not booked and not held,
+  'reason',case when needs_status_review then 'CONTRACT_STATUS_REVIEW' when needs_mapping then 'CONTRACT_MAPPING_REQUIRED' when contracted then 'CONTRACTED'
    when held then 'HELD' when booked then 'BOOKED' when readiness<>'READY' then 'NOT_READY' else 'AVAILABLE' end) order by code,id),'[]'::jsonb)
  into result from state;
  return jsonb_build_object('from',from_date,'to',to_date,'units',result);
@@ -100,16 +103,17 @@ begin
  if not found then raise no_data_found; end if;
  select * into u from portal_private.leasing_units where id=target_unit for update;
  if not found then raise no_data_found; end if;
+ if c.status is null or lower(btrim(c.status)) not in ('active','draft','expired','terminated') then raise exception 'Contract status needs review before mapping' using errcode='PT409'; end if;
  if c.property_id is distinct from u.property_id then raise exception 'Contract and unit properties differ' using errcode='22023'; end if;
  select unit_id into existing from portal_private.leasing_contract_units where contract_id=c.id;
  if found then
   if existing<>u.id then raise exception 'Existing mapping requires reviewed correction' using errcode='PT409'; end if;
   return jsonb_build_object('saved',true,'already_linked',true);
  end if;
- if c.status='Active' then
+ if lower(btrim(c.status))='active' then
   if c.start_date is null or c.end_date is null or c.end_date<=c.start_date then raise invalid_parameter_value; end if;
   if exists(select 1 from portal_private.leasing_contract_units l join public.contracts other on other.id=l.contract_id
-   where l.unit_id=u.id and other.status='Active' and (other.start_date is null or other.end_date is null
+   where l.unit_id=u.id and lower(btrim(other.status))='active' and (other.start_date is null or other.end_date is null
     or other.end_date<=other.start_date or (other.start_date<c.end_date and other.end_date>c.start_date))) then
    raise exception 'Overlapping active contract' using errcode='PT409';
   end if;

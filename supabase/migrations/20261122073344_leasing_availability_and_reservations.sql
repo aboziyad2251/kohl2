@@ -99,12 +99,15 @@ begin
  -- Fail closed when old contracts cannot yet be assigned to a precise apartment.
  with state as (
  select u.id,u.property_id,u.code,u.readiness,spec.bedrooms,spec.entrances,
- exists(select 1 from public.contracts c where c.property_id=u.property_id and c.status='Active'
+ exists(select 1 from public.contracts c where c.property_id=u.property_id
+  and (c.status is null or lower(btrim(c.status)) not in ('active','draft','expired','terminated'))
+  and (c.start_date is null or c.end_date is null or c.end_date<=c.start_date or (c.start_date<to_date and c.end_date>from_date))) as needs_status_review,
+ exists(select 1 from public.contracts c where c.property_id=u.property_id and lower(btrim(c.status))='active'
   and (c.start_date is null or c.end_date is null or c.end_date<=c.start_date or (c.start_date<to_date and c.end_date>from_date))
   and not exists(select 1 from portal_private.leasing_contract_units l join portal_private.leasing_units target on target.id=l.unit_id
    where l.contract_id=c.id and target.property_id=c.property_id)) as needs_mapping,
  exists(select 1 from portal_private.leasing_contract_units l join public.contracts c on c.id=l.contract_id
-  where l.unit_id=u.id and c.status='Active'
+  where l.unit_id=u.id and lower(btrim(c.status))='active'
   and (c.start_date is null or c.end_date is null or c.end_date<=c.start_date or (c.start_date<to_date and c.end_date>from_date))) as contracted,
  exists(select 1 from portal_private.leasing_cases c where c.unit_id=u.id and c.stage='CONFIRMED'
   and c.booking_cancelled_at is null and c.start_date<to_date and c.end_date>from_date) as booked,
@@ -113,8 +116,8 @@ begin
   and c.stage not in ('CONFIRMED','CANCELLED','LOST') and h.start_date<to_date and h.end_date>from_date) as held
  from portal_private.leasing_units u left join portal_private.leasing_unit_specs spec on spec.unit_id=u.id)
  select coalesce(jsonb_agg(jsonb_build_object('id',id,'property_id',property_id,'code',code,'readiness',readiness,'bedrooms',bedrooms,'entrances',entrances,
-  'available',readiness='READY' and not needs_mapping and not contracted and not booked and not held,
-  'reason',case when needs_mapping then 'CONTRACT_MAPPING_REQUIRED' when contracted then 'CONTRACTED'
+  'available',readiness='READY' and not needs_status_review and not needs_mapping and not contracted and not booked and not held,
+  'reason',case when needs_status_review then 'CONTRACT_STATUS_REVIEW' when needs_mapping then 'CONTRACT_MAPPING_REQUIRED' when contracted then 'CONTRACTED'
    when held then 'HELD' when booked then 'BOOKED' when readiness<>'READY' then 'NOT_READY' else 'AVAILABLE' end) order by code,id),'[]'::jsonb)
  into result from state;
  return jsonb_build_object('from',from_date,'to',to_date,'units',result);
@@ -131,16 +134,17 @@ begin
  if not found then raise no_data_found; end if;
  select * into u from portal_private.leasing_units where id=target_unit for update;
  if not found then raise no_data_found; end if;
+ if c.status is null or lower(btrim(c.status)) not in ('active','draft','expired','terminated') then raise exception 'Contract status needs review before mapping' using errcode='PT409'; end if;
  if c.property_id is distinct from u.property_id then raise exception 'Contract and unit properties differ' using errcode='22023'; end if;
  select unit_id into existing from portal_private.leasing_contract_units where contract_id=c.id;
  if found then
   if existing<>u.id then raise exception 'Existing mapping requires reviewed correction' using errcode='PT409'; end if;
   return jsonb_build_object('saved',true,'already_linked',true);
  end if;
- if c.status='Active' then
+ if lower(btrim(c.status))='active' then
   if c.start_date is null or c.end_date is null or c.end_date<=c.start_date then raise invalid_parameter_value; end if;
   if exists(select 1 from portal_private.leasing_contract_units l join public.contracts other on other.id=l.contract_id
-   where l.unit_id=u.id and other.status='Active' and (other.start_date is null or other.end_date is null
+   where l.unit_id=u.id and lower(btrim(other.status))='active' and (other.start_date is null or other.end_date is null
     or other.end_date<=other.start_date or (other.start_date<c.end_date and other.end_date>c.start_date))) then
    raise exception 'Overlapping active contract' using errcode='PT409';
   end if;
@@ -237,7 +241,7 @@ begin
  or exists(select 1 from portal_private.leasing_cases lc where lc.unit_id=h.unit_id and lc.id<>c.id
   and lc.stage='CONFIRMED' and lc.booking_cancelled_at is null and lc.start_date<h.end_date and lc.end_date>h.start_date)
  or exists(select 1 from public.contracts ct where ct.property_id=(select property_id from portal_private.leasing_units where id=h.unit_id)
-  and ct.status='Active' and (ct.start_date is null or ct.end_date is null or ct.end_date<=ct.start_date or (ct.start_date<h.end_date and ct.end_date>h.start_date))
+  and lower(btrim(ct.status))='active' and (ct.start_date is null or ct.end_date is null or ct.end_date<=ct.start_date or (ct.start_date<h.end_date and ct.end_date>h.start_date))
   and (not exists(select 1 from portal_private.leasing_contract_units l where l.contract_id=ct.id)
    or exists(select 1 from portal_private.leasing_contract_units l where l.contract_id=ct.id and l.unit_id=h.unit_id))) then
   raise exception 'Unit unavailable for extension' using errcode='PT409';
@@ -291,7 +295,7 @@ begin
  perform 1 from portal_private.leasing_units where id=new.unit_id and readiness='READY' for update;
  if not found then raise exception 'Unit not ready' using errcode='PT409'; end if;
  select c.* into ct from public.contracts c join portal_private.leasing_contract_units l on l.contract_id=c.id
- where c.id=new.contract_id and l.unit_id=new.unit_id and c.status='Active'
+ where c.id=new.contract_id and l.unit_id=new.unit_id and lower(btrim(c.status))='active'
  and c.property_id=(select property_id from portal_private.leasing_units where id=new.unit_id)
  and c.start_date=new.start_date and c.end_date=new.end_date;
  if not found then raise exception 'Confirmation requires an active contract for this exact unit and period' using errcode='PT409'; end if;
@@ -301,7 +305,7 @@ begin
   and h.start_date<new.end_date and h.end_date>new.start_date)
  or exists(select 1 from portal_private.leasing_cases c where c.id<>new.id and c.unit_id=new.unit_id
   and c.stage='CONFIRMED' and c.booking_cancelled_at is null and c.start_date<new.end_date and c.end_date>new.start_date)
- or exists(select 1 from public.contracts c where c.id<>new.contract_id and c.property_id=ct.property_id and c.status='Active'
+ or exists(select 1 from public.contracts c where c.id<>new.contract_id and c.property_id=ct.property_id and lower(btrim(c.status))='active'
   and (c.start_date is null or c.end_date is null or c.end_date<=c.start_date or (c.start_date<new.end_date and c.end_date>new.start_date))
   and (not exists(select 1 from portal_private.leasing_contract_units l where l.contract_id=c.id)
    or exists(select 1 from portal_private.leasing_contract_units l where l.contract_id=c.id and l.unit_id=new.unit_id))) then
@@ -319,10 +323,11 @@ declare unit uuid;
 begin
  if tg_op='UPDATE' and (new.property_id,new.status,new.start_date,new.end_date) is not distinct from
   (old.property_id,old.status,old.start_date,old.end_date) then return new; end if;
+ if new.status is null or lower(btrim(new.status)) not in ('active','draft','expired','terminated') then raise exception 'Contract status needs review before occupancy changes' using errcode='PT409'; end if;
  select unit_id into unit from portal_private.leasing_contract_units where contract_id=new.id;
  if unit is null then
   -- Legacy unmapped contracts remain visible as mapping-required. They cannot displace a hold/booking.
-  if new.status='Active' then
+  if lower(btrim(new.status))='active' then
    perform id from portal_private.leasing_units where property_id=new.property_id order by id for update;
    if exists(select 1 from portal_private.leasing_holds h join portal_private.leasing_units u on u.id=h.unit_id
     join portal_private.leasing_cases c on c.id=h.case_id where u.property_id=new.property_id
@@ -340,12 +345,12 @@ begin
  if new.property_id is distinct from (select property_id from portal_private.leasing_units where id=unit) then
   raise exception 'Mapped contract property cannot change' using errcode='PT409';
  end if;
- if new.status<>'Active' then return new; end if;
+ if lower(btrim(new.status))<>'active' then return new; end if;
  if new.start_date is null or new.end_date is null or new.end_date<=new.start_date then raise invalid_parameter_value; end if;
  if exists(select 1 from portal_private.leasing_cases c where c.contract_id=new.id and c.stage='CONFIRMED' and c.booking_cancelled_at is null
   and (c.unit_id,c.start_date,c.end_date) is distinct from (unit,new.start_date,new.end_date))
  or exists(select 1 from portal_private.leasing_contract_units l join public.contracts c on c.id=l.contract_id
-  where l.unit_id=unit and c.id<>new.id and c.status='Active'
+  where l.unit_id=unit and c.id<>new.id and lower(btrim(c.status))='active'
   and (c.start_date is null or c.end_date is null or c.end_date<=c.start_date or (c.start_date<new.end_date and c.end_date>new.start_date)))
  or exists(select 1 from portal_private.leasing_cases c where c.unit_id=unit and c.contract_id is distinct from new.id
   and c.stage='CONFIRMED' and c.booking_cancelled_at is null and c.start_date<new.end_date and c.end_date>new.start_date)

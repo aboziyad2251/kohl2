@@ -1,3 +1,4 @@
+import { withAudit } from '@/lib/audit/server';
 import { z } from 'zod';
 import { NextRequest } from 'next/server';
 import { requireIdentity, apiError, json, PortalError } from '@/lib/portal/server';
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
  } catch(error) {return apiError(error);}
 }
 
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
  try {
   const {client}=await requireIdentity(req,true);
   const raw=await req.text();
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
 }
 
 const specs=z.object({unit_id:z.string().uuid(),bedrooms:z.number().int().min(1).max(100).nullable(),entrances:z.number().int().min(1).max(20).nullable()}).strict();
-export async function PATCH(req:NextRequest){
+async function PATCHHandler(req:NextRequest){
  try{
   const {client}=await requireIdentity(req,true);
   const raw=await req.text();if(raw.length>1024)throw new PortalError(413,'طلب كبير');
@@ -48,3 +49,7 @@ export async function PATCH(req:NextRequest){
   return json(data);
  }catch(error){return apiError(error instanceof SyntaxError?new PortalError(400,'طلب غير صالح'):error);}
 }
+
+export const POST=withAudit(POSTHandler);
+
+export const PATCH=withAudit(PATCHHandler);

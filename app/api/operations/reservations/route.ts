@@ -1,3 +1,4 @@
+import { withAudit } from '@/lib/audit/server';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { requireIdentity,apiError,json,PortalError } from '@/lib/portal/server';
@@ -8,7 +9,7 @@ const action=z.discriminatedUnion('action',[
  z.object({action:z.literal('extend'),case_id:z.string().uuid(),reason:z.string().trim().min(1).max(1000)}).strict(),
  z.object({action:z.literal('cancel'),case_id:z.string().uuid()}).strict(),
 ]);
-export async function POST(req:NextRequest){
+async function POSTHandler(req:NextRequest){
  try{
   const {client,profile}=await requireIdentity(req);
   if(!['ADMIN','CEO','EMPLOYEE','LEASING'].includes(profile.account.role))throw new PortalError(403,'غير مخول');
@@ -39,3 +40,5 @@ export async function GET(req:NextRequest){
   return json(data);
  }catch(error){return apiError(error);}
 }
+
+export const POST=withAudit(POSTHandler);

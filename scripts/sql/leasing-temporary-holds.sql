@@ -72,7 +72,7 @@ begin
  or exists(select 1 from portal_private.leasing_cases lc where lc.unit_id=h.unit_id and lc.id<>c.id
   and lc.stage='CONFIRMED' and lc.booking_cancelled_at is null and lc.start_date<h.end_date and lc.end_date>h.start_date)
  or exists(select 1 from public.contracts ct where ct.property_id=(select property_id from portal_private.leasing_units where id=h.unit_id)
-  and ct.status='Active' and (ct.start_date is null or ct.end_date is null or ct.end_date<=ct.start_date or (ct.start_date<h.end_date and ct.end_date>h.start_date))
+  and lower(btrim(ct.status))='active' and (ct.start_date is null or ct.end_date is null or ct.end_date<=ct.start_date or (ct.start_date<h.end_date and ct.end_date>h.start_date))
   and (not exists(select 1 from portal_private.leasing_contract_units l where l.contract_id=ct.id)
    or exists(select 1 from portal_private.leasing_contract_units l where l.contract_id=ct.id and l.unit_id=h.unit_id))) then
   raise exception 'Unit unavailable for extension' using errcode='PT409';

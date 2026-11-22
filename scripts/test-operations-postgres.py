@@ -132,7 +132,7 @@ try:
  sql(f"insert into public.contracts values('{future_contract}','Concurrency draft','{agreement}','Draft',current_date+200,current_date+210);")
  sql(f"set role authenticated;select set_config('request.jwt.claim.sub','{admin}',false);select public.link_leasing_contract_unit('{future_contract}','{other}');reset role;")
  hold_sql=hold_command(race_case).replace('current_date+100,current_date+110','current_date+200,current_date+210')
- activate_sql=f"begin;update public.contracts set status='Active' where id='{future_contract}';commit;"
+ activate_sql=f"begin;update public.contracts set status='active' where id='{future_contract}';commit;"
  results=race(f"select id from portal_private.leasing_units where id='{other}' for update",[hold_sql,activate_sql])
  assert sorted(r[0]==0 for r in results)==[False,True],results
  assert any('PT409' in r[2] for r in results),results
