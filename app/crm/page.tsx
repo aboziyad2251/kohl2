@@ -3,6 +3,8 @@ import { useRouteTab } from '@/lib/navigation/useRouteTab';
 import {useLiveCrm} from '@/lib/crm/useLiveCrm';
 import {useDraftState,useDraftControls} from '@/lib/drafts/hooks';
 
+import EnhancementsSummaryCard from '@/components/upgrades/EnhancementsSummaryCard';
+import { scoreCandidatesForOpportunity, summarizeHatifActivitiesForLead, detectRepeatRentalAndSchedule } from '@/lib/upgrades/kohlDbAdapters';
 import React, { useState } from 'react';
 import Link from 'next/link';
 import {
@@ -70,6 +72,7 @@ export default function CrmPage() {
     crmDeals,
     crmActivities,
     properties,
+    contracts,
     employees,
     addCrmLead,
     updateCrmLead,
@@ -270,6 +273,92 @@ export default function CrmPage() {
     }
   };
 
+
+  const enhancementsData = React.useMemo(() => {
+    const firstLead: any = crmLeads[0];
+    const mappedProps = (properties || []).map((p: any) => ({
+      id: String(p.id || ''),
+      purpose: (String(p.purpose || p.listing_type || '').toLowerCase().includes('rent') ? 'rent' : 'sale') as 'sale' | 'rent' | 'both',
+      propertyType: String(p.property_type || p.type || p.title || 'عقار'),
+      city: p.city || null,
+      district: p.district || p.location || null,
+      askingPrice: Number(p.price || p.asking_price || p.rent_amount || 0) || null,
+      rooms: Number(p.rooms || p.bedrooms || 0) || null,
+      areaSqm: Number(p.area || p.area_sqm || 0) || null,
+      isAvailable: String(p.status || 'available').toLowerCase() !== 'sold',
+    }));
+
+    let matchResult = null;
+    if (firstLead && mappedProps.length > 0) {
+      const scored = scoreCandidatesForOpportunity(
+        {
+          id: String(firstLead.id || ''),
+          source: 'crm_lead',
+          purpose: String(firstLead.lead_type || '').toUpperCase() === 'TENANT' ? 'rent' : 'sale',
+          propertyType: firstLead.property_type || null,
+          city: firstLead.city || null,
+          district: firstLead.district || null,
+          minPrice: Number(firstLead.budget_min || 0) || null,
+          maxPrice: Number(firstLead.budget_max || 0) || null,
+          customerPhone: firstLead.phone || null,
+        },
+        mappedProps
+      );
+      matchResult = scored[0] || null;
+    }
+
+    const mappedActs = (crmActivities || []).map((a: any) => ({
+      id: String(a.id || ''),
+      leadId: a.lead_id || null,
+      activityType: a.activity_type || 'CALL',
+      notes: a.notes || '',
+      title: a.title || '',
+      createdAt: a.created_at || a.due_date || new Date().toISOString(),
+      dueDate: a.due_date || null,
+    }));
+    const hatifAgg = summarizeHatifActivitiesForLead(mappedActs);
+    const hatifSummary = hatifAgg.lastCall
+      ? {
+          directionLabelAr: hatifAgg.lastCall.directionLabelAr,
+          statusLabelAr: hatifAgg.lastCall.statusLabelAr,
+          durationLabelAr: hatifAgg.lastCall.durationLabelAr,
+          intentLabelAr: hatifAgg.lastCall.intentLabelAr,
+          alertLabelAr: `${hatifAgg.totalCalls} مكالمة • ${hatifAgg.lastCall.alertLabelAr}`,
+        }
+      : {
+          directionLabelAr: 'نشاط الهاتف',
+          statusLabelAr: `${crmActivities.length} نشاط مسجل`,
+          durationLabelAr: 'متصل بالنظام',
+          intentLabelAr: 'جاهز لتحليل المكالمات الواردة',
+          alertLabelAr: 'محدّث',
+        };
+
+    const mappedContracts = (contracts || []).map((c: any) => ({
+      id: String(c.id || ''),
+      propertyId: String(c.property_id || ''),
+      tenantId: c.tenant_id || null,
+      tenantPhone: c.tenant_phone || null,
+      rentAmount: Number(c.annual_rent || c.rent_amount || c.total_amount || 0),
+      paymentSchedule: c.payment_schedule || c.billing_cycle || 'Annual',
+      startDate: c.start_date || new Date().toISOString().slice(0, 10),
+      endDate: c.end_date || new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
+    }));
+    const rentalSummary = mappedContracts.length > 0
+      ? detectRepeatRentalAndSchedule({
+          contract: mappedContracts[0],
+          existingContracts: mappedContracts,
+        })
+      : {
+          cycleLabelAr: 'سنوي',
+          installmentsCount: 0,
+          totalContractAmount: 0,
+          nextDueDateIso: null,
+          renewalBadgeAr: 'لا توجد عقود نشطة',
+        };
+
+    return { match: matchResult, hatifSummary, rentalSummary };
+  }, [crmLeads, properties, crmActivities, contracts]);
+
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Top Banner */}
@@ -374,6 +463,7 @@ export default function CrmPage() {
         </div>
       </div>
 
+      <EnhancementsSummaryCard match={enhancementsData.match} hatifSummary={enhancementsData.hatifSummary} rentalSummary={enhancementsData.rentalSummary} />
       {/* Tabs */}
       <div className="flex border-b border-slate-800 gap-2 overflow-x-auto pb-1">
         <button
