@@ -2,6 +2,7 @@
 Use a local build or --app-image. Needs Docker and pinned service images; no production reads.
 """
 import argparse
+import datetime
 import base64
 import hashlib
 import hmac
@@ -36,6 +37,7 @@ def freeport():
  with socket.socket() as s:s.bind(('127.0.0.1',0));return s.getsockname()[1]
 def main():
  parser=argparse.ArgumentParser(description=__doc__)
+ parser.add_argument('--availability',action='store_true',help='Apply and verify the new availability and follow-up migrations')
  parser.add_argument('--app-image',help='Exact candidate image; runs the packaged app on the internal test network')
  parser.add_argument('--receipt',type=Path,help='Write an exclusive private acceptance receipt for this image')
  args=parser.parse_args()
@@ -119,6 +121,11 @@ REVOKE ALL ON FUNCTION public.portal_me() FROM public;GRANT EXECUTE ON FUNCTION 
     sql((ROOT/'supabase/migrations'/name).read_text())
    sql(f"SELECT set_config('kohl.workflow_manager','{owner}',false),set_config('kohl.workflow_final','{final}',false);"+(ROOT/'supabase/migrations/20261112172325_operations_approval_chain.sql').read_text())
    sql((ROOT/'supabase/migrations/20261113202336_leasing_specialist_account.sql').read_text())
+   availability_migrations=['20261122073344_leasing_availability_and_reservations.sql','20261122073458_leasing_followup_categories.sql']
+   if args.availability:
+    sql("ALTER TABLE public.contracts ADD COLUMN property_id uuid,ADD COLUMN status text,ADD COLUMN start_date date,ADD COLUMN end_date date;")
+    for migration in availability_migrations:sql((ROOT/'supabase/migrations'/migration).read_text())
+
    restport=start('rest',{'PGRST_DB_URI':f'postgres://authenticator:{password}@db:5432/postgres','PGRST_DB_SCHEMAS':'public','PGRST_DB_ANON_ROLE':'anon','PGRST_JWT_SECRET':secret},3000)
    restbase='http://'+restport+':3000';ready(restbase,'/')
    class Gateway(BaseHTTPRequestHandler):
@@ -164,6 +171,35 @@ REVOKE ALL ON FUNCTION public.portal_me() FROM public;GRANT EXECUTE ON FUNCTION 
    require(http(base,'/api/operations',child['access_token'],{'operation':'CONTACT_CREATE','id':contact,'name':'New contact','phone':'0500000001','source':'هاتف'}))
    require(http(base,'/api/operations',child['access_token'],{'operation':'CASE_CREATE','id':case,'lead_id':contact,'kind':'DAILY','source':'هاتف','need':'Unit','next_action':'Call','due_at':'2026-12-01T10:00:00Z'}))
    require(http(base,'/api/operations',child['access_token'],{'operation':'ENTRY_DECIDE','id':str(uuid.uuid4()),'status':'APPROVED','note':'Forbidden'}),403)
+   if args.availability:
+    stage='scoped availability and expiring reservation HTTP'
+    prop=str(uuid.uuid4());unit=str(uuid.uuid4());second_unit=str(uuid.uuid4())
+    sql(f"INSERT INTO public.properties VALUES('{prop}','Synthetic apartments');INSERT INTO portal_private.leasing_units VALUES('{unit}','{prop}','A','READY','Fixture'),('{second_unit}','{prop}','B','READY','Fixture');")
+    tomorrow=datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=3))).date()+datetime.timedelta(days=10)
+    departure=tomorrow+datetime.timedelta(days=2)
+    search='/api/operations/availability?from='+str(tomorrow)+'&to='+str(departure)+'&bedrooms=3&entrances=2'
+    require(http(base,'/api/operations/availability',parent['access_token'],{'unit_id':unit,'bedrooms':3,'entrances':2},method='PATCH'))
+    require(http(base,'/api/operations/availability',child['access_token'],{'unit_id':unit,'bedrooms':3,'entrances':2},method='PATCH'),403)
+    result=require(http(base,search,child['access_token']))
+    assert len(result['units'])==1 and result['units'][0]['id']==unit and result['units'][0]['available']
+    assert result['unknown_specs_excluded']==1
+    reservation={'action':'reserve','case_id':case,'unit_id':unit,'from':str(tomorrow),'to':str(departure)}
+    held=require(http(base,'/api/operations/reservations',child['access_token'],reservation))
+    assert require(http(base,'/api/operations/reservations',child['access_token'],reservation))['expires_at']==held['expires_at']
+    result=require(http(base,search,child['access_token']))
+    assert result['units'][0]['reason']=='HELD' and not result['units'][0]['available']
+    status=require(http(base,'/api/operations/reservations',child['access_token']))
+    assert len(status['reservations'])==1 and status['reservations'][0]['status']=='ACTIVE'
+    require(http(base,'/api/operations/reservations',child['access_token'],{'action':'cancel','case_id':case}),403)
+    require(http(base,'/api/operations/reservations',child['access_token'],{'action':'extend','case_id':case,'reason':'Forbidden'}),403)
+    require(http(base,'/api/operations/reservations',other['access_token'],{'action':'cancel','case_id':case}),403)
+    require(http(base,'/api/operations/reservations',parent['access_token'],{'action':'cancel','case_id':case}))
+    assert require(http(base,search,child['access_token']))['units'][0]['available']
+    task=str(uuid.uuid4())
+    require(http(base,'/api/operations',child['access_token'],{'operation':'FOLLOWUP_ADD','id':task,'case_id':case,'title':'Arrange viewing','category':'VIEWING','due_at':str(tomorrow)+'T10:00:00Z'}))
+    tasks=require(http(base,'/api/operations',child['access_token']))['followups']
+    assert next(f for f in tasks if f['id']==task)['category']=='VIEWING'
+    print('REAL AVAILABILITY HTTP PASSED: explicit filters, scoped reservation, idempotency, manager cancellation and follow-up category',flush=True)
    stage='return binding and parent revocation'
    # A second real child login has no registered delegation and cannot use the first cookie.
    child_user=require(http(authbase,'/user',child['access_token']))
@@ -176,6 +212,9 @@ REVOKE ALL ON FUNCTION public.portal_me() FROM public;GRANT EXECUTE ON FUNCTION 
    returned=require(http(base,'/api/auth/leasing-switch',child['access_token'],{'operation':'RETURN'},headers={'Origin':switch_origin,'Cookie':cookie}))['session']
    assert require(http(authbase,'/user',returned['access_token']))['id']==owner
    assert http(base,'/api/operations',child['access_token'])[0] in (401,403)
+   if args.availability:
+    assert http(base,'/api/operations/reservations',child['access_token'])[0] in (401,403)
+    assert http(base,search,child['access_token'])[0] in (401,403)
    # Refreshing a child cannot grant administrative capabilities.
    switched=http(base,'/api/auth/leasing-switch',returned['access_token'],{'operation':'ENTER','refresh_token':returned['refresh_token']},headers={'Origin':switch_origin})
    child2=require(switched)['session']
@@ -189,6 +228,8 @@ REVOKE ALL ON FUNCTION public.portal_me() FROM public;GRANT EXECUTE ON FUNCTION 
     with args.receipt.open('x') as receipt:
      json.dump({'passed':True,'image':args.app_image,'production_changed':False,
        'migration_sha256':hashlib.sha256((ROOT/'supabase/migrations/20261113202336_leasing_specialist_account.sql').read_bytes()).hexdigest(),
+       'availability':args.availability,
+       'availability_migrations':{name:hashlib.sha256((ROOT/'supabase/migrations'/name).read_bytes()).hexdigest() for name in availability_migrations} if args.availability else {},
        'test_script_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'created_epoch':time.time()},receipt,indent=2)
    print('REAL LEASING SWITCH PASSED: custom Auth role, new requests, direct API/REST denial, encrypted return, refresh isolation and parent logout revocation',flush=True)
   except Exception as e:

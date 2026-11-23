@@ -43,8 +43,16 @@ jobs:
           node tests/recovery-disabled.cjs
           node tests/hatif.cjs
           node tests/drafts.cjs
+          node tests/market-matching.cjs
+          node tests/market-matching-db.cjs
+          node tests/market-matching-api.cjs
           node tests/navigation.cjs
           node tests/employee-tour.cjs
+          node tests/leasing-availability.cjs
+          node tests/leasing-booking-cancellation.cjs
+          python3 -B tests/leasing-availability-preflight.py
+          python3 -B tests/availability-release-preparation.py
+          python3 -B tests/availability-release-dispatcher.py
           node tests/kr.cjs
           node tests/kr-workflow-db.cjs
           node tests/kr-management-db.cjs
@@ -85,6 +93,8 @@ jobs:
           python3 -B tests/approval-release-preparation.py --integration
           python3 -B tests/approval-release-preparation.py --integration --dispatcher
           python3 -B tests/leasing-release-preparation.py --integration --dispatcher
+          python3 -B tests/availability-release-preparation.py --integration
+          python3 -B tests/availability-release-dispatcher.py --integration
 
       - name: Real isolated leasing identity switch
         if: matrix.node == 22
@@ -93,4 +103,4 @@ jobs:
           docker pull postgrest/postgrest@sha256:54000f24847d01a2c2302e0041cf0618b875c57fb48507d743cfa9aaa50bf43c
           docker build -f tests/fixtures/Dockerfile.leasing-http -t kohl-leasing-http-fixture .
           leasing_test_image=$(docker image inspect kohl-leasing-http-fixture --format '{{.Id}}')
-          python3 -B scripts/test-leasing-switch.py --app-image "$leasing_test_image" --receipt "$RUNNER_TEMP/leasing-http-receipt.json"
+          python3 -B scripts/test-leasing-switch.py --availability --app-image "$leasing_test_image" --receipt "$RUNNER_TEMP/leasing-http-receipt.json"

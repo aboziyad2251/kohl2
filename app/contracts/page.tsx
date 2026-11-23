@@ -211,6 +211,17 @@ export default function ContractsPage() {
                     <tr key={contract.id} className="hover:bg-slate-800/40 transition">
                       <td className="p-4 font-bold text-sky-400 dir-ltr text-right">
                         {contract.contract_number}
+                          <details className="mt-2 text-sm font-normal whitespace-normal min-w-[220px]">
+                            <summary className="cursor-pointer text-sky-400">معاينة بيانات العقد</summary>
+                            <dl className="space-y-2 mt-3">
+                              <div><dt>المستأجر</dt><dd>{contract.tenant_name}</dd></div>
+                              <div><dt>العقار</dt><dd>{contract.property?.title||properties.find(p=>p.id===contract.property_id)?.title||'غير مسجل'}</dd></div>
+                              <div><dt>مدة العقد</dt><dd>{contract.start_date} — {contract.end_date}</dd></div>
+                              <div><dt>قيمة الإيجار</dt><dd>{contract.rent_amount.toLocaleString('ar-SA')} ر.س</dd></div>
+                              <div><dt>دورية السداد</dt><dd>{contract.payment_schedule}</dd></div>
+                            </dl>
+                            <p className="mt-3 text-xs">بيانات النظام؛ ليست نسخة العقد الموقّع.</p>
+                          </details>
                       </td>
 
                       <td className="p-4">

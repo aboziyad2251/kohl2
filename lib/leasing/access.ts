@@ -3,6 +3,8 @@
 export function leasingApiAllowed(path: string, method: string) {
   return (path === '/api/portal/me' && method === 'GET')
     || (path === '/api/operations' && ['GET','POST'].includes(method))
+    || (path === '/api/operations/availability' && method === 'GET')
+    || (path === '/api/operations/reservations' && ['GET','POST'].includes(method))
     || (path === '/api/auth/leasing-switch' && ['GET','POST'].includes(method))
     || (path === '/api/auth/logout' && method === 'POST');
 }

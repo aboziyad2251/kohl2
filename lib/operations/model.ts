@@ -1,3 +1,4 @@
+import {followupCategories,FollowupCategory} from "./followups";
 import { z } from "zod";
 import { reportDate } from "@/lib/kr/schema";
 const id = z.string().uuid(),
@@ -107,6 +108,7 @@ export const operationAction = z.discriminatedUnion("operation", [
   z
     .object({
       operation: z.literal("FOLLOWUP_ADD"),
+      category: z.enum(followupCategories).optional(),
       id,
       case_id: id,
       title: short,
@@ -187,6 +189,7 @@ export type Case = {
   updated_at: string;
 };
 export type Followup = {
+  category?:FollowupCategory;
   origin?: "HUMAN" | "LEASING_ASSISTANT";
   id: string;
   case_id: string;

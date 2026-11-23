@@ -1,4 +1,5 @@
 "use client";
+import PrivateDocumentPreview from "@/components/common/PrivateDocumentPreview";
 import { useRef, useState } from "react";
 import type { FinanceDocument } from "@/lib/operations/model";
 import { operationsFetch, saveDownload } from "@/lib/operations/client";
@@ -15,6 +16,7 @@ export default function DocumentsPanel({
 }) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const [previewId,setPreviewId]=useState<string|null>(null);
   const input = useRef<HTMLInputElement>(null);
   async function upload() {
     const file = input.current?.files?.[0];
@@ -70,9 +72,11 @@ export default function DocumentsPanel({
             disabled={busy}
             onClick={() => void download(d)}
           >
-            {d.filename}
+            تنزيل {d.filename}
           </button>
+          <button className="ops-link" type="button" aria-expanded={previewId===d.id} onClick={()=>setPreviewId(previewId===d.id?null:d.id)}>{previewId===d.id?'إغلاق المعاينة':'معاينة'}</button>
           <small> · {Math.ceil(d.size / 1024)} كيلوبايت</small>
+          {previewId===d.id&&<PrivateDocumentPreview key={d.id} path={"/api/operations/documents?id="+d.id} filename={d.filename}/>}
         </div>
       ))}
       {editable && (

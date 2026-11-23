@@ -239,3 +239,170 @@ image and run exact-image acceptance with its new ID:
 This build helper reads only public build settings from the running main container,
 performs no deployment and invokes only the isolated synthetic test. Its source
 checkout must be clean and contain no real environment files.
+
+## Leasing availability implementation — 22 November 2026
+
+Branch `feat/leasing-availability`, draft PR #7. No production deployment has occurred.
+The two CLI-created migrations are `20261122073344_leasing_availability_and_reservations.sql`
+and `20261122073458_leasing_followup_categories.sql`. The first packages the isolated
+`scripts/sql/leasing-*.sql` candidates into one transaction; the specialist test checks
+source parity and verifies complete rollback if the legacy core signature differs.
+Do not apply individual candidate files to production.
+
+Implemented:
+- Precise contract/unit mapping and date availability, with unmapped active contracts
+  conservatively blocking the affected property until reviewed. Historical text labels
+  are never automatically treated as exact unit IDs. Checkout date is exclusive.
+- Annual 72-hour holds, monthly 24-hour holds with one designated extension to 72 hours
+  from creation, daily holds of 2 hours for Riyadh arrivals today/tomorrow and 12 otherwise.
+  Retries preserve deadlines; expiry is evaluated on reads, without a cron job.
+- Only configured Mohammed ADMIN and Salem CEO can cancel any booking without a reason,
+  extra approval or financial prerequisite. Audit and financial records remain; an active
+  linked contract continues to occupy its unit after booking cancellation.
+- Legacy confirmation requires an active contract mapped to the exact unit and period.
+  Contract edits/activation, holds and confirmation use shared unit locks. The old overlap
+  checks are patched with exact-signature guards to ignore explicitly cancelled bookings.
+- Apartment-specific room/entrance attributes with executive editing and audit. Arabic
+  descriptions suggest editable explicit filters; unknown attributes are excluded rather
+  than inferred from building-wide counts. Other prose is not silently treated as a filter.
+- Reservation controls and persisted status/deadline display, refreshed every 30 seconds.
+  Any reservation mutation invalidates prior availability results. Scoped specialist
+  sessions can search and reserve their own new cases, but cannot map contracts, change
+  attributes, extend or cancel. Writes retain the specialist and delegating operator IDs.
+- Inline record summaries for rental/brokerage agreements. These are explicitly labelled
+  system records, not signed originals. Financial attachments support authenticated inline
+  PDF/image preview; no public Storage URL is created, HTML types are rejected, and local
+  blob URLs are revoked on close/change. Existing archive PDF viewing remains unchanged.
+- Structured follow-up categories and editable suggestions, with category totals by due
+  date and selected employee/period in Riyadh time. Existing tasks stay GENERAL. Readiness
+  follow-ups coordinate with the operations manager; collection does not confer approval.
+
+Verification: synthetic SQL covers permissions, exact mapping, expiry, cancellation,
+legacy guards, per-unit attributes and session revocation. PostgreSQL 17 runs the complete
+migration pair and verifies competing holds/contract activation, grants/RLS, categories,
+and existing financial concurrency regressions. Browser component acceptance uses mocked
+APIs on a mobile viewport; it checks Arabic filters, stale-result removal, persisted hold
+status, hidden employee cancellation controls and denied image previews. It does not prove
+production auth or native PDF viewer behavior. Run with `PLAYWRIGHT_MODULE=<installed
+playwright module> node tests/leasing-ui-browser.cjs`. TestSprite CLI is unavailable here.
+
+Before release: run `scripts/preflight-leasing-availability.py` on the VPS. It is read-only,
+checks Hatif/live runtime and disabled recovery, and prints only aggregate attachment/schema
+metadata and image IDs. No raw URLs, tokens or tenant identities are output. Original
+brokerage/contract file storage still needs this evidence before secure signed-file previews
+can be wired; system-record summaries are not a substitute for those originals.
+
+Still needed: exact built-image API acceptance with both new migrations, production backup
+restore/rehearsal and a reviewed pinned apply/rollback dispatcher. Preserve Hatif through
+`prepare_hatif_runtime`, preserve original runtime for rollback, and keep broker/account
+containers and disabled recovery unchanged. Do not run historical release scripts.
+
+VPS evidence received 22 November: main remains the tour image `bdc7734c...`, broker
+and account images unchanged, Hatif file matches live and recovery is disabled.
+Availability migration is absent, specialist role exists, leasing_units count is zero,
+and literal Active contract count is zero. Do not equate that last count with no
+contracts: the enhanced preflight reports total and normalized status counts.
+Nine brokerage file references were classified other_reference. Repository inspection
+found NewBrokerageAgreementModal inserting `/docs/sample_brokerage.pdf` when no upload
+exists; no such static asset exists in the checkout. New creation no longer inserts
+that placeholder; existing data is preserved and recognized as no original attachment.
+The enhanced preflight distinguishes this known placeholder from other references.
+
+`python3 -B scripts/test-leasing-switch.py --availability` now tests both new migrations
+with real isolated GoTrue, PostgREST and the built Next app. Local acceptance passed:
+filtered search, specialist reservation, unchanged retry deadline, scoped status,
+designated cancellation, categorized follow-up, and revoked delegated-session denial.
+This run used the local production build, not a pinned deployable image. The same flag
+supports `--app-image` with a private receipt containing migration hashes for the later
+release preparation. Signed original-file storage evidence and image/backup rehearsal
+remain required before deployment.
+
+Latest VPS evidence: both contracts have statuses outside the four expected literals,
+and all nine brokerage references are the historical sample placeholder. No signed
+original can be recovered from those reference values alone. Unknown/null contract
+statuses now conservatively block period availability for the associated property
+with CONTRACT_STATUS_REVIEW, and cannot be mapped/changed for occupancy until reviewed;
+no production status is normalized or modified automatically.
+
+GitHub run 45000883119 failed in both Node versions because the new API mutation routes
+lacked the mandatory request-audit wrapper. POST/PATCH are now wrapped with withAudit;
+GET availability/status reads remain unwrapped to avoid routine polling audit noise.
+The complete mocked/unit workflow group passes locally. CI's real HTTP acceptance now
+also uses --availability so it covers the new migration pair and booking endpoints.
+
+The subsequent read-only VPS query identified both statuses as lowercase `active`.
+All new occupancy readers, mapping/confirmation guards and hold-extension conflict
+checks now normalize case and surrounding whitespace at comparison time. No saved
+contract is rewritten. The unknown-status conservative block remains for truly
+unrecognized values. Tests cover active/Active/ACTIVE and padded values, lowercase
+confirmation/activation and the native concurrent activation/hold race.
+
+## Availability preparation (no production apply)
+
+`scripts/prepare-availability-release.py` pins application commit
+`a63cba7609ee1e78ee78c7dc38c50eec29fdded7`, both migration hashes and the three
+VPS image IDs verified above. It imports only the established pure Hatif/runtime,
+source-archive build and isolated-restore helpers; no historical prepare/release
+main function is called. It validates recovery=false and Hatif before building.
+
+The preparation builds from git archive (not the operator's live checkout), verifies
+source image labels and runs exact-image HTTP acceptance with --availability. It
+then creates a fresh private pg_dump plus role definitions without password hashes,
+restores into a network-disabled disposable database and applies both migrations
+in one transaction. It verifies grants, RLS, triggers and empty new tables, and
+compares every existing business/auth/storage table fingerprint, excluding only the
+new default columns. Existing assignments, active lowercase contracts, history and
+financial records must remain unchanged. Source/core mismatch or a late SQL error
+must fail closed and roll back the pair.
+
+Only read-only SQL, pg_dump and pg_restore --list are used against supabase-db.
+No main/broker/account stop, rename, start, migration or nginx reload is included.
+Private artifacts live under /home/debian/backups/kohl-availability-plan-* with
+owner-only permissions. Runtime JSON, backups, role files and logs must not be shared.
+The final plan records exact source/image/migration/backup/receipt hashes; a separate
+reviewed apply/rollback dispatcher and a fresh backup at cutover remain required.
+
+Validation: six preparation boundary tests (including unchanged runtime, read-only
+production query wrapping, mandatory availability receipt/hash checks and private
+artifact modes) and a native synthetic dump/restore rehearsal with real PostgreSQL
+passed. The rehearsal detects excessive grants and verifies late-error atomic
+rollback. These results do not claim a VPS preparation has already been performed.
+
+## Availability cutover dispatcher (22 November 2026)
+
+The operator reported successful VPS preparation at
+`/home/debian/backups/kohl-availability-plan-zrf3jqk3`, including exact-image HTTP
+acceptance and private backup restore with both migrations and data preservation.
+`scripts/release-availability.py` pins the accepted image
+`sha256:9bae346387ec38d2eadf79360e67bdb5a5078a2acc2c32711a1b7d275d3a078e`.
+Application source and the two migration hashes remain unchanged from preparation.
+
+The default `--plan <directory>` mode validates the plan, receipt, backup, role-file
+hash, image source label, designated reviewer configuration, unchanged live runtime,
+Hatif and disabled account recovery. It performs read-only database checks and an
+nginx configuration test; it does not create a release, migrate or restart anything.
+
+`--apply --approved-image <exact candidate>` takes a new checked backup, revalidates
+live state, applies both migrations in one transaction with bounded locks, guards
+the reviewer configuration and verifies privileges before commit. Only the main
+container is switched; the stopped original is retained with restart disabled.
+Internal and public route health checks plus broker/account preservation are required.
+A host-wide lock and durable attempt marker prevent concurrent or blind repeat apply.
+Unknown SQL outcomes require receipt review, not automatic reapplication.
+
+Cutover failures restore the original main container, restart policy and nginx
+routing, retaining the additive schema and all data. Recovery never disables the
+already-deployed specialist account or rewrites financial records. New occupancy
+guards remain active and may reject unsupported legacy writes; app-only recovery
+is not a schema rollback. Explicit recovery uses `--rollback <private release dir>`
+and `--approved-image <original main image>` against the same plan. It refuses a
+foreign replacement container or changed Hatif secrets. Private logs/runtime files
+must not be shared. No production deployment is claimed by these local tests.
+
+Validation: 15 stateful dispatcher tests cover dry-run non-mutation, missing/changed
+artifacts, unapproved image, runtime drift, final Hatif validation, interruptions,
+Docker failures before and after mutations, health failures and durable repeatable
+app-only recovery. Native PostgreSQL validation covers the exact guarded migration
+transaction, reviewer drift, late errors, excessive grants, repeated apply rejection
+and preservation of existing data. TestSprite CLI is unavailable in this workspace;
+these checks use the repository's Python/native PostgreSQL harnesses.

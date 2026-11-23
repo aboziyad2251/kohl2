@@ -8,6 +8,9 @@ const server=loadTS('lib/portal/server.ts',{
 const req=(p,method='GET')=>new NextRequest('https://fixture.invalid'+p,{method,headers:{authorization:'Bearer fixture'}});
 (async()=>{
  await server.requireIdentity(req('/api/operations'));assert.equal(rpcCalls.pop(),'leasing_profile');
+ for(const [path,method] of [['/api/operations/availability','GET'],['/api/operations/reservations','GET'],['/api/operations/reservations','POST']])await server.requireIdentity(req(path,method));
+ for(const method of ['POST','PATCH','DELETE'])await assert.rejects(()=>server.requireIdentity(req('/api/operations/availability',method)),e=>e.status===403);
+ await assert.rejects(()=>server.requireIdentity(req('/api/operations/reservations','DELETE')),e=>e.status===403);
  for(const path of ['/api/access/users','/api/operations/export','/api/operations/documents','/api/portal/dashboard','/api/search']){
   const count=rpcCalls.length;await assert.rejects(()=>server.requireIdentity(req(path)),e=>e.status===403);assert.equal(rpcCalls.length,count);
  }
