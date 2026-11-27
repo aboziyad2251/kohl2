@@ -1,4 +1,5 @@
 import { adminClient } from '@/lib/portal/server';
+import { sendHatifWhatsAppText } from '@/lib/integrations/hatif';
 
 function normAr(text: string): string {
   return (text || '')
@@ -67,6 +68,8 @@ export async function runHatifAutoMatch(params: {
   leadId: string;
   leadName: string;
   notes: string;
+  phone?: string;
+  kind?: string;
 }) {
   const intent = parseHatifIntent(params.notes);
   const client = adminClient();
@@ -241,5 +244,59 @@ export async function runHatifAutoMatch(params: {
     created_by_name: 'محرك المطابقة الآلي · هاتف',
   });
 
-  return { matched: scored.length, topScore: scored[0].score };
+  // Optional WhatsApp Auto-Reply via Hatif (controlled by HATIF_AUTO_REPLY_ENABLED=true)
+  let autoReplySent = false;
+  if (
+    process.env.HATIF_AUTO_REPLY_ENABLED === 'true' &&
+    params.kind === 'WHATSAPP' &&
+    params.phone &&
+    scored[0].score >= 55
+  ) {
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+    const { data: recentReply } = await client
+      .from('crm_activities')
+      .select('id')
+      .eq('lead_id', params.leadId)
+      .eq('created_by_name', 'رد آلي · هاتف')
+      .gte('created_at', sixHoursAgo)
+      .limit(1);
+
+    if (!recentReply || recentReply.length === 0) {
+      const replyLines = scored.map(
+        (m, i) =>
+          `${i + 1}) ${m.p.property_name || 'عقار'} — ${m.p.district || m.p.city || 'جدة'}${m.p.price ? ' | ' + Number(m.p.price).toLocaleString() + ' ر.س' : ''}`
+      );
+      const replyText = [
+        'حياك الله في *كحل العقارية* 🏡',
+        'بناءً على طلبك، هذه أقرب العقارات المتاحة لدينا حالياً:',
+        '',
+        ...replyLines,
+        '',
+        'أرسل رقم العقار المناسب لك وسيتواصل معك مستشارنا فوراً للتفاصيل والمعاينة.',
+      ].join('\n');
+
+      try {
+        await sendHatifWhatsAppText({
+          toNumber: params.phone,
+          text: replyText,
+          openConversation: false,
+        });
+        autoReplySent = true;
+        await client.from('crm_activities').insert({
+          lead_id: params.leadId,
+          lead_or_client_name: params.leadName,
+          activity_type: 'WHATSAPP',
+          title: `رد آلي عبر هاتف (${scored.length} عقارات)`,
+          notes: replyText,
+          due_date: new Date().toISOString().slice(0, 10),
+          status: 'COMPLETED',
+          created_by_name: 'رد آلي · هاتف',
+        });
+      } catch (err) {
+        console.error('hatifAutoReply error:', err);
+      }
+    }
+  }
+
+  return { matched: scored.length, topScore: scored[0].score, autoReplySent };
 }

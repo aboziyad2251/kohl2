@@ -14,7 +14,7 @@ async function POSTHandler(req:NextRequest,{params}:{params:{kind:string}}){try{
  const raw=Buffer.concat(chunks);if(!verifyHatif(raw,req.headers.get('x-voxa-signature'),secret))throw new HatifError(401,'توقيع غير صالح');
  let body;try{body=JSON.parse(raw.toString('utf8'));}catch{throw new HatifError(400,'JSON غير صالح');}
  const p=parseHatif(params.kind,body);const event=await normalizeHatifEvent(params.kind,p);if(!event)return Response.json({received:true,ignored:true});
- const {data,error}=await adminClient().rpc('ingest_hatif_crm_event',{event});if(error)throw new HatifError(503,'تعذر حفظ الحدث؛ ستتم إعادة المحاولة');let autoMatch=null;if(data&&!data.duplicate&&data.lead_id){try{autoMatch=await runHatifAutoMatch({leadId:data.lead_id,leadName:event.name,notes:event.notes});}catch(err){console.error('hatifAutoMatch error:',err);}}
+ const {data,error}=await adminClient().rpc('ingest_hatif_crm_event',{event});if(error)throw new HatifError(503,'تعذر حفظ الحدث؛ ستتم إعادة المحاولة');let autoMatch=null;if(data&&!data.duplicate&&data.lead_id){try{autoMatch=await runHatifAutoMatch({leadId:data.lead_id,leadName:event.name,notes:event.notes,phone:event.phone,kind:event.kind});}catch(err){console.error('hatifAutoMatch error:',err);}}
  return Response.json({received:true,...data,autoMatch});
  }catch(e){return Response.json({error:e instanceof HatifError?e.message:'تعذر استقبال الحدث؛ أعد المحاولة'},{status:e instanceof HatifError?e.status:503});}}
 

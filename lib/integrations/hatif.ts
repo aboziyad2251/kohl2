@@ -23,3 +23,29 @@ export async function normalizeHatifEvent(kind:string,p:ReturnType<typeof parseH
  return {workspace_id:hatifScope.workspace,channel_id:hatifScope.channel,event_id:String(kind==='calls'?p.callId:p.conversationEventId),kind:kind==='calls'?'CALL':'WHATSAPP',phone:contact.phone,name:contact.name||'عميل هاتف '+contact.phone.slice(-4),occurred_at:date.toISOString(),title:kind==='calls'?'مكالمة عبر هاتف':'رسالة واتساب عبر هاتف',notes:[content,summary,kind==='calls'?'مدة المكالمة: '+String(p.callLength||'غير محددة').slice(0,30):'نوع الرسالة: '+String(p.messageType||'غير محدد').slice(0,40)].filter(Boolean).join('\n')};
 }
 
+export async function getHatifAccessToken(){
+ const id=process.env.HATIF_CLIENT_ID,secret=process.env.HATIF_CLIENT_SECRET;
+ if(!id||!secret)throw new HatifError(503,'بيانات API هاتف غير مكتملة');
+ if(!token||token.until<Date.now()){
+  const r=await fetch('https://api.voxa.sa/connect/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','User-Agent':'KohlCRM/1.0'},body:new URLSearchParams({client_id:id,client_secret:secret,grant_type:'client_credentials',scope:'VoxaAPI'}),cache:'no-store',signal:AbortSignal.timeout(10000),redirect:'error'});
+  if(!r.ok)throw new HatifError(503,'تعذر الاتصال بهاتف');
+  const t=await r.json();
+  if(typeof t.access_token!=='string'||typeof t.expires_in!=='number')throw new HatifError(503,'استجابة هاتف غير صالحة');
+  token={value:t.access_token,until:Date.now()+Math.max(0,Math.min(t.expires_in,3600)-60)*1000};
+ }
+ return token.value;
+}
+export async function sendHatifWhatsAppText(params:{toNumber:string;text:string;openConversation?:boolean}){
+ const accessToken=await getHatifAccessToken();
+ const r=await fetch('https://api.voxa.sa/v1/whatsapp/service-account/sendText',{
+  method:'POST',
+  headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json','User-Agent':'KohlCRM/1.0'},
+  body:JSON.stringify({channelId:hatifScope.channel,toNumber:params.toNumber,text:params.text,openConversation:params.openConversation??false}),
+  cache:'no-store',
+  signal:AbortSignal.timeout(10000),
+  redirect:'error'
+ });
+ if(r.status===401)token=undefined;
+ if(!r.ok){const errText=await r.text().catch(()=>'');throw new HatifError(r.status,'فشل إرسال واتساب عبر هاتف: '+errText.slice(0,200));}
+ return await r.json();
+}
